@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 from datetime import datetime
 
 class ContextUpdateEvent(BaseModel):
@@ -19,3 +19,4 @@ class ContextUpdateResponse(BaseModel):
     after: dict
     rerouted: bool
     reason: str
+    updated_ranking: Optional[Dict[str, Any]] = None  # Re-ranked routes after recalculation

@@ -79,4 +79,5 @@ export interface ContextUpdateResponse {
   };
   rerouted: boolean;
   reason: string;
+  updated_ranking?: RouteRankingResponse | null;
 }

@@ -110,3 +110,91 @@ def test_context_update_rerouting():
     assert data['rerouted'] is True
     assert data['after']['safest_route_id'] == 'route2'
 
+from unittest.mock import patch, MagicMock
+
+@patch("httpx.AsyncClient.get")
+def test_context_update_paharganj_preserves_high_risk(mock_get):
+    """
+    Regression test: ensures that after a High-Risk Demo journey is created with
+    differentiated route contexts (safer corridor vs risky corridor), a subsequent
+    context-update on the safer route's segment does NOT reset the risky route back
+    to default baseline, and that updated_ranking is returned correctly.
+    """
+    PAHARGANJ_TWO_ROUTES = {
+        "code": "Ok",
+        "routes": [
+            {
+                "distance": 25000.0, "duration": 1700.0,
+                "legs": [{"steps": [{"distance": 25000.0, "duration": 1700.0,
+                    "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
+                }]}]
+            },
+            {
+                "distance": 24700.0, "duration": 1600.0,
+                "legs": [{"steps": [{"distance": 24700.0, "duration": 1600.0,
+                    "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
+                }]}]
+            }
+        ]
+    }
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = PAHARGANJ_TWO_ROUTES
+    mock_response.raise_for_status.return_value = None
+    mock_get.return_value = mock_response
+
+    # 1. Create the journey in Paharganj
+    create_resp = client.post(
+        f"{settings.API_V1_STR}/journeys/",
+        json={
+            "origin": {"latitude": 28.6433, "longitude": 77.2132},
+            "destination": {"latitude": 28.5525, "longitude": 77.0597}
+        }
+    )
+    assert create_resp.status_code == 200
+    journey_data = create_resp.json()
+    journey_id = journey_data["journey_id"]
+    segment_id = journey_data["segments"][0]["segment_id"]
+
+    ranking = journey_data["ranking"]
+    fastest = ranking["fastest_route"]
+    safest = ranking["safest_route"]
+
+    # Fastest route (risky corridor, route_idx=1) should have high initial risk
+    assert fastest["risk_score"] > 70.0, f"Expected fastest to be high-risk, got {fastest['risk_score']}"
+    # Safest route should be lower risk than fastest
+    assert safest["risk_score"] < fastest["risk_score"]
+
+    # 2. Send a context update on the safest route's segment
+    update_resp = client.post(
+        f"{settings.API_V1_STR}/journeys/{journey_id}/context-update",
+        json={
+            "segment_id": segment_id,
+            "event_type": "validated_report",
+            "severity": 85,
+            "source": "simulated_demo",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "active": True
+        }
+    )
+
+    assert update_resp.status_code == 200
+    update_data = update_resp.json()
+
+    # 3. updated_ranking must be present
+    assert "updated_ranking" in update_data
+    assert update_data["updated_ranking"] is not None
+
+    updated_ranking = update_data["updated_ranking"]
+    new_safest = updated_ranking["safest_route"]
+    new_fastest = updated_ranking["fastest_route"]
+
+    print(f"\nAfter update - safest risk: {new_safest['risk_score']:.1f}  fastest risk: {new_fastest['risk_score']:.1f}")
+
+    # 4. After safety report, the risky corridor (fastest) is still high-risk
+    assert new_fastest["risk_score"] > 50.0, "Risky corridor should remain materially risky after update"
+
+    # 5. Safest route should still be safer than fastest
+    assert new_safest["risk_score"] < new_fastest["risk_score"], "Safest route should remain safer than fastest after update"
+
