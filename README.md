@@ -134,3 +134,16 @@ Phase 3C adds explainability to the XGBoost contextual risk model using SHAP (SH
 - **Heuristic Fallback**: SHAP is unavailable when the ML model is not active. In such cases, SAKHI seamlessly falls back to the deterministic Phase 3A heuristic without fabricating SHAP values.
 - **Prototype Limitation**: SHAP explains the behavior of the trained prototype model on synthetic data; it does not validate the model's real-world predictive accuracy.
 
+
+### Phase 4 — Risk-Aware Route Ranking
+
+Phase 4 aggregates segment-level contextual risk into route-level metrics and provides three distinct route options: Safest, Balanced, and Fastest.
+
+#### Key Principles:
+- **Route Aggregation**: A duration-weighted average is used to aggregate segment risk scores into a total route risk score. This accounts for time-based exposure.
+- **Normalization**: Min-Max normalization is used across candidate routes to align travel time and risk scores onto comparable 0-1 scales before applying weighting coefficients. When all candidates share identical values, the normalized value is 0.0.
+- **Uncertainty Penalty**: Calculated as 1 - normalized_confidence. Confidence is treated strictly as an uncertainty measure (lack of evidence), not a proxy for danger.
+- **Route Cost Formula**: cost = alpha * normalized_time + beta * normalized_risk + gamma * uncertainty_penalty (lowest cost wins).
+- **Safest / Balanced / Fastest Profiles**: The ranking engine applies different coefficient weights to produce the three options.
+- **Prototype Limitation**: The lpha, eta, and gamma route-ranking coefficients are prototype decision parameters. They have NOT been empirically validated as universal safety preferences, nor does the system guarantee absolute safety.
+

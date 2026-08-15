@@ -21,6 +21,9 @@ class JourneySegment(BaseModel):
     distance_m: float
     duration_s: float
     geometry: Dict[str, Any]  # GeoJSON LineString
+    risk_score: Optional[float] = None
+    confidence_score: Optional[float] = None
+    explanation: Optional[Dict[str, Any]] = None
 
 class JourneyResponse(BaseModel):
     journey_id: str
@@ -29,3 +32,4 @@ class JourneyResponse(BaseModel):
     distance_m: float
     duration_s: float
     segments: List[JourneySegment]
+    ranking: Optional[Dict[str, Any]] = None
