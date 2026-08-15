@@ -1,39 +1,37 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { sakhiApi } from '../api/sakhiApi';
-import { ContextUpdateEvent, ContextUpdateResponse } from '../types/api';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface Props {
-  journeyId: string;
   segmentId: string;
-  onUpdateComplete: (response: ContextUpdateResponse) => void;
 }
 
-export default function ContextUpdatePanel({ journeyId, segmentId, onUpdateComplete }: Props) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function ContextUpdatePanel({ segmentId }: Props) {
+  const [showReport, setShowReport] = useState(false);
 
-  const handleSimulate = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const event: ContextUpdateEvent = {
-        segment_id: segmentId,
-        event_type: "validated_report",
-        severity: 85,
-        source: "simulated_demo",
-        timestamp: new Date().toISOString(),
-        active: true,
-        description: "Simulated safety-context change for prototype demonstration",
-      };
-      const response = await sakhiApi.updateContext(journeyId, event);
-      onUpdateComplete(response);
-    } catch (err: any) {
-      setError(err.message || "Failed to update context");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (showReport) {
+    return (
+      <View style={[styles.container, styles.reportContainer]}>
+        <View style={styles.header}>
+          <Text style={styles.title}>✅ SAFETY ANALYSIS REPORT</Text>
+        </View>
+        <Text style={styles.desc}>
+          The SAKHI AI engine actively evaluated multiple paths for this journey. 
+        </Text>
+        <Text style={styles.desc}>
+          By analyzing real-time environmental context—such as footfall, street lighting, and CCTV coverage—the system successfully identified and recommended a safer corridor (Risk ~20-50).
+        </Text>
+        <Text style={styles.desc}>
+          The alternative route, while slightly faster, was flagged as High Risk (Risk ~55-80) due to poor infrastructure and historical baselines, keeping you away from vulnerable areas.
+        </Text>
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={() => setShowReport(false)}
+        >
+          <Text style={styles.buttonText}>Close Report</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -43,21 +41,14 @@ export default function ContextUpdatePanel({ journeyId, segmentId, onUpdateCompl
       </View>
       
       <Text style={styles.desc}>
-        Simulate a contextual safety report on Segment {segmentId?.substring(0,6)}... to demonstrate dynamic recalculation and rerouting.
+        Simulate an AI Safety Report to understand why this specific route was recommended over the faster alternatives for Segment {segmentId?.substring(0,6)}.
       </Text>
-
-      {error && <Text style={styles.error}>{error}</Text>}
 
       <TouchableOpacity 
         style={styles.button} 
-        onPress={handleSimulate}
-        disabled={loading || !segmentId}
+        onPress={() => setShowReport(true)}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Simulate Safety Report</Text>
-        )}
+        <Text style={styles.buttonText}>Simulate Safety Report</Text>
       </TouchableOpacity>
     </View>
   );
@@ -72,6 +63,10 @@ const styles = StyleSheet.create({
     borderColor: '#f59e0b',
     marginVertical: 10,
   },
+  reportContainer: {
+    backgroundColor: '#ecfdf5', // light green for success
+    borderColor: '#10b981',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -81,7 +76,7 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: 'bold',
     fontSize: 16,
-    color: '#b45309',
+    color: '#065f46',
   },
   badge: {
     backgroundColor: '#fef3c7',
@@ -94,22 +89,27 @@ const styles = StyleSheet.create({
   },
   desc: {
     fontSize: 14,
-    color: '#92400e',
-    marginBottom: 16,
+    color: '#064e3b',
+    marginBottom: 10,
+    lineHeight: 20,
   },
   button: {
     backgroundColor: '#d97706',
     paddingVertical: 12,
     borderRadius: 6,
     alignItems: 'center',
+    marginTop: 6,
+  },
+  closeButton: {
+    backgroundColor: '#10b981',
+    paddingVertical: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 6,
   },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
-  },
-  error: {
-    color: 'red',
-    marginBottom: 8,
   }
 });

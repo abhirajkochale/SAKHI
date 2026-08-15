@@ -12,9 +12,17 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
   const [destination, setDestination] = useState<Location | null>(null);
 
   const loadDemoJourney = () => {
-    // Mumbai demo coordinates
-    setOrigin({ latitude: 18.922, longitude: 72.827 });
-    setDestination({ latitude: 18.928, longitude: 72.833 });
+    // Mumbai demo: CST → Bandra West (~13 km, multiple OSRM routes)
+    setOrigin({ latitude: 18.9398, longitude: 72.8354 });
+    setDestination({ latitude: 19.0596, longitude: 72.8295 });
+  };
+
+  const loadHighRiskDemo = () => {
+    // High-Risk demo: Paharganj → Dwarka Sector 21, New Delhi (~25 km)
+    // OSRM returns 2 real walking alternatives for this corridor.
+    // Origin stays Paharganj so synthetic high-risk context injection fires.
+    setOrigin({ latitude: 28.6433, longitude: 77.2132 });
+    setDestination({ latitude: 28.5525, longitude: 77.0597 });
   };
 
   return (
@@ -38,8 +46,15 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
 
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.demoButton} onPress={loadDemoJourney}>
-          <Text style={styles.demoButtonText}>Load Demo Journey</Text>
+          <Text style={styles.demoButtonText}>Mumbai Demo</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.highRiskDemoButton} onPress={loadHighRiskDemo}>
+          <Text style={styles.highRiskDemoButtonText}>High-Risk Demo</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={[styles.buttonRow, { marginTop: 12 }]}>
 
         <TouchableOpacity 
           style={[styles.analyzeButton, (!origin || !destination) && styles.disabledButton]} 
@@ -108,6 +123,20 @@ const styles = StyleSheet.create({
   },
   demoButtonText: {
     color: '#4b5563',
+    fontWeight: 'bold',
+  },
+  highRiskDemoButton: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: '#fee2e2',
+    borderRadius: 6,
+    marginLeft: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  highRiskDemoButtonText: {
+    color: '#b91c1c',
     fontWeight: 'bold',
   },
   analyzeButton: {

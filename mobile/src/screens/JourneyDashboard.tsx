@@ -27,8 +27,9 @@ export default function JourneyDashboard() {
       setJourney(response);
       
       // Default to safest route if ranking available
+      let initialRoute = null;
       if (response.ranking && response.ranking.safest_route) {
-        setSelectedRoute(response.ranking.safest_route);
+        initialRoute = response.ranking.safest_route;
       } else {
         // Fallback for missing ranking
         const mockOption: RouteOption = {
@@ -37,23 +38,14 @@ export default function JourneyDashboard() {
           risk_score: 0, confidence: 0, max_segment_risk: 0, uncertainty_penalty: 0,
           route_cost: 0, segments: response.segments
         };
-        setSelectedRoute(mockOption);
+        initialRoute = mockOption;
       }
-      setSelectedSegment(null);
+      setSelectedRoute(initialRoute);
+      setSelectedSegment(initialRoute.segments && initialRoute.segments.length > 0 ? initialRoute.segments[0] : null);
     } catch (err: any) {
       setError(err.message || 'Error creating journey');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleUpdateComplete = (response: ContextUpdateResponse) => {
-    setUpdateResult(response);
-    
-    // We should refetch the journey to get the new routes, or simulate it.
-    // For prototype simplicity, we inform the user in the UI.
-    if (response.rerouted) {
-      // In a real app, we'd fetch the updated journey object here to refresh the route geometry on the map.
     }
   };
 
@@ -69,6 +61,16 @@ export default function JourneyDashboard() {
 
       {journey && (
         <>
+          {Math.abs(journey.origin.latitude - 28.6433) < 0.0001 && Math.abs(journey.origin.longitude - 77.2132) < 0.0001 && (
+            <View style={styles.demoWarningBox}>
+              <Text style={styles.demoWarningTitle}>⚠️ SIMULATED DEMO EVENT / SYNTHETIC SCENARIO</Text>
+              <Text style={styles.demoWarningText}>
+                The following risk data uses synthetic contextual signals for demonstration purposes. 
+                It does not reflect actual real-world crime data or predict crime in this area.
+              </Text>
+            </View>
+          )}
+
           <View style={styles.mapContainer}>
             <JourneyMap 
               origin={journey.origin}
@@ -85,41 +87,22 @@ export default function JourneyDashboard() {
               selectedRouteId={selectedRoute?.route_id || null}
               onSelectRoute={(route) => {
                 setSelectedRoute(route);
-                setSelectedSegment(null);
+                setSelectedSegment(route.segments && route.segments.length > 0 ? route.segments[0] : null);
               }}
             />
           )}
 
-          {selectedSegment && (
+          {selectedSegment ? (
             <>
               <SegmentSafetyPanel segment={selectedSegment} />
               
               <ContextUpdatePanel 
-                journeyId={journey.journey_id} 
-                segmentId={selectedSegment.segment_id} 
-                onUpdateComplete={handleUpdateComplete} 
+                segmentId={selectedSegment.segment_id}
               />
             </>
-          )}
-
-          {updateResult && (
-            <View style={styles.updateResultBox}>
-              <Text style={styles.updateResultTitle}>
-                {updateResult.rerouted ? '✓ Route recommendation updated' : '✓ Current route remains preferred'}
-              </Text>
-              <Text style={styles.updateReason}>{updateResult.reason}</Text>
-              
-              <View style={styles.beforeAfterRow}>
-                <View style={styles.beforeBox}>
-                  <Text style={styles.baLabel}>BEFORE</Text>
-                  <Text style={styles.baValue}>Risk: {updateResult.before.risk.toFixed(1)}</Text>
-                </View>
-                <Text style={styles.arrow}>→</Text>
-                <View style={styles.afterBox}>
-                  <Text style={styles.baLabel}>AFTER</Text>
-                  <Text style={styles.baValue}>Risk: {updateResult.after.risk.toFixed(1)}</Text>
-                </View>
-              </View>
+          ) : (
+            <View style={styles.noSegmentBox}>
+              <Text style={styles.noSegmentText}>Segment safety details unavailable.</Text>
             </View>
           )}
         </>
@@ -207,5 +190,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#111827',
+  },
+  noSegmentBox: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginVertical: 10,
+    alignItems: 'center',
+  },
+  noSegmentText: {
+    color: '#6b7280',
+    fontStyle: 'italic',
+  },
+  demoWarningBox: {
+    backgroundColor: '#fffbeb',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    marginBottom: 10,
+  },
+  demoWarningTitle: {
+    fontWeight: 'bold',
+    color: '#b45309',
+    marginBottom: 4,
+    fontSize: 14,
+  },
+  demoWarningText: {
+    color: '#92400e',
+    fontSize: 12,
   }
 });
