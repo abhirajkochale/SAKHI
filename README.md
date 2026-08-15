@@ -97,3 +97,16 @@ Creates a journey by calling the routing provider and returns an ordered list of
   ]
 }
 ```
+
+### Contextual Safety Risk Model (Phase 3A)
+
+SAKHI's contextual safety risk score estimates safety-relevant contextual conditions for a journey segment. **It is not a crime probability, individual crime prediction, or guarantee of safety.**
+
+The current prototype follows this logical flow:
+JourneySegment -> extracted features -> historical baseline -> prototype heuristic -> isk score + confidence`n
+#### Key Principles:
+- **Historical Baseline**: Aggregate historical data acts as a regional prior/context signal, not a street-level ground truth.
+- **Confidence**: Confidence is independent from risk. Missing context deterministically decreases the confidence score.
+- **Prototype Heuristics**: The weights currently combining spatial, temporal, and dynamic factors into a final 0-100 score are simple heuristic proxies. They are NOT scientifically validated and will be replaced/augmented by ML models in future phases.
+- **Synthetic Data**: If synthetic granular data is used in future phases for ML demonstration, it will be explicitly labelled.
+
