@@ -147,3 +147,14 @@ Phase 4 aggregates segment-level contextual risk into route-level metrics and pr
 - **Safest / Balanced / Fastest Profiles**: The ranking engine applies different coefficient weights to produce the three options.
 - **Prototype Limitation**: The lpha, eta, and gamma route-ranking coefficients are prototype decision parameters. They have NOT been empirically validated as universal safety preferences, nor does the system guarantee absolute safety.
 
+
+### Phase 5 — Dynamic Contextual Rerouting
+
+Phase 5 adds support for real-time (simulated) contextual updates, allowing SAKHI to evaluate changing safety signals during an active journey.
+
+#### Key Principles:
+- **Contextual Safety Updates**: A new endpoint \POST /api/v1/journeys/{journey_id}/context-update\ accepts simulated safety events (e.g. \alidated_report\, \environmental_change\).
+- **Intelligent Reranking**: Modifying a segment's context triggers the existing Phase 3 risk and SHAP pipeline. The updated segment risk cascades into the Phase 4 route ranking algorithm, potentially altering the recommended route.
+- **In-Memory Prototype State**: Journey candidates and ranking state are temporarily held in an in-memory dictionary. This avoids unnecessary database/Redis dependencies while proving out the event-driven risk recalculation workflow.
+- **Prototype Limitations**: Context updates use the \simulated_demo\ source. This architecture is designed to demonstrate dynamic recalculation and does NOT represent real-time integration with live CCTV, crowdsourced safety portals, or police intelligence feeds.
+

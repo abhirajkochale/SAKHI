@@ -9,6 +9,7 @@ from app.schemas.ranking import RouteCandidate
 from app.core.config import settings
 from app.services.risk.risk_service import RiskService
 from app.services.routing.route_ranking_service import RouteRankingService
+from app.services.context_store import journey_store, JourneyData
 
 class OSRMRoutingService(RoutingService):
     def __init__(self):
@@ -117,6 +118,13 @@ class OSRMRoutingService(RoutingService):
             primary_dist = primary.distance_m
             primary_dur = primary.duration_s
             primary_segs = primary.segments
+
+        # Store in prototype in-memory state for Phase 5 dynamic rerouting
+        journey_store[journey_id] = JourneyData(
+            request=request,
+            candidates=candidates,
+            ranking=ranking_response
+        )
 
         return JourneyResponse(
             journey_id=journey_id,
