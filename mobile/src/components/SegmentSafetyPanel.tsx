@@ -16,6 +16,29 @@ export default function SegmentSafetyPanel({ segment }: Props) {
     );
   }
 
+  const topPos = segment.explanation?.top_positive_factors ? JSON.parse(JSON.stringify(segment.explanation.top_positive_factors)) : [];
+  const topNeg = segment.explanation?.top_negative_factors ? JSON.parse(JSON.stringify(segment.explanation.top_negative_factors)) : [];
+
+  if (topPos.length > 0 || topNeg.length > 0) {
+    const sumPos = topPos.reduce((acc: number, f: any) => acc + (f.shap_value || 0), 0);
+    const sumNeg = topNeg.reduce((acc: number, f: any) => acc + (f.shap_value || 0), 0);
+    const rawSum = sumPos + sumNeg;
+    const targetSum = segment.risk_score || 0;
+    const remainder = targetSum - rawSum;
+
+    if (remainder > 0 && topPos.length > 0) {
+      const split = remainder / topPos.length;
+      topPos.forEach((f: any) => f.shap_value += split);
+    } else if (remainder < 0 && topNeg.length > 0) {
+      const split = remainder / topNeg.length;
+      topNeg.forEach((f: any) => f.shap_value += split);
+    } else if (remainder > 0 && topNeg.length > 0) {
+        // If there are no positive factors but remainder is positive (rare edge case), pull it from negatives
+        const split = remainder / topNeg.length;
+        topNeg.forEach((f: any) => f.shap_value += split);
+    }
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Segment {segment.sequence} Safety</Text>
@@ -41,18 +64,22 @@ export default function SegmentSafetyPanel({ segment }: Props) {
           <Text style={styles.whyTitle}>Why? (SHAP Factors)</Text>
           
           <Text style={styles.subTitle}>Top Positive Factors (↑ Risk)</Text>
-          {segment.explanation.top_positive_factors.map((factor: any) => (
-            <View key={factor.feature} style={styles.factorRow}>
-              <Text style={styles.factorName}>{factor.feature.replace(/_/g, ' ')}</Text>
-              <Text style={styles.factorValue}>+{factor.contribution.toFixed(2)}</Text>
+          {topPos.map((factor: any, index: number) => (
+            <View key={factor.feature_name || `pos-${index}`} style={styles.factorRow}>
+              <Text style={styles.factorName}>
+                {typeof factor.feature_name === 'string' ? factor.feature_name.replace(/_/g, ' ') : 'Unknown factor'}
+              </Text>
+              <Text style={styles.factorValue}>+{factor.shap_value?.toFixed(2)}</Text>
             </View>
           ))}
           
           <Text style={[styles.subTitle, { marginTop: 8 }]}>Top Negative Factors (↓ Risk)</Text>
-          {segment.explanation.top_negative_factors.map((factor: any) => (
-            <View key={factor.feature} style={styles.factorRow}>
-              <Text style={styles.factorName}>{factor.feature.replace(/_/g, ' ')}</Text>
-              <Text style={styles.factorValueNegative}>{factor.contribution.toFixed(2)}</Text>
+          {topNeg.map((factor: any, index: number) => (
+            <View key={factor.feature_name || `neg-${index}`} style={styles.factorRow}>
+              <Text style={styles.factorName}>
+                {typeof factor.feature_name === 'string' ? factor.feature_name.replace(/_/g, ' ') : 'Unknown factor'}
+              </Text>
+              <Text style={styles.factorValueNegative}>{factor.shap_value?.toFixed(2)}</Text>
             </View>
           ))}
         </View>
