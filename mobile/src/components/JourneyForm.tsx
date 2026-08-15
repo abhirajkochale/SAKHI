@@ -12,8 +12,8 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
   const [destination, setDestination] = useState<Location | null>(null);
 
   const loadDemoJourney = () => {
-    // Mumbai demo: CST → Bandra West (~13 km, multiple OSRM routes)
-    setOrigin({ latitude: 18.9398, longitude: 72.8354 });
+    // Mumbai demo: Andheri → Bandra West (OSRM returns 2 distinct real routes)
+    setOrigin({ latitude: 19.1136, longitude: 72.8697 });
     setDestination({ latitude: 19.0596, longitude: 72.8295 });
   };
 

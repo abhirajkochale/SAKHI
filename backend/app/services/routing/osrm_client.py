@@ -20,8 +20,8 @@ def _is_paharganj(request: JourneyRequest) -> bool:
 
 def _is_mumbai_demo(request: JourneyRequest) -> bool:
     return (
-        abs(request.origin.latitude - 18.9398) < 0.0001 and
-        abs(request.origin.longitude - 72.8354) < 0.0001
+        abs(request.origin.latitude - 19.1136) < 0.0001 and
+        abs(request.origin.longitude - 72.8697) < 0.0001
     )
 
 def _build_synthetic_context(request: JourneyRequest, route_idx: int, is_paharganj: bool) -> SegmentContext:
@@ -49,15 +49,6 @@ def _build_synthetic_context(request: JourneyRequest, route_idx: int, is_paharga
     else:
         # Mumbai Demo
         if route_idx == 0:
-            # Mumbai Safest (target 20-30) -> calibrated to ~21.7
-            ctx.footfall_indicator = 0.50
-            ctx.validated_report_signal = 0.50
-            ctx.infrastructure_score = 0.45
-            ctx.cctv_coverage = 0.45
-            ctx.police_proximity = 0.35
-            ctx.transit_access = 0.45
-            ctx.historical_baseline = 0.50
-        else:
             # Mumbai Fastest (target 50-60) -> calibrated to ~57.1
             ctx.footfall_indicator = 0.15
             ctx.validated_report_signal = 0.75
@@ -66,6 +57,15 @@ def _build_synthetic_context(request: JourneyRequest, route_idx: int, is_paharga
             ctx.police_proximity = 0.20
             ctx.transit_access = 0.30
             ctx.historical_baseline = 0.75
+        else:
+            # Mumbai Safest (target 20-30) -> calibrated to ~21.7
+            ctx.footfall_indicator = 0.50
+            ctx.validated_report_signal = 0.50
+            ctx.infrastructure_score = 0.45
+            ctx.cctv_coverage = 0.45
+            ctx.police_proximity = 0.35
+            ctx.transit_access = 0.45
+            ctx.historical_baseline = 0.50
 
     return ctx
 
