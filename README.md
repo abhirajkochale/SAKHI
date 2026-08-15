@@ -158,3 +158,26 @@ Phase 5 adds support for real-time (simulated) contextual updates, allowing SAKH
 - **In-Memory Prototype State**: Journey candidates and ranking state are temporarily held in an in-memory dictionary. This avoids unnecessary database/Redis dependencies while proving out the event-driven risk recalculation workflow.
 - **Prototype Limitations**: Context updates use the \simulated_demo\ source. This architecture is designed to demonstrate dynamic recalculation and does NOT represent real-time integration with live CCTV, crowdsourced safety portals, or police intelligence feeds.
 
+
+### Phase 6 — Mobile Prototype Frontend
+
+Phase 6 introduces a fully functional React Native mobile prototype built with Expo. This app consumes the existing SAKHI FastAPI intelligence backend.
+
+#### Mobile Setup
+1. Open a terminal in the \mobile\ directory.
+2. Run \
+pm install\.
+3. Configure your API base URL:
+   - By default, the app uses \http://localhost:8000/api/v1\ for local emulators.
+   - To run on a physical device, find your computer's local network IP (e.g., \192.168.1.5\) and set the environment variable when starting Expo, or create a \.env\ file in the \mobile\ directory with \EXPO_PUBLIC_API_URL=http://<YOUR_IP>:8000/api/v1\.
+4. Start the app: \
+px expo start\.
+5. Use the Expo Go app on your phone, or run in an iOS/Android simulator.
+
+#### Key Features & Prototype Limitations:
+- **Mobile UX**: The UI is optimized for touch with native maps (\eact-native-maps\).
+- **Live Explainability**: SHAP explanations are rendered natively in mobile bottom-sheets/cards.
+- **Demo Context**: The \Simulate Safety Report\ button demonstrates real-time dynamic rerouting by communicating with the backend.
+- **No Native Compilations**: The prototype avoids complex native libraries requiring EAS builds (standard \eact-native-maps\ works in Expo Go).
+- **Limitations**: The SOS and Offline modes are UI demonstrations only. They do not yet integrate with real emergency dispatch APIs or local SQLite databases.
+
