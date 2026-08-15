@@ -110,3 +110,15 @@ JourneySegment -> extracted features -> historical baseline -> prototype heurist
 - **Prototype Heuristics**: The weights currently combining spatial, temporal, and dynamic factors into a final 0-100 score are simple heuristic proxies. They are NOT scientifically validated and will be replaced/augmented by ML models in future phases.
 - **Synthetic Data**: If synthetic granular data is used in future phases for ML demonstration, it will be explicitly labelled.
 
+
+### Phase 3B — XGBoost Contextual Risk Model
+
+In Phase 3B, a prototype XGBoost Regressor model is integrated. It produces a continuous 0-100 contextual risk score. This model acts as an intelligence layer predicting safety-relevant contextual conditions.
+
+#### Key Principles:
+- **Synthetic Prototype Dataset**: The model is trained on explicitly synthetic prototype data (generated via a mathematical relationship with controlled noise), not real incident data. We avoid treating NCRB aggregate data as street-level labels to prevent inaccurate mapping.
+- **Not Crime Prediction**: The output is a prototype contextual risk score, NOT a crime probability or individual crime prediction.
+- **Evaluation**: Training metrics (MAE, MSE, RMSE, R²) evaluate the model's ability to learn the synthetic dataset's underlying mathematical relationship. They demonstrate the ML pipeline but do NOT establish real-world predictive validity.
+- **Heuristic Fallback**: If the ML model is unavailable or inference fails, SAKHI gracefully falls back to the deterministic Phase 3A heuristic.
+- **Independent Confidence**: The confidence score remains entirely independent of the ML model, driven purely by the availability of input context.
+

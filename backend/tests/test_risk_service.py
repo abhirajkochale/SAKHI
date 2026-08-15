@@ -6,6 +6,9 @@ from app.services.risk.risk_service import RiskService
 
 def test_calculate_risk_deterministic():
     service = RiskService()
+    # Force fallback to test heuristic math
+    from app.services.risk.ml_model_service import MLModelService
+    service.ml_service = MLModelService(models_dir="/tmp/fake")
     segment = JourneySegment(
         segment_id="123", journey_id="456", sequence=1, mode="walking",
         start_location=Location(latitude=0, longitude=0), end_location=Location(latitude=0, longitude=0),
@@ -40,9 +43,14 @@ def test_calculate_risk_deterministic():
     assert math.isclose(risk_score.risk_score, 26.0, abs_tol=1e-5)
     assert risk_score.confidence_score == 100.0
     assert risk_score.confidence_level == "HIGH"
+    assert risk_score.model_source in ["xgboost", "heuristic"]
+    assert risk_score.model_version is not None
     
 def test_calculate_risk_bounds():
     service = RiskService()
+    # Force fallback to test heuristic math
+    from app.services.risk.ml_model_service import MLModelService
+    service.ml_service = MLModelService(models_dir="/tmp/fake")
     segment = JourneySegment(
         segment_id="123", journey_id="456", sequence=1, mode="walking",
         start_location=Location(latitude=0, longitude=0), end_location=Location(latitude=0, longitude=0),

@@ -41,5 +41,7 @@ class RiskScore(BaseModel):
     risk_score: float  # 0 to 100
     confidence_score: float  # 0 to 100
     confidence_level: str  # HIGH, MEDIUM, LOW, Insufficient Data
+    model_source: str  # "xgboost" or "heuristic"
+    model_version: str  # e.g., "0.1.0" or "prototype"
     factors: Dict[str, float]
     generated_at: datetime
