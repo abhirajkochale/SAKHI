@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 class SegmentContext(BaseModel):
@@ -33,6 +33,21 @@ class RiskFeatures(BaseModel):
     historical_baseline: float
     validated_report_signal: float
 
+class SHAPContribution(BaseModel):
+    feature_name: str
+    feature_value: float
+    shap_value: float
+    direction: str  # "increases_risk" or "decreases_risk"
+
+class RiskExplanation(BaseModel):
+    available: bool
+    base_value: Optional[float] = None
+    predicted_risk: Optional[float] = None
+    top_positive_factors: Optional[List[SHAPContribution]] = None
+    top_negative_factors: Optional[List[SHAPContribution]] = None
+    all_contributions: Optional[List[SHAPContribution]] = None
+    reason: Optional[str] = None
+
 class RiskScore(BaseModel):
     """
     The calculated contextual safety risk score for a segment.
@@ -43,5 +58,6 @@ class RiskScore(BaseModel):
     confidence_level: str  # HIGH, MEDIUM, LOW, Insufficient Data
     model_source: str  # "xgboost" or "heuristic"
     model_version: str  # e.g., "0.1.0" or "prototype"
+    explanation: Optional[RiskExplanation] = None
     factors: Dict[str, float]
     generated_at: datetime

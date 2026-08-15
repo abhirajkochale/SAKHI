@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 from app.schemas.journey import JourneySegment
-from app.schemas.risk import SegmentContext, RiskScore
+from app.schemas.risk import SegmentContext, RiskScore, RiskExplanation
 from app.services.risk.feature_service import FeatureExtractionService
 from app.services.risk.baseline_service import HistoricalBaselineService
 from app.services.risk.confidence_service import ConfidenceService
 from app.services.risk.ml_model_service import MLModelService
+from app.services.risk.shap_service import SHAPService
 
 class RiskService:
     """
@@ -16,6 +17,7 @@ class RiskService:
         self.baseline_service = HistoricalBaselineService()
         self.confidence_service = ConfidenceService()
         self.ml_service = MLModelService()
+        self.shap_service = SHAPService(self.ml_service)
 
     def calculate_risk(self, segment: JourneySegment, context: SegmentContext) -> RiskScore:
         # 1. Calculate Confidence based on true evidence availability BEFORE filling defaults
@@ -36,6 +38,7 @@ class RiskService:
             model_source = self.ml_service.get_metadata().get("model_source", "xgboost")
             model_version = self.ml_service.get_metadata().get("model_version", "unknown")
             factors = {"ml_inference": True}
+            explanation = self.shap_service.explain(features, final_risk)
         else:
             # 4. Fallback to Prototype Heuristic
             # Higher score = greater safety concern
@@ -61,6 +64,10 @@ class RiskService:
                 "time_penalty": time_penalty,
                 "report_risk": report_risk
             }
+            explanation = RiskExplanation(
+                available=False,
+                reason="SHAP explanation unavailable because XGBoost model is not active."
+            )
         
         return RiskScore(
             segment_id=segment.segment_id,
@@ -69,6 +76,7 @@ class RiskService:
             confidence_level=conf_level,
             model_source=model_source,
             model_version=model_version,
+            explanation=explanation,
             factors=factors,
             generated_at=datetime.now(timezone.utc)
         )

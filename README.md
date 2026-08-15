@@ -122,3 +122,15 @@ In Phase 3B, a prototype XGBoost Regressor model is integrated. It produces a co
 - **Heuristic Fallback**: If the ML model is unavailable or inference fails, SAKHI gracefully falls back to the deterministic Phase 3A heuristic.
 - **Independent Confidence**: The confidence score remains entirely independent of the ML model, driven purely by the availability of input context.
 
+
+### Phase 3C — SHAP Explainability
+
+Phase 3C adds explainability to the XGBoost contextual risk model using SHAP (SHapley Additive exPlanations).
+
+#### Key Principles:
+- **Contextual Insights, Not Crime Prediction**: SHAP explains which contextual features contributed most to the model's contextual risk score. It does NOT identify why a crime will happen or predict dangerous locations.
+- **Positive vs Negative Contributions**: Features are ranked by absolute SHAP magnitude. A positive SHAP value increases the contextual risk score, while a negative SHAP value decreases it.
+- **Independent Confidence**: The confidence score remains entirely independent of SHAP values or the ML model's prediction. It evaluates purely the availability of contextual evidence.
+- **Heuristic Fallback**: SHAP is unavailable when the ML model is not active. In such cases, SAKHI seamlessly falls back to the deterministic Phase 3A heuristic without fabricating SHAP values.
+- **Prototype Limitation**: SHAP explains the behavior of the trained prototype model on synthetic data; it does not validate the model's real-world predictive accuracy.
+
