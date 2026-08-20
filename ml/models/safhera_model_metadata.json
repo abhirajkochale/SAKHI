@@ -1,0 +1,79 @@
+{
+    "model_name": "sakhi_safhera_contextual_risk",
+    "model_version": "1.0.0-crime_grounded",
+    "model_source": "xgboost_safhera",
+    "target_name": "crime_grounded_risk_index",
+    "target_type": "crime_grounded_district_temporal_index",
+    "target_is_observed_crime": true,
+    "dataset_type": "real_ncrb_district_plus_synthetic_proxy",
+    "total_rows": 300,
+    "train_rows": 190,
+    "validation_rows": 50,
+    "test_rows": 60,
+    "feature_names": [
+        "historical_baseline",
+        "cases_per_100k",
+        "severity_weighted_cases_per_100k",
+        "recent_cases_per_100k",
+        "recent_severity_per_100k",
+        "crime_trend_slope",
+        "distance_m",
+        "estimated_travel_time_s",
+        "lighting_score",
+        "cctv_coverage_score",
+        "footfall_proxy",
+        "contextual_footfall_proxy",
+        "distance_to_police_m",
+        "distance_to_hospital_m",
+        "distance_to_medical_facility_m",
+        "distance_to_public_toilet_m",
+        "distance_to_nearest_amenity_m",
+        "nearest_hotspot_distance_m",
+        "nearest_hotspot_intensity",
+        "representative_hour",
+        "is_night",
+        "is_late_night",
+        "is_evening_peak",
+        "is_weekend",
+        "is_peak_hour",
+        "reduced_activity_context",
+        "lighting_relevance"
+    ],
+    "feature_count": 27,
+    "evaluation_metrics": {
+        "train": {
+            "mae": 0.0665,
+            "rmse": 0.101,
+            "r2": 1.0
+        },
+        "validation": {
+            "mae": 1.8474,
+            "rmse": 3.8606,
+            "r2": 0.922
+        },
+        "test": {
+            "mae": 1.6097,
+            "rmse": 3.5308,
+            "r2": 0.9273
+        }
+    },
+    "baseline_comparisons": {
+        "dummy_mean_val_mae": 13.6141,
+        "dummy_mean_test_mae": 12.6538,
+        "district_mean_val_mae": 11.1387,
+        "district_mean_test_mae": 11.2979,
+        "xgboost_test_mae_improvement_pct": 85.75
+    },
+    "xgboost_parameters": {
+        "max_depth": 3,
+        "learning_rate": 0.08,
+        "n_estimators": 200,
+        "colsample_bytree": 0.9,
+        "subsample": 0.9
+    },
+    "limitations": [
+        "District-level crime burden aggregate -- segment-level spatial variation relies on environmental features.",
+        "Monthly NCRB data (2021-2023); post-2023 pattern changes not captured.",
+        "Criminological temporal multiplier used for time-of-day weighting."
+    ]
+}

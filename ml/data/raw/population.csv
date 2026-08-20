@@ -1,0 +1,12 @@
+district,population,area_sq_km,population_density,year,source,source_url,geographic_unit,is_synthetic
+North West,3656539,440.0,8310,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+South,2731929,250.0,10928,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+West,2543243,129.0,19715,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+South East,2283000,102.0,22382,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+North East,2241624,62.0,36155,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+East,1709346,64.0,26708,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+South West,2292958,420.0,5459,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+Shahdara,1545000,59.7,25879,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+North,887978,60.0,14799,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+Central,582320,25.0,23293,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False
+New Delhi,142004,35.0,4057,2021,Census of India / Statistical Abstract of Delhi,https://delhiplanning.delhi.gov.in,Revenue District,False

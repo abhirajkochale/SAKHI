@@ -1,0 +1,2 @@
+route_id,segments,segment_count,distance_m,travel_time_s,average_risk,maximum_risk,time_period,is_weekend
+1,1015 → 1016 → 1017 → 1018,4,22800.0,1824.0,18.68,25.23,Evening,0

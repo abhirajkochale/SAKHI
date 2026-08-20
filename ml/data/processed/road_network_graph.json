@@ -1,0 +1,609 @@
+{
+  "metadata": {
+    "source": "road_segments.csv",
+    "node_count": 30,
+    "edge_count": 30,
+    "directed": true
+  },
+  "nodes": {
+    "28.63270,77.21950": {
+      "latitude": 28.6327,
+      "longitude": 77.2195
+    },
+    "28.62530,77.21440": {
+      "latitude": 28.6253,
+      "longitude": 77.2144
+    },
+    "28.60410,77.21180": {
+      "latitude": 28.6041,
+      "longitude": 77.2118
+    },
+    "28.59750,77.18430": {
+      "latitude": 28.5975,
+      "longitude": 77.1843
+    },
+    "28.55830,77.16250": {
+      "latitude": 28.5583,
+      "longitude": 77.1625
+    },
+    "28.53920,77.15540": {
+      "latitude": 28.5392,
+      "longitude": 77.1554
+    },
+    "28.52220,77.20650": {
+      "latitude": 28.5222,
+      "longitude": 77.2065
+    },
+    "28.52820,77.21050": {
+      "latitude": 28.5282,
+      "longitude": 77.2105
+    },
+    "28.54940,77.20010": {
+      "latitude": 28.5494,
+      "longitude": 77.2001
+    },
+    "28.56720,77.21000": {
+      "latitude": 28.5672,
+      "longitude": 77.21
+    },
+    "28.56840,77.24230": {
+      "latitude": 28.5684,
+      "longitude": 77.2423
+    },
+    "28.54890,77.25880": {
+      "latitude": 28.5489,
+      "longitude": 77.2588
+    },
+    "28.52980,77.27120": {
+      "latitude": 28.5298,
+      "longitude": 77.2712
+    },
+    "28.62410,77.20250": {
+      "latitude": 28.6241,
+      "longitude": 77.2025
+    },
+    "28.65150,77.19020": {
+      "latitude": 28.6515,
+      "longitude": 77.1902
+    },
+    "28.64750,77.12150": {
+      "latitude": 28.6475,
+      "longitude": 77.1215
+    },
+    "28.62140,77.08740": {
+      "latitude": 28.6214,
+      "longitude": 77.0874
+    },
+    "28.55620,77.05430": {
+      "latitude": 28.5562,
+      "longitude": 77.0543
+    },
+    "28.64820,77.24050": {
+      "latitude": 28.6482,
+      "longitude": 77.2405
+    },
+    "28.66650,77.23010": {
+      "latitude": 28.6665,
+      "longitude": 77.2301
+    },
+    "28.68120,77.22240": {
+      "latitude": 28.6812,
+      "longitude": 77.2224
+    },
+    "28.70250,77.19320": {
+      "latitude": 28.7025,
+      "longitude": 77.1932
+    },
+    "28.71540,77.15840": {
+      "latitude": 28.7154,
+      "longitude": 77.1584
+    },
+    "28.73620,77.13250": {
+      "latitude": 28.7362,
+      "longitude": 77.1325
+    },
+    "28.64210,77.29520": {
+      "latitude": 28.6421,
+      "longitude": 77.2952
+    },
+    "28.67250,77.28850": {
+      "latitude": 28.6725,
+      "longitude": 77.2885
+    },
+    "28.66850,77.26840": {
+      "latitude": 28.6685,
+      "longitude": 77.2684
+    },
+    "28.69850,77.30250": {
+      "latitude": 28.6985,
+      "longitude": 77.3025
+    },
+    "28.60840,77.29850": {
+      "latitude": 28.6084,
+      "longitude": 77.2985
+    },
+    "28.54120,77.28350": {
+      "latitude": 28.5412,
+      "longitude": 77.2835
+    }
+  },
+  "edges": [
+    {
+      "segment_id": 1001,
+      "from_node": "28.63270,77.21950",
+      "to_node": "28.62530,77.21440",
+      "distance_m": 950.0,
+      "travel_time_s": 76.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Connaught Place to Janpath"
+    },
+    {
+      "segment_id": 1002,
+      "from_node": "28.62530,77.21440",
+      "to_node": "28.60410,77.21180",
+      "distance_m": 2400.0,
+      "travel_time_s": 192.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Janpath to Tuglak Road"
+    },
+    {
+      "segment_id": 1003,
+      "from_node": "28.60410,77.21180",
+      "to_node": "28.59750,77.18430",
+      "distance_m": 3100.0,
+      "travel_time_s": 248.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Tuglak Road to Chanakyapuri"
+    },
+    {
+      "segment_id": 1004,
+      "from_node": "28.59750,77.18430",
+      "to_node": "28.55830,77.16250",
+      "distance_m": 4800.0,
+      "travel_time_s": 384.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Chanakyapuri to Vasant Vihar"
+    },
+    {
+      "segment_id": 1005,
+      "from_node": "28.55830,77.16250",
+      "to_node": "28.53920,77.15540",
+      "distance_m": 2200.0,
+      "travel_time_s": 176.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Vasant Vihar to Vasant Kunj"
+    },
+    {
+      "segment_id": 1006,
+      "from_node": "28.53920,77.15540",
+      "to_node": "28.52220,77.20650",
+      "distance_m": 5400.0,
+      "travel_time_s": 432.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Vasant Kunj to Saket"
+    },
+    {
+      "segment_id": 1007,
+      "from_node": "28.52220,77.20650",
+      "to_node": "28.52820,77.21050",
+      "distance_m": 800.0,
+      "travel_time_s": 64.0,
+      "road_type": "residential",
+      "walkable": true,
+      "segment_name": "Saket to Malviya Nagar"
+    },
+    {
+      "segment_id": 1008,
+      "from_node": "28.52820,77.21050",
+      "to_node": "28.54940,77.20010",
+      "distance_m": 2600.0,
+      "travel_time_s": 208.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Malviya Nagar to Hauz Khas"
+    },
+    {
+      "segment_id": 1009,
+      "from_node": "28.54940,77.20010",
+      "to_node": "28.56720,77.21000",
+      "distance_m": 2100.0,
+      "travel_time_s": 168.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Hauz Khas to AIIMS Ring Road"
+    },
+    {
+      "segment_id": 1010,
+      "from_node": "28.56720,77.21000",
+      "to_node": "28.56840,77.24230",
+      "distance_m": 3200.0,
+      "travel_time_s": 256.0,
+      "road_type": "trunk",
+      "walkable": true,
+      "segment_name": "AIIMS to Lajpat Nagar (Ring Road)"
+    },
+    {
+      "segment_id": 1011,
+      "from_node": "28.56840,77.24230",
+      "to_node": "28.54890,77.25880",
+      "distance_m": 2700.0,
+      "travel_time_s": 216.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Lajpat Nagar to Kalkaji"
+    },
+    {
+      "segment_id": 1012,
+      "from_node": "28.54890,77.25880",
+      "to_node": "28.52980,77.27120",
+      "distance_m": 2500.0,
+      "travel_time_s": 200.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Kalkaji to Okhla Industrial Area"
+    },
+    {
+      "segment_id": 1013,
+      "from_node": "28.56720,77.21000",
+      "to_node": "28.62410,77.20250",
+      "distance_m": 6400.0,
+      "travel_time_s": 512.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "AIIMS to RML Hospital (Sri Aurobindo Marg)"
+    },
+    {
+      "segment_id": 1014,
+      "from_node": "28.62410,77.20250",
+      "to_node": "28.63270,77.21950",
+      "distance_m": 1900.0,
+      "travel_time_s": 152.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "RML to Connaught Place"
+    },
+    {
+      "segment_id": 1015,
+      "from_node": "28.63270,77.21950",
+      "to_node": "28.65150,77.19020",
+      "distance_m": 3300.0,
+      "travel_time_s": 264.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Connaught Place to Karol Bagh"
+    },
+    {
+      "segment_id": 1016,
+      "from_node": "28.65150,77.19020",
+      "to_node": "28.64750,77.12150",
+      "distance_m": 7100.0,
+      "travel_time_s": 568.0,
+      "road_type": "trunk",
+      "walkable": true,
+      "segment_name": "Karol Bagh to Rajouri Garden"
+    },
+    {
+      "segment_id": 1017,
+      "from_node": "28.64750,77.12150",
+      "to_node": "28.62140,77.08740",
+      "distance_m": 4300.0,
+      "travel_time_s": 344.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Rajouri Garden to Janakpuri"
+    },
+    {
+      "segment_id": 1018,
+      "from_node": "28.62140,77.08740",
+      "to_node": "28.55620,77.05430",
+      "distance_m": 8100.0,
+      "travel_time_s": 648.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Janakpuri to Dwarka Sec 23"
+    },
+    {
+      "segment_id": 1019,
+      "from_node": "28.63270,77.21950",
+      "to_node": "28.64820,77.24050",
+      "distance_m": 2800.0,
+      "travel_time_s": 224.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "CP to Daryaganj"
+    },
+    {
+      "segment_id": 1020,
+      "from_node": "28.64820,77.24050",
+      "to_node": "28.66650,77.23010",
+      "distance_m": 2300.0,
+      "travel_time_s": 184.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Daryaganj to Kashmere Gate"
+    },
+    {
+      "segment_id": 1021,
+      "from_node": "28.66650,77.23010",
+      "to_node": "28.68120,77.22240",
+      "distance_m": 1800.0,
+      "travel_time_s": 144.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Kashmere Gate to Civil Lines"
+    },
+    {
+      "segment_id": 1022,
+      "from_node": "28.68120,77.22240",
+      "to_node": "28.70250,77.19320",
+      "distance_m": 3600.0,
+      "travel_time_s": 288.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Civil Lines to Model Town"
+    },
+    {
+      "segment_id": 1023,
+      "from_node": "28.70250,77.19320",
+      "to_node": "28.71540,77.15840",
+      "distance_m": 3800.0,
+      "travel_time_s": 304.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Model Town to Shalimar Bagh"
+    },
+    {
+      "segment_id": 1024,
+      "from_node": "28.71540,77.15840",
+      "to_node": "28.73620,77.13250",
+      "distance_m": 3300.0,
+      "travel_time_s": 264.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Shalimar Bagh to Rohini Sec 18"
+    },
+    {
+      "segment_id": 1025,
+      "from_node": "28.64820,77.24050",
+      "to_node": "28.64210,77.29520",
+      "distance_m": 5700.0,
+      "travel_time_s": 456.0,
+      "road_type": "trunk",
+      "walkable": true,
+      "segment_name": "Daryaganj to Preet Vihar (Vikas Marg)"
+    },
+    {
+      "segment_id": 1026,
+      "from_node": "28.64210,77.29520",
+      "to_node": "28.67250,77.28850",
+      "distance_m": 3400.0,
+      "travel_time_s": 272.0,
+      "road_type": "primary",
+      "walkable": true,
+      "segment_name": "Preet Vihar to Shahdara"
+    },
+    {
+      "segment_id": 1027,
+      "from_node": "28.67250,77.28850",
+      "to_node": "28.66850,77.26840",
+      "distance_m": 2100.0,
+      "travel_time_s": 168.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Shahdara to Seelampur"
+    },
+    {
+      "segment_id": 1028,
+      "from_node": "28.66850,77.26840",
+      "to_node": "28.69850,77.30250",
+      "distance_m": 4700.0,
+      "travel_time_s": 376.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Seelampur to Nand Nagri"
+    },
+    {
+      "segment_id": 1029,
+      "from_node": "28.56840,77.24230",
+      "to_node": "28.60840,77.29850",
+      "distance_m": 6800.0,
+      "travel_time_s": 544.0,
+      "road_type": "trunk",
+      "walkable": true,
+      "segment_name": "Lajpat Nagar to Mayur Vihar (DND Link)"
+    },
+    {
+      "segment_id": 1030,
+      "from_node": "28.52980,77.27120",
+      "to_node": "28.54120,77.28350",
+      "distance_m": 1800.0,
+      "travel_time_s": 144.0,
+      "road_type": "secondary",
+      "walkable": true,
+      "segment_name": "Okhla Ind Area to Sarita Vihar"
+    }
+  ],
+  "adjacency": {
+    "28.63270,77.21950": [
+      {
+        "to_node": "28.62530,77.21440",
+        "segment_id": 1001
+      },
+      {
+        "to_node": "28.65150,77.19020",
+        "segment_id": 1015
+      },
+      {
+        "to_node": "28.64820,77.24050",
+        "segment_id": 1019
+      }
+    ],
+    "28.62530,77.21440": [
+      {
+        "to_node": "28.60410,77.21180",
+        "segment_id": 1002
+      }
+    ],
+    "28.60410,77.21180": [
+      {
+        "to_node": "28.59750,77.18430",
+        "segment_id": 1003
+      }
+    ],
+    "28.59750,77.18430": [
+      {
+        "to_node": "28.55830,77.16250",
+        "segment_id": 1004
+      }
+    ],
+    "28.55830,77.16250": [
+      {
+        "to_node": "28.53920,77.15540",
+        "segment_id": 1005
+      }
+    ],
+    "28.53920,77.15540": [
+      {
+        "to_node": "28.52220,77.20650",
+        "segment_id": 1006
+      }
+    ],
+    "28.52220,77.20650": [
+      {
+        "to_node": "28.52820,77.21050",
+        "segment_id": 1007
+      }
+    ],
+    "28.52820,77.21050": [
+      {
+        "to_node": "28.54940,77.20010",
+        "segment_id": 1008
+      }
+    ],
+    "28.54940,77.20010": [
+      {
+        "to_node": "28.56720,77.21000",
+        "segment_id": 1009
+      }
+    ],
+    "28.56720,77.21000": [
+      {
+        "to_node": "28.56840,77.24230",
+        "segment_id": 1010
+      },
+      {
+        "to_node": "28.62410,77.20250",
+        "segment_id": 1013
+      }
+    ],
+    "28.56840,77.24230": [
+      {
+        "to_node": "28.54890,77.25880",
+        "segment_id": 1011
+      },
+      {
+        "to_node": "28.60840,77.29850",
+        "segment_id": 1029
+      }
+    ],
+    "28.54890,77.25880": [
+      {
+        "to_node": "28.52980,77.27120",
+        "segment_id": 1012
+      }
+    ],
+    "28.52980,77.27120": [
+      {
+        "to_node": "28.54120,77.28350",
+        "segment_id": 1030
+      }
+    ],
+    "28.62410,77.20250": [
+      {
+        "to_node": "28.63270,77.21950",
+        "segment_id": 1014
+      }
+    ],
+    "28.65150,77.19020": [
+      {
+        "to_node": "28.64750,77.12150",
+        "segment_id": 1016
+      }
+    ],
+    "28.64750,77.12150": [
+      {
+        "to_node": "28.62140,77.08740",
+        "segment_id": 1017
+      }
+    ],
+    "28.62140,77.08740": [
+      {
+        "to_node": "28.55620,77.05430",
+        "segment_id": 1018
+      }
+    ],
+    "28.55620,77.05430": [],
+    "28.64820,77.24050": [
+      {
+        "to_node": "28.66650,77.23010",
+        "segment_id": 1020
+      },
+      {
+        "to_node": "28.64210,77.29520",
+        "segment_id": 1025
+      }
+    ],
+    "28.66650,77.23010": [
+      {
+        "to_node": "28.68120,77.22240",
+        "segment_id": 1021
+      }
+    ],
+    "28.68120,77.22240": [
+      {
+        "to_node": "28.70250,77.19320",
+        "segment_id": 1022
+      }
+    ],
+    "28.70250,77.19320": [
+      {
+        "to_node": "28.71540,77.15840",
+        "segment_id": 1023
+      }
+    ],
+    "28.71540,77.15840": [
+      {
+        "to_node": "28.73620,77.13250",
+        "segment_id": 1024
+      }
+    ],
+    "28.73620,77.13250": [],
+    "28.64210,77.29520": [
+      {
+        "to_node": "28.67250,77.28850",
+        "segment_id": 1026
+      }
+    ],
+    "28.67250,77.28850": [
+      {
+        "to_node": "28.66850,77.26840",
+        "segment_id": 1027
+      }
+    ],
+    "28.66850,77.26840": [
+      {
+        "to_node": "28.69850,77.30250",
+        "segment_id": 1028
+      }
+    ],
+    "28.69850,77.30250": [],
+    "28.60840,77.29850": [],
+    "28.54120,77.28350": []
+  }
+}

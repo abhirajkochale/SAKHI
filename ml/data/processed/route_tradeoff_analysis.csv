@@ -1,0 +1,2 @@
+fastest_route_id,safest_route_id,fastest_travel_time_s,safest_travel_time_s,fastest_average_risk,safest_average_risk,additional_time_s,risk_reduction_percent,fastest_route_safety_band,safest_route_safety_band,recommendation
+1,1,1824.0,1824.0,18.68,18.68,0.0,0.0,Moderate,Moderate,Only one connected candidate route is currently available in the prototype road network. No lower-risk alternative route was identified.

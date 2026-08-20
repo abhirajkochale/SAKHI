@@ -1,0 +1,31 @@
+segment_id,start_latitude,start_longitude,end_latitude,end_longitude,distance_m,estimated_travel_time_s,road_type,walkable,segment_name,source,source_url,is_synthetic
+1001,28.6327,77.2195,28.6253,77.2144,950,76,primary,True,Connaught Place to Janpath,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1002,28.6253,77.2144,28.6041,77.2118,2400,192,primary,True,Janpath to Tuglak Road,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1003,28.6041,77.2118,28.5975,77.1843,3100,248,primary,True,Tuglak Road to Chanakyapuri,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1004,28.5975,77.1843,28.5583,77.1625,4800,384,primary,True,Chanakyapuri to Vasant Vihar,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1005,28.5583,77.1625,28.5392,77.1554,2200,176,secondary,True,Vasant Vihar to Vasant Kunj,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1006,28.5392,77.1554,28.5222,77.2065,5400,432,secondary,True,Vasant Kunj to Saket,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1007,28.5222,77.2065,28.5282,77.2105,800,64,residential,True,Saket to Malviya Nagar,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1008,28.5282,77.2105,28.5494,77.2001,2600,208,secondary,True,Malviya Nagar to Hauz Khas,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1009,28.5494,77.2001,28.5672,77.21,2100,168,primary,True,Hauz Khas to AIIMS Ring Road,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1010,28.5672,77.21,28.5684,77.2423,3200,256,trunk,True,AIIMS to Lajpat Nagar (Ring Road),OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1011,28.5684,77.2423,28.5489,77.2588,2700,216,primary,True,Lajpat Nagar to Kalkaji,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1012,28.5489,77.2588,28.5298,77.2712,2500,200,secondary,True,Kalkaji to Okhla Industrial Area,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1013,28.5672,77.21,28.6241,77.2025,6400,512,primary,True,AIIMS to RML Hospital (Sri Aurobindo Marg),OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1014,28.6241,77.2025,28.6327,77.2195,1900,152,primary,True,RML to Connaught Place,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1015,28.6327,77.2195,28.6515,77.1902,3300,264,primary,True,Connaught Place to Karol Bagh,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1016,28.6515,77.1902,28.6475,77.1215,7100,568,trunk,True,Karol Bagh to Rajouri Garden,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1017,28.6475,77.1215,28.6214,77.0874,4300,344,primary,True,Rajouri Garden to Janakpuri,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1018,28.6214,77.0874,28.5562,77.0543,8100,648,primary,True,Janakpuri to Dwarka Sec 23,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1019,28.6327,77.2195,28.6482,77.2405,2800,224,primary,True,CP to Daryaganj,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1020,28.6482,77.2405,28.6665,77.2301,2300,184,primary,True,Daryaganj to Kashmere Gate,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1021,28.6665,77.2301,28.6812,77.2224,1800,144,primary,True,Kashmere Gate to Civil Lines,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1022,28.6812,77.2224,28.7025,77.1932,3600,288,secondary,True,Civil Lines to Model Town,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1023,28.7025,77.1932,28.7154,77.1584,3800,304,secondary,True,Model Town to Shalimar Bagh,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1024,28.7154,77.1584,28.7362,77.1325,3300,264,secondary,True,Shalimar Bagh to Rohini Sec 18,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1025,28.6482,77.2405,28.6421,77.2952,5700,456,trunk,True,Daryaganj to Preet Vihar (Vikas Marg),OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1026,28.6421,77.2952,28.6725,77.2885,3400,272,primary,True,Preet Vihar to Shahdara,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1027,28.6725,77.2885,28.6685,77.2684,2100,168,secondary,True,Shahdara to Seelampur,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1028,28.6685,77.2684,28.6985,77.3025,4700,376,secondary,True,Seelampur to Nand Nagri,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1029,28.5684,77.2423,28.6084,77.2985,6800,544,trunk,True,Lajpat Nagar to Mayur Vihar (DND Link),OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False
+1030,28.5298,77.2712,28.5412,77.2835,1800,144,secondary,True,Okhla Ind Area to Sarita Vihar,OpenStreetMap Network Graph Extract (Delhi),https://www.openstreetmap.org / Geofabrik,False

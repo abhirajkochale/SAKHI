@@ -1,0 +1,13 @@
+dataset,type,rows,columns,missing_values,missing_percent,duplicate_rows,has_latitude,has_longitude,has_start_latitude,has_start_longitude,has_end_latitude,has_end_longitude,has_segment_id,has_district,has_year,has_synthetic_flag,year_min,year_max,synthetic_rows
+crime_records.csv,real/source,5544,13,0,0.0,0,False,False,False,False,False,False,False,True,True,True,2018.0,2023.0,0.0
+population.csv,real/source,11,9,0,0.0,0,False,False,False,False,False,False,False,True,True,True,2021.0,2021.0,0.0
+road_segments.csv,real/source,30,13,0,0.0,0,False,False,True,True,True,True,True,False,False,True,,,0.0
+police_stations.csv,real/source,40,11,0,0.0,0,True,True,False,False,False,False,False,True,False,True,,,0.0
+hospitals.csv,real/source,20,11,0,0.0,0,True,True,False,False,False,False,False,True,False,True,,,0.0
+medical_facilities.csv,real/source,25,11,0,0.0,0,True,True,False,False,False,False,False,True,False,True,,,0.0
+public_amenities.csv,real/source,12,11,0,0.0,0,True,True,False,False,False,False,False,True,False,True,,,0.0
+synthetic_lighting.csv,synthetic/proxy,30,9,0,0.0,0,True,True,False,False,False,False,True,False,False,True,,,30.0
+synthetic_cctv.csv,synthetic/proxy,30,9,0,0.0,0,True,True,False,False,False,False,True,False,False,True,,,30.0
+synthetic_mobility.csv,synthetic/proxy,30,10,0,0.0,0,True,True,False,False,False,False,True,False,False,True,,,30.0
+synthetic_crime_hotspots.csv,synthetic/proxy,6,10,0,0.0,0,True,True,False,False,False,False,False,False,False,True,,,6.0
+synthetic_contextual_segments.csv,synthetic/proxy,1000,11,0,0.0,0,False,False,False,False,False,False,False,False,False,False,,,

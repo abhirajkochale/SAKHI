@@ -1,0 +1,26 @@
+id,name,latitude,longitude,address,district,type,verified,source,source_url,is_synthetic
+1,AIIMS New Delhi,28.5672,77.21,"Sri Aurobindo Marg, Ansari Nagar",South,Apex Public Hospital & Trauma Center,True,National Health Portal & OSM,https://data.gov.in,False
+2,Safdarjung Hospital,28.5695,77.2075,"Ring Road, Opp AIIMS",South,Government Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+3,Lok Nayak Jai Prakash Narayan Hospital (LNJP),28.6372,77.2405,"Jawaharlal Nehru Marg, Delhi Gate",Central,Government Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+4,Ram Manohar Lohia Hospital (RML),28.6241,77.2025,Baba Kharak Singh Marg,New Delhi,Central Govt Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+5,Sir Ganga Ram Hospital,28.6385,77.1895,Rajinder Nagar,Central,Private Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+6,Max Super Speciality Hospital Saket,28.5275,77.212,"1, 2 Press Enclave Marg, Saket",South,Private Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+7,Fortis Escorts Heart Institute,28.5604,77.2754,Okhla Road,South East,Private Super Speciality Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+8,Indraprastha Apollo Hospital,28.5412,77.2835,"Sarita Vihar, Mathura Road",South East,Private Super Speciality Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+9,Guru Teg Bahadur Hospital (GTB),28.6852,77.3105,Dilshad Garden,Shahdara,Government Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+10,Deen Dayal Upadhyay Hospital (DDU),28.6275,77.1125,Hari Nagar,West,Government Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+11,Dr. Baba Saheb Ambedkar Hospital,28.7164,77.1145,"Sector 6, Rohini",North West,Government Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+12,Sanjay Gandhi Memorial Hospital,28.6985,77.0652,Mangolpuri,North West,Government Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+13,BLK-Max Super Speciality Hospital,28.6441,77.1785,"Pusa Road, Karol Bagh",Central,Private Super Speciality Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+14,Holy Family Hospital,28.5622,77.2742,Okhla Road,South East,Private Charitable Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+15,St. Stephen's Hospital,28.6652,77.2204,Tis Hazari,North,Private Charitable Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+16,Hindu Rao Hospital,28.6725,77.2142,Malka Ganj,North,MCD Major Public Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+17,Venkateshwar Hospital,28.5864,77.0425,"Sector 18A, Dwarka",South West,Private Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+18,Max Super Speciality Hospital Patparganj,28.6312,77.3052,"IP Extension, Patparganj",East,Private Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+19,Dharamshila Narayana Superspeciality Hospital,28.6042,77.3215,Vasundhara Enclave,East,Private Super Speciality Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+20,Manipal Hospital Dwarka,28.5835,77.0585,"Sector 6, Dwarka",South West,Private Multi-Specialty Hospital,True,National Health Portal & OSM,https://data.gov.in,False
+21,Apollo Pharmacy 24x7 AIIMS,28.5668,77.2095,Ansari Nagar,South,24x7 Pharmacy,True,National Health Portal & OSM,https://data.gov.in,False
+22,Apollo Pharmacy 24x7 CP,28.6322,77.2185,Connaught Place,New Delhi,24x7 Pharmacy,True,National Health Portal & OSM,https://data.gov.in,False
+23,Jan Aushadhi Kendra Lajpat Nagar,28.5691,77.2415,Lajpat Nagar Central Market,South East,Government Generic Pharmacy,True,National Health Portal & OSM,https://data.gov.in,False
+24,Max Pharmacy 24x7 Saket,28.5278,77.2125,Saket Press Enclave,South,24x7 Pharmacy,True,National Health Portal & OSM,https://data.gov.in,False
+25,Fortis Pharmacy 24x7 Okhla,28.5608,77.2758,Okhla,South East,24x7 Pharmacy,True,National Health Portal & OSM,https://data.gov.in,False
