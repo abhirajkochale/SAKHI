@@ -20,12 +20,21 @@ export default function JourneyMap({ origin, destination, segments, selectedSegm
     // Build GeoJSON FeatureCollection for all segments
     const features = segments.map((seg) => {
       const isSelected = seg.segment_id === selectedSegmentId;
+      const risk = seg.risk_score || 0;
+      
+      let baseColor = '#10b981'; // LOW: Green
+      if (risk > 65) {
+        baseColor = '#ef4444'; // HIGH: Red
+      } else if (risk >= 35) {
+        baseColor = '#f59e0b'; // MODERATE: Amber
+      }
+      
       return {
         type: 'Feature',
         properties: {
-          color: isSelected ? '#3b82f6' : '#6b7280',
-          weight: isSelected ? 5 : 3,
-          opacity: 1.0,
+          color: isSelected ? '#3b82f6' : baseColor, // Blue if selected
+          weight: isSelected ? 6 : 4,
+          opacity: isSelected ? 1.0 : 0.8,
         },
         geometry: seg.geometry, // already a GeoJSON LineString in [lon, lat]
       };
@@ -46,6 +55,27 @@ export default function JourneyMap({ origin, destination, segments, selectedSegm
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body, #map { width: 100%; height: 100%; }
     .leaflet-control-attribution { font-size: 9px; }
+    .legend {
+      background: white;
+      padding: 6px 8px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      font-family: sans-serif;
+      font-size: 11px;
+      line-height: 16px;
+      color: #374151;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .legend-color {
+      width: 12px;
+      height: 4px;
+      margin-right: 6px;
+      border-radius: 2px;
+    }
   </style>
 </head>
 <body>
@@ -57,6 +87,20 @@ export default function JourneyMap({ origin, destination, segments, selectedSegm
       maxZoom: 19,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
+
+    // Add Legend
+    const legend = L.control({position: 'topright'});
+    legend.onAdd = function (map) {
+        const div = L.DomUtil.create('div', 'legend');
+        div.innerHTML = \`
+          <div style="font-weight:bold;margin-bottom:4px;font-size:10px;text-transform:uppercase">Risk Level</div>
+          <div class="legend-item"><div class="legend-color" style="background:#10b981;"></div>Low (<35)</div>
+          <div class="legend-item"><div class="legend-color" style="background:#f59e0b;"></div>Moderate</div>
+          <div class="legend-item"><div class="legend-color" style="background:#ef4444;"></div>High (>65)</div>
+        \`;
+        return div;
+    };
+    legend.addTo(map);
 
     // Add route segments as GeoJSON (swap lon/lat for Leaflet)
     const data = ${geojsonString};

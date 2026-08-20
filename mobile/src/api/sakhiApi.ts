@@ -24,5 +24,15 @@ export const sakhiApi = {
   updateContext: async (journeyId: string, event: ContextUpdateEvent): Promise<ContextUpdateResponse> => {
     const response = await apiClient.post<ContextUpdateResponse>(`/journeys/${journeyId}/context-update`, event);
     return response.data;
+  },
+
+  triggerSos: async (journeyId: string | null, location: Location): Promise<any> => {
+    const response = await axios.post(`${BASE_URL}/emergency/sos`, {
+      journey_id: journeyId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      trigger_source: 'manual',
+    });
+    return response.data;
   }
 };

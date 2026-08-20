@@ -1,19 +1,52 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { sakhiApi } from '../api/sakhiApi';
 
-export default function EmergencyPanel() {
+interface Props {
+  journeyId?: string;
+}
+
+export default function EmergencyPanel({ journeyId }: Props) {
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  const handleSos = async () => {
+    setLoading(true);
+    setStatus(null);
+    try {
+      // Mock location for demo since we don't have expo-location here yet
+      const loc = { latitude: 28.6139, longitude: 77.2090 }; 
+      const res = await sakhiApi.triggerSos(journeyId || null, loc);
+      setStatus(`SOS Sent! ID: ${res.sos_id.substring(0,8)}`);
+    } catch (e) {
+      setStatus('Failed to send SOS');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>EMERGENCY</Text>
       <Text style={styles.subtitle}>Current journey information available</Text>
       
+      {status && (
+        <View style={styles.statusBox}>
+          <Text style={styles.statusText}>{status}</Text>
+        </View>
+      )}
+
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.callButton}>
           <Text style={styles.buttonText}>CALL 112</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.sosButton}>
-          <Text style={styles.buttonText}>SEND SOS</Text>
+        <TouchableOpacity 
+          style={styles.sosButton} 
+          onPress={handleSos}
+          disabled={loading}
+        >
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>SEND SOS</Text>}
         </TouchableOpacity>
       </View>
 
@@ -50,6 +83,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     marginBottom: 16,
+  },
+  statusBox: {
+    backgroundColor: '#fee2e2',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+    alignItems: 'center',
+    borderColor: '#dc2626',
+    borderWidth: 1,
+  },
+  statusText: {
+    color: '#991b1b',
+    fontWeight: 'bold',
   },
   buttonRow: {
     flexDirection: 'row',

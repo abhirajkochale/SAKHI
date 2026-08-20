@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
 import { Location } from '../types/api';
 
 interface Props {
@@ -8,21 +8,79 @@ interface Props {
 }
 
 export default function JourneyForm({ onAnalyze, loading }: Props) {
+  const [originText, setOriginText] = useState('');
+  const [destinationText, setDestinationText] = useState('');
   const [origin, setOrigin] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadDemoJourney = () => {
-    // Mumbai demo: Andheri → Bandra West (OSRM returns 2 distinct real routes)
+    // Mumbai demo
     setOrigin({ latitude: 19.1136, longitude: 72.8697 });
     setDestination({ latitude: 19.0596, longitude: 72.8295 });
+    setOriginText('Andheri, Mumbai (Demo)');
+    setDestinationText('Bandra West, Mumbai (Demo)');
   };
 
   const loadHighRiskDemo = () => {
-    // High-Risk demo: Paharganj → Dwarka Sector 21, New Delhi (~25 km)
-    // OSRM returns 2 real walking alternatives for this corridor.
-    // Origin stays Paharganj so synthetic high-risk context injection fires.
+    // High-Risk demo
     setOrigin({ latitude: 28.6433, longitude: 77.2132 });
     setDestination({ latitude: 28.5525, longitude: 77.0597 });
+    setOriginText('Paharganj, New Delhi (Demo)');
+    setDestinationText('Dwarka Sector 21, New Delhi (Demo)');
+  };
+
+  const geocodeAddress = async (address: string): Promise<Location | null> => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, {
+        headers: { 'User-Agent': 'SAKHI-Hackathon-App' }
+      });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
+      }
+      return null;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  };
+
+  const handleAnalyze = async () => {
+    setError(null);
+    if (!originText || !destinationText) {
+      setError("Please enter origin and destination addresses.");
+      return;
+    }
+    
+    let currentOrig = origin;
+    let currentDest = destination;
+
+    // Only geocode if the text isn't matching the cached demo coordinates
+    if (!currentOrig || !originText.includes('(Demo)')) {
+      setGeocodeLoading(true);
+      currentOrig = await geocodeAddress(originText);
+      setGeocodeLoading(false);
+      if (!currentOrig) {
+        setError(`Could not find location for: ${originText}`);
+        return;
+      }
+      setOrigin(currentOrig);
+    }
+    
+    if (!currentDest || !destinationText.includes('(Demo)')) {
+      setGeocodeLoading(true);
+      currentDest = await geocodeAddress(destinationText);
+      setGeocodeLoading(false);
+      if (!currentDest) {
+        setError(`Could not find location for: ${destinationText}`);
+        return;
+      }
+      setDestination(currentDest);
+    }
+    
+    onAnalyze(currentOrig, currentDest);
   };
 
   return (
@@ -30,18 +88,26 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
       <Text style={styles.title}>SAKHI</Text>
       <Text style={styles.subtitle}>Smart Assistance for keeping HER informed</Text>
       
+      {error && <Text style={{color: '#dc2626', marginBottom: 8, fontSize: 12}}>{error}</Text>}
+
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Origin</Text>
-        <Text style={styles.value}>
-          {origin ? `${origin.latitude.toFixed(4)}, ${origin.longitude.toFixed(4)}` : 'Not Set'}
-        </Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter starting location..."
+          value={originText}
+          onChangeText={(t) => { setOriginText(t); setOrigin(null); }}
+        />
       </View>
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Destination</Text>
-        <Text style={styles.value}>
-          {destination ? `${destination.latitude.toFixed(4)}, ${destination.longitude.toFixed(4)}` : 'Not Set'}
-        </Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter destination..."
+          value={destinationText}
+          onChangeText={(t) => { setDestinationText(t); setDestination(null); }}
+        />
       </View>
 
       <View style={styles.buttonRow}>
@@ -55,13 +121,12 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
       </View>
 
       <View style={[styles.buttonRow, { marginTop: 12 }]}>
-
         <TouchableOpacity 
-          style={[styles.analyzeButton, (!origin || !destination) && styles.disabledButton]} 
-          onPress={() => onAnalyze(origin!, destination!)}
-          disabled={!origin || !destination || loading}
+          style={[styles.analyzeButton, (!originText || !destinationText) && styles.disabledButton]} 
+          onPress={handleAnalyze}
+          disabled={!originText || !destinationText || loading || geocodeLoading}
         >
-          {loading ? (
+          {loading || geocodeLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.analyzeButtonText}>Analyze Journey</Text>
@@ -106,6 +171,15 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: '#f3f4f6',
     borderRadius: 6,
+    color: '#111827',
+  },
+  input: {
+    fontSize: 14,
+    padding: 10,
+    backgroundColor: '#f9fafb',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
     color: '#111827',
   },
   buttonRow: {
