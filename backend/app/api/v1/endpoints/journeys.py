@@ -4,6 +4,8 @@ from app.schemas.context import ContextUpdateEvent, ContextUpdateResponse
 from app.services.routing.routing_service import RoutingService
 from app.services.routing.osrm_client import OSRMRoutingService
 from app.services.context_update_service import ContextUpdateService
+from app.schemas.emergency import CheckinRequest, CheckinResponse
+from app.services.emergency.emergency_service import get_emergency_service
 
 router = APIRouter()
 
@@ -37,3 +39,15 @@ def update_journey_context(
     and recalculates Safest/Balanced/Fastest route ranking.
     """
     return context_service.process_update(journey_id, event)
+
+@router.post("/{journey_id}/checkin", response_model=CheckinResponse, summary="Dead-man's switch check-in")
+def check_in_journey(
+    journey_id: str,
+    request: CheckinRequest,
+    emergency_service = Depends(get_emergency_service)
+):
+    """
+    Records a check-in for the dead-man's switch feature. If a check-in is not received
+    within the timeout window, an SOS event is automatically triggered.
+    """
+    return emergency_service.record_checkin(journey_id, request)
