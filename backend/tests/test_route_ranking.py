@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 import pytest
 from app.schemas.journey import JourneySegment, Location
 from app.schemas.ranking import RouteCandidate, RouteMetrics

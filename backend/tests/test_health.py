@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from fastapi.testclient import TestClient
 from app.main import app
 from app.core.config import settings
