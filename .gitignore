@@ -33,3 +33,6 @@ node_modules/
 dist/
 .expo/
 .vscode/
+
+# Backup directories
+SAKHI_friends_backup/
