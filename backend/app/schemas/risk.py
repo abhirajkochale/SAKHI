@@ -64,7 +64,7 @@ class SegmentContext(BaseModel):
 
 class RiskFeatures(BaseModel):
     """
-    27-feature vector for the safhera XGBoost contextual risk model.
+    27-feature vector for the sakhi XGBoost contextual risk model.
     Feature ORDER must exactly match training (ml/models/train_xgboost.py FEATURES list).
 
     Data honesty:
@@ -151,8 +151,8 @@ class RiskScore(BaseModel):
     risk_score: float             # 0 to 100
     confidence_score: float       # 0 to 100
     confidence_level: str         # HIGH, MEDIUM, LOW, Insufficient Data
-    model_source: str             # "xgboost_safhera", "xgboost_legacy", or "heuristic"
-    model_version: str            # e.g. "safhera-v1", "prototype"
+    model_source: str             # "xgboost_sakhi", "xgboost_legacy", or "heuristic"
+    model_version: str            # e.g. "sakhi-v1", "prototype"
     explanation: Optional[RiskExplanation] = None
     factors: Dict[str, Any]
     generated_at: datetime

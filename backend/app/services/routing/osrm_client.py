@@ -4,7 +4,7 @@ OSRMRoutingService
 Calls the public OSRM routing API to get route candidates, then:
 1. Builds JourneySegments from OSRM steps
 2. Enriches each segment with real spatial context (SegmentLookupService)
-3. Calculates contextual risk via RiskService (safhera XGBoost or heuristic)
+3. Calculates contextual risk via RiskService (sakhi XGBoost or heuristic)
 4. Aggregates segment metrics and ranks routes (Safest/Balanced/Fastest)
 
 Demo presets (Paharganj, Mumbai) retain differentiated context

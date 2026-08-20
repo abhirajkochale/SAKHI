@@ -1,7 +1,7 @@
 """
 SHAPService
 ===========
-Generates SHAP explanations for the safhera XGBoost contextual risk model.
+Generates SHAP explanations for the sakhi XGBoost contextual risk model.
 Uses TreeExplainer — optimized for XGBoost.
 
 IMPORTANT: SHAP explains the model's behaviour on its synthetic prototype target.
@@ -14,7 +14,7 @@ import pandas as pd
 from typing import Optional, List
 
 from app.schemas.risk import RiskFeatures, RiskExplanation, SHAPContribution
-from app.services.risk.ml_model_service import MLModelService, SAFHERA_FEATURE_ORDER
+from app.services.risk.ml_model_service import MLModelService, SAKHI_FEATURE_ORDER
 
 
 class SHAPService:
@@ -42,13 +42,13 @@ class SHAPService:
             return RiskExplanation(
                 available=False,
                 reason=(
-                    "SHAP explanation unavailable: XGBoost safhera model is not active. "
+                    "SHAP explanation unavailable: XGBoost sakhi model is not active. "
                     "Using heuristic fallback."
                 ),
             )
 
         feature_dict = features.model_dump()
-        feature_names = SAFHERA_FEATURE_ORDER
+        feature_names = SAKHI_FEATURE_ORDER
 
         # Validate all features present
         missing = [f for f in feature_names if f not in feature_dict]

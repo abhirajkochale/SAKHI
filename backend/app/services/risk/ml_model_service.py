@@ -1,9 +1,9 @@
 """
 MLModelService
 ==============
-Loads and runs the primary safhera XGBoost contextual risk model.
+Loads and runs the primary sakhi XGBoost contextual risk model.
 
-Primary model : ml/models/safhera_xgboost_risk_model.json
+Primary model : ml/models/sakhi_xgboost_risk_model.json
   - 27 features, trained on ml_training_dataset.csv
   - Loaded via xgboost XGBRegressor.load_model()
 
@@ -24,7 +24,7 @@ import pandas as pd
 from app.schemas.risk import RiskFeatures
 
 # Primary 27-feature list — must match ml/models/train_xgboost.py FEATURES exactly
-SAFHERA_FEATURE_ORDER: List[str] = [
+SAKHI_FEATURE_ORDER: List[str] = [
     "historical_baseline",
     "cases_per_100k",
     "severity_weighted_cases_per_100k",
@@ -62,7 +62,7 @@ class MLModelService:
     """
 
     def __init__(self, models_dir: Optional[str] = None):
-        self._primary_model = None          # XGBRegressor (safhera 27-feature)
+        self._primary_model = None          # XGBRegressor (sakhi 27-feature)
         self._legacy_model = None           # joblib model (synthetic 10-feature)
         self._metadata: Dict[str, Any] = {}
         self._model_source: str = "none"
@@ -73,32 +73,32 @@ class MLModelService:
                 os.path.join(here, "..", "..", "..", "..", "ml", "models")
             )
 
-        # ── Load primary safhera model ───────────────────────────────────
-        primary_path = os.path.join(models_dir, "safhera_xgboost_risk_model.json")
+        # ── Load primary sakhi model ───────────────────────────────────
+        primary_path = os.path.join(models_dir, "sakhi_xgboost_risk_model.json")
         if os.path.exists(primary_path):
             try:
                 import xgboost as xgb
                 m = xgb.XGBRegressor()
                 m.load_model(primary_path)
                 self._primary_model = m
-                self._model_source = "xgboost_safhera"
+                self._model_source = "xgboost_sakhi"
                 # Load metadata
-                meta_path = os.path.join(models_dir, "safhera_model_metadata.json")
+                meta_path = os.path.join(models_dir, "sakhi_model_metadata.json")
                 if os.path.exists(meta_path):
                     with open(meta_path, "r") as f:
                         self._metadata = json.load(f)
                 else:
                     self._metadata = {
-                        "model_name": "sakhi_safhera_contextual_risk",
-                        "model_version": "safhera-v1",
-                        "model_source": "xgboost_safhera",
-                        "feature_names": SAFHERA_FEATURE_ORDER,
-                        "feature_count": len(SAFHERA_FEATURE_ORDER),
+                        "model_name": "sakhi_sakhi_contextual_risk",
+                        "model_version": "sakhi-v1",
+                        "model_source": "xgboost_sakhi",
+                        "feature_names": SAKHI_FEATURE_ORDER,
+                        "feature_count": len(SAKHI_FEATURE_ORDER),
                         "dataset_type": "real_ncrb_district_plus_synthetic_proxy",
                         "target_is_observed_crime": False,
                     }
             except Exception as e:
-                print(f"[MLModelService] Failed to load primary safhera model: {e}")
+                print(f"[MLModelService] Failed to load primary sakhi model: {e}")
 
         # ── Load legacy fallback model if primary unavailable ────────────
         if self._primary_model is None:
@@ -136,11 +136,11 @@ class MLModelService:
     def get_model_source(self) -> str:
         return self._model_source
 
-    # ── Primary inference (27-feature safhera model) ─────────────────────
+    # ── Primary inference (27-feature sakhi model) ─────────────────────
 
     def predict(self, features: RiskFeatures) -> Optional[float]:
         """
-        Run inference with the primary safhera 27-feature XGBoost model.
+        Run inference with the primary sakhi 27-feature XGBoost model.
         Returns None if primary model is unavailable (triggers heuristic fallback).
         """
         if self._primary_model is None:
@@ -148,12 +148,12 @@ class MLModelService:
 
         feature_dict = features.model_dump()
         # Validate all required features are present
-        missing = [f for f in SAFHERA_FEATURE_ORDER if f not in feature_dict]
+        missing = [f for f in SAKHI_FEATURE_ORDER if f not in feature_dict]
         if missing:
             print(f"[MLModelService] Missing features for primary model: {missing}")
             return None
 
-        input_data = {f: [feature_dict[f]] for f in SAFHERA_FEATURE_ORDER}
+        input_data = {f: [feature_dict[f]] for f in SAKHI_FEATURE_ORDER}
         df_input = pd.DataFrame(input_data)
 
         try:
@@ -171,4 +171,4 @@ class MLModelService:
 
     def get_feature_names(self) -> List[str]:
         """Return the feature name list for the active primary model."""
-        return SAFHERA_FEATURE_ORDER
+        return SAKHI_FEATURE_ORDER

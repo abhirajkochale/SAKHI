@@ -22,10 +22,10 @@
 |------|--------|
 | `app/api/v1/api.py` | Added emergency router |
 | `app/api/v1/endpoints/journeys.py` | Updated for new schema |
-| `app/services/risk/risk_service.py` | 27-feature safhera pipeline, spatial enrichment, segment lookup |
+| `app/services/risk/risk_service.py` | 27-feature sakhi pipeline, spatial enrichment, segment lookup |
 | `app/services/risk/feature_service.py` | 27-feature extraction with temporal, infrastructure, synthetic proxies |
-| `app/services/risk/ml_model_service.py` | Dual model loading (safhera primary + legacy fallback) |
-| `app/services/risk/shap_service.py` | SHAP for 27-feature safhera model |
+| `app/services/risk/ml_model_service.py` | Dual model loading (sakhi primary + legacy fallback) |
+| `app/services/risk/shap_service.py` | SHAP for 27-feature sakhi model |
 | `app/services/risk/confidence_service.py` | Data quality + mapping quality + infrastructure quality formula |
 | `app/services/risk/baseline_service.py` | Real NCRB district baseline via segment lookup |
 | `app/services/routing/osrm_client.py` | Real spatial context building + demo override separation |
@@ -43,8 +43,8 @@
 | `ml/data/raw/` (7 CSV files) | Real Delhi datasets: crime_records, hospitals, medical_facilities, police_stations, population, public_amenities, road_segments |
 | `ml/data/processed/` (17 files) | Processed pipeline outputs: district baselines, training dataset, predictions, SHAP explanations, route artifacts |
 | `ml/data/synthetic/` (4 new CSV files) | synthetic_cctv, synthetic_crime_hotspots, synthetic_lighting, synthetic_mobility |
-| `ml/models/safhera_xgboost_risk_model.json` | Primary 27-feature XGBoost model |
-| `ml/models/safhera_model_metadata.json` | Model metadata |
+| `ml/models/sakhi_xgboost_risk_model.json` | Primary 27-feature XGBoost model |
+| `ml/models/sakhi_model_metadata.json` | Model metadata |
 | `ml/models/train_xgboost.py` | XGBoost training script |
 | `ml/models/build_confidence.py` | Confidence artifact builder |
 | `ml/models/explain_risk.py` | SHAP explanation generator |
@@ -126,7 +126,7 @@ tests/test_shap_service.py          4 PASSED
 > **⚠️ The current XGBoost model is a prototype. It is NOT a validated production model.**
 
 ### Current State
-- Model: `safhera_xgboost_risk_model.json` (27-feature XGBoost regressor)
+- Model: `sakhi_xgboost_risk_model.json` (27-feature XGBoost regressor)
 - Training target: `prototype_risk_target` (synthetic composite, NOT observed crime)
 - Training data: Real NCRB district stats + synthetic environmental proxies
 - Geography: Delhi (11 districts)
@@ -182,7 +182,7 @@ C:\Projects\SAKHI\
 │   │   ├── raw\               (7 real Delhi datasets)
 │   │   ├── processed\         (17 pipeline outputs)
 │   │   └── synthetic\         (5 synthetic datasets)
-│   ├── models\                (safhera model + legacy + training scripts)
+│   ├── models\                (sakhi model + legacy + training scripts)
 │   ├── preprocessing\         (6 preprocessing scripts)
 │   └── routing\               (7 route analysis scripts)
 ├── data\                      (reserved for future use)

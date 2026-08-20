@@ -5,8 +5,8 @@ Orchestrates the full contextual safety risk pipeline for a JourneySegment:
 
   1. Confidence (evidence quality — independent of risk)
   2. Spatial context enrichment (district, infrastructure distances, synthetic proxies)
-  3. Feature extraction (27 features for safhera model)
-  4. XGBoost inference (safhera primary model)
+  3. Feature extraction (27 features for sakhi model)
+  4. XGBoost inference (sakhi primary model)
   5. SHAP explanation
   6. Heuristic fallback if model unavailable
 
@@ -31,7 +31,7 @@ from app.services.risk.segment_lookup_service import get_segment_lookup_service
 class RiskService:
     """
     Contextual safety risk calculator.
-    Primary model: safhera XGBoost 27-feature model.
+    Primary model: sakhi XGBoost 27-feature model.
     Fallback: deterministic prototype heuristic.
     """
 
@@ -79,7 +79,7 @@ class RiskService:
         if ml_score is not None:
             final_risk = ml_score
             model_source = self.ml_service.get_model_source()
-            model_version = self.ml_service.get_metadata().get("model_version", "safhera-v1")
+            model_version = self.ml_service.get_metadata().get("model_version", "sakhi-v1")
             explanation = self.shap_service.explain(features, final_risk)
             factors = {
                 "ml_inference": True,
@@ -121,7 +121,7 @@ class RiskService:
             model_version = "prototype"
             explanation = RiskExplanation(
                 available=False,
-                reason="XGBoost safhera model not available. Deterministic heuristic used.",
+                reason="XGBoost sakhi model not available. Deterministic heuristic used.",
             )
             factors = {
                 "ml_inference": False,

@@ -1,7 +1,7 @@
 """
 train_xgboost.py
 ================
-Trains the primary SAKHI safhera XGBoost contextual risk model.
+Trains the primary SAKHI sakhi XGBoost contextual risk model.
 
 TARGET: crime_grounded_risk_index (0–100)
 
@@ -20,8 +20,8 @@ METHODOLOGY:
      - Early stopping on validation MAE
   5. Metrics & Artifacts:
      - Reports MAE, RMSE, R² for Train, Validation, and Test vs Baselines
-     - Saves trained model to ml/models/safhera_xgboost_risk_model.json
-     - Saves metadata to ml/models/safhera_model_metadata.json
+     - Saves trained model to ml/models/sakhi_xgboost_risk_model.json
+     - Saves metadata to ml/models/sakhi_model_metadata.json
 """
 
 import json
@@ -44,8 +44,8 @@ DATA_FILE = PROJECT_ROOT / "ml" / "data" / "processed" / "ml_training_dataset.cs
 MODEL_DIR = PROJECT_ROOT / "ml" / "models"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
-MODEL_FILE = MODEL_DIR / "safhera_xgboost_risk_model.json"
-METADATA_FILE = MODEL_DIR / "safhera_model_metadata.json"
+MODEL_FILE = MODEL_DIR / "sakhi_xgboost_risk_model.json"
+METADATA_FILE = MODEL_DIR / "sakhi_model_metadata.json"
 PREDICTIONS_FILE = PROJECT_ROOT / "ml" / "data" / "processed" / "risk_predictions.csv"
 
 
@@ -59,7 +59,7 @@ print(f"Rows loaded: {len(df)}")
 
 
 # ============================================================
-# TARGET & FEATURES (27 SAFHERA FEATURE CONTRACT)
+# TARGET & FEATURES (27 SAKHI FEATURE CONTRACT)
 # ============================================================
 
 TARGET = "crime_grounded_risk_index"
@@ -288,9 +288,9 @@ print(f"\nModel saved to:\n{MODEL_FILE}")
 
 # Write comprehensive metadata file (read by backend / inspectable)
 metadata = {
-    "model_name": "sakhi_safhera_contextual_risk",
+    "model_name": "sakhi_sakhi_contextual_risk",
     "model_version": "1.0.0-crime_grounded",
-    "model_source": "xgboost_safhera",
+    "model_source": "xgboost_sakhi",
     "target_name": TARGET,
     "target_type": "crime_grounded_district_temporal_index",
     "target_is_observed_crime": True,

@@ -1,7 +1,7 @@
 """
 FeatureExtractionService
 ========================
-Builds the 27-feature RiskFeatures vector for the safhera XGBoost model
+Builds the 27-feature RiskFeatures vector for the sakhi XGBoost model
 from a JourneySegment + SegmentContext.
 
 Feature sources:
@@ -202,7 +202,7 @@ class FeatureExtractionService:
         if context.contextual_footfall_proxy is not None:
             temporal["contextual_footfall_proxy"] = context.contextual_footfall_proxy
 
-        # ── Assemble RiskFeatures (ordered as SAFHERA_FEATURE_ORDER) ─────
+        # ── Assemble RiskFeatures (ordered as SAKHI_FEATURE_ORDER) ─────
         return RiskFeatures(
             historical_baseline=float(historical_baseline),
             cases_per_100k=float(cases_per_100k),

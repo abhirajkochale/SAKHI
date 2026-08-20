@@ -23,7 +23,7 @@ MODEL_FILE = (
     PROJECT_ROOT
     / "ml"
     / "models"
-    / "safhera_xgboost_risk_model.json"
+    / "sakhi_xgboost_risk_model.json"
 )
 
 CONFIDENCE_FILE = (

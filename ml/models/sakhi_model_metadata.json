@@ -1,7 +1,7 @@
 {
-    "model_name": "sakhi_safhera_contextual_risk",
+    "model_name": "sakhi_sakhi_contextual_risk",
     "model_version": "1.0.0-crime_grounded",
-    "model_source": "xgboost_safhera",
+    "model_source": "xgboost_sakhi",
     "target_name": "crime_grounded_risk_index",
     "target_type": "crime_grounded_district_temporal_index",
     "target_is_observed_crime": true,
