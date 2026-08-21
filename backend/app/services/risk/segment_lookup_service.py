@@ -185,6 +185,27 @@ class SegmentLookupService:
 
         return result
 
+    def get_public_toilets(self) -> list[Dict[str, Any]]:
+        """Return public toilet locations from the verified amenities dataset."""
+        if self._amenities.empty or "type" not in self._amenities.columns:
+            return []
+
+        toilets = self._amenities[
+            self._amenities["type"].astype(str).str.contains("toilet|washroom", case=False, na=False)
+        ]
+        return [
+            {
+                "id": str(row.get("id", index)),
+                "name": str(row.get("name", "Public toilet")),
+                "type": str(row.get("type", "Public Toilet")),
+                "address": str(row.get("address", "")),
+                "district": str(row.get("district", "")),
+                "latitude": float(row["latitude"]),
+                "longitude": float(row["longitude"]),
+            }
+            for index, row in toilets.iterrows()
+        ]
+
     def get_synthetic_proxies(self, lat: float, lon: float) -> Dict[str, Any]:
         """
         Retrieve nearest synthetic proxy values for lighting, CCTV, mobility,

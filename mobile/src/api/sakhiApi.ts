@@ -1,8 +1,9 @@
 import axios from 'axios';
-import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location } from '../types/api';
+import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, PublicToilet } from '../types/api';
 
 // Use Expo environment variable or fallback to localhost
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -12,6 +13,11 @@ const apiClient = axios.create({
 });
 
 export const sakhiApi = {
+  getPublicToilets: async (): Promise<PublicToilet[]> => {
+    const response = await apiClient.get<PublicToilet[]>('/amenities/public-toilets');
+    return response.data;
+  },
+
   createJourney: async (origin: Location, destination: Location, departureTime?: string): Promise<JourneyResponse> => {
     const response = await apiClient.post<JourneyResponse>('/journeys/', {
       origin,

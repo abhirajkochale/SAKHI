@@ -3,6 +3,16 @@ export interface Location {
   longitude: number;
 }
 
+export interface PublicToilet {
+  id: string;
+  name: string;
+  type: string;
+  address: string;
+  district: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface JourneySegment {
   segment_id: string;
   journey_id: string;

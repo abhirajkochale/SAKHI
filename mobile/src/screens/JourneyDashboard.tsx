@@ -10,7 +10,7 @@ import DeadManSwitchPanel from '../components/DeadManSwitchPanel';
 import { sakhiApi } from '../api/sakhiApi';
 import { cacheJourney, getCachedJourney } from '../api/cache';
 import { useAccessibility } from '../contexts/AccessibilityContext';
-import { JourneyResponse, Location, RouteOption, JourneySegment, ContextUpdateResponse } from '../types/api';
+import { JourneyResponse, Location, RouteOption, JourneySegment, ContextUpdateResponse, PublicToilet } from '../types/api';
 import { Accelerometer } from 'expo-sensors';
 
 const SHAKE_THRESHOLD = 1.8; // g-force threshold for a shake (lowered for easier testing)
@@ -27,6 +27,8 @@ export default function JourneyDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [isShakeEnabled, setIsShakeEnabled] = useState(true);
+  const [showPublicToilets, setShowPublicToilets] = useState(false);
+  const [publicToilets, setPublicToilets] = useState<PublicToilet[]>([]);
   const lastShakeTime = React.useRef(0);
 
   React.useEffect(() => {
@@ -67,6 +69,12 @@ export default function JourneyDashboard() {
     try {
       const response = await sakhiApi.createJourney(origin, destination);
       setJourney(response);
+      try {
+        setPublicToilets(await sakhiApi.getPublicToilets());
+      } catch (amenityError) {
+        console.warn('Could not load public toilet locations:', amenityError);
+        setPublicToilets([]);
+      }
       
       // Cache the journey for offline use
       cacheJourney(response);
@@ -154,7 +162,29 @@ export default function JourneyDashboard() {
               segments={selectedRoute?.segments || journey.segments}
               selectedSegmentId={selectedSegment?.segment_id || null}
               onSegmentPress={setSelectedSegment}
+              publicToilets={publicToilets}
+              showPublicToilets={showPublicToilets}
             />
+          </View>
+
+          <View style={currentStyles.amenityToggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={currentStyles.amenityToggleTitle}>Right to PEE</Text>
+              <Text style={currentStyles.amenityToggleCaption}>
+                {publicToilets.length ? `${publicToilets.length} public toilets available on the map` : 'Toilet locations unavailable offline'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              accessibilityRole="switch"
+              accessibilityState={{ checked: showPublicToilets }}
+              accessibilityLabel="Show public toilet locations"
+              onPress={() => setShowPublicToilets((visible) => !visible)}
+              style={[currentStyles.amenityToggle, showPublicToilets && currentStyles.amenityToggleActive]}
+            >
+              <Text style={[currentStyles.amenityToggleText, showPublicToilets && currentStyles.amenityToggleTextActive]}>
+                {showPublicToilets ? 'LOCATIONS ON' : 'SHOW LOCATIONS'}
+              </Text>
+            </TouchableOpacity>
           </View>
           
           {isAccessibleMode && (
@@ -256,6 +286,45 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     height: 300,
+  },
+  amenityToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f3ff',
+    borderWidth: 1,
+    borderColor: '#c4b5fd',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+  },
+  amenityToggleTitle: {
+    color: '#5b21b6',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  amenityToggleCaption: {
+    color: '#6b7280',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  amenityToggle: {
+    backgroundColor: '#fff',
+    borderColor: '#7c3aed',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  amenityToggleActive: {
+    backgroundColor: '#7c3aed',
+  },
+  amenityToggleText: {
+    color: '#6d28d9',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  amenityToggleTextActive: {
+    color: '#fff',
   },
   errorBox: {
     backgroundColor: '#fee2e2',
@@ -452,6 +521,45 @@ const accessibleStyles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
-  }
+  },
+  amenityToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 3,
+    borderColor: '#000',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 10,
+  },
+  amenityToggleTitle: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  amenityToggleCaption: {
+    color: '#000',
+    fontSize: 15,
+    marginTop: 2,
+  },
+  amenityToggle: {
+    backgroundColor: '#fff',
+    borderColor: '#000',
+    borderWidth: 2,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  amenityToggleActive: {
+    backgroundColor: '#000',
+  },
+  amenityToggleText: {
+    color: '#000',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  amenityToggleTextActive: {
+    color: '#fff',
+  },
 });
 

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { JourneySegment, Location } from '../types/api';
+import { JourneySegment, Location, PublicToilet } from '../types/api';
 
 interface JourneyMapProps {
   origin: Location | null;
@@ -9,9 +9,11 @@ interface JourneyMapProps {
   segments: JourneySegment[];
   onSegmentPress: (segment: JourneySegment) => void;
   selectedSegmentId: string | null;
+  publicToilets: PublicToilet[];
+  showPublicToilets: boolean;
 }
 
-export default function JourneyMap({ origin, destination, segments, selectedSegmentId }: JourneyMapProps) {
+export default function JourneyMap({ origin, destination, segments, selectedSegmentId, publicToilets, showPublicToilets }: JourneyMapProps) {
   const html = useMemo(() => {
     // Build center from origin or default to New Delhi
     const centerLat = origin?.latitude ?? 28.6139;
@@ -43,6 +45,7 @@ export default function JourneyMap({ origin, destination, segments, selectedSegm
     const geojsonString = JSON.stringify({ type: 'FeatureCollection', features });
     const originJson = origin ? JSON.stringify([origin.latitude, origin.longitude]) : 'null';
     const destinationJson = destination ? JSON.stringify([destination.latitude, destination.longitude]) : 'null';
+    const toiletsJson = JSON.stringify(publicToilets);
 
     return `<!DOCTYPE html>
 <html>
@@ -146,10 +149,24 @@ export default function JourneyMap({ origin, destination, segments, selectedSegm
       });
       L.marker(destCoord, { icon: redIcon }).addTo(map).bindPopup('Destination');
     }
+
+    const publicToilets = ${toiletsJson};
+    if (${showPublicToilets} && publicToilets.length > 0) {
+      const toiletIcon = L.divIcon({
+        html: '<div style="background:#7c3aed;color:#fff;width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:13px">WC</div>',
+        iconSize: [22, 22], iconAnchor: [11, 11], className: ''
+      });
+      publicToilets.forEach((toilet) => {
+        const details = [toilet.type, toilet.address, toilet.district].filter(Boolean).join('<br>');
+        L.marker([toilet.latitude, toilet.longitude], { icon: toiletIcon })
+          .addTo(map)
+          .bindPopup('<strong>' + toilet.name + '</strong><br>' + details);
+      });
+    }
   </script>
 </body>
 </html>`;
-  }, [origin, destination, segments, selectedSegmentId]);
+  }, [origin, destination, segments, selectedSegmentId, publicToilets, showPublicToilets]);
 
   return (
     <View style={styles.container}>
