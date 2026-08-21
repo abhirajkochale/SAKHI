@@ -1,0 +1,41 @@
+id,name,latitude,longitude,address,district,type,verified,source,source_url,is_synthetic
+1,Connaught Place Police Station,28.6327,77.2195,"Inner Circle, Connaught Place",New Delhi,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+2,Parliament Street Police Station,28.6253,77.2144,Parliament Street,New Delhi,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+3,Chanakyapuri Police Station,28.5975,77.1843,"Nyaya Marg, Chanakyapuri",New Delhi,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+4,Tuglak Road Police Station,28.6041,77.2118,Tuglak Road,New Delhi,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+5,Hauz Khas Police Station,28.5494,77.2001,Hauz Khas Enclave,South,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+6,Malviya Nagar Police Station,28.5282,77.2105,Malviya Nagar,South,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+7,Saket Police Station,28.5222,77.2065,"Press Enclave Marg, Saket",South,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+8,Mehrauli Police Station,28.5173,77.1846,Mehrauli Bypass,South,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+9,Greater Kailash Police Station,28.5447,77.2372,GK-1 Main Market,South East,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+10,Lajpat Nagar Police Station,28.5684,77.2423,Lajpat Nagar II,South East,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+11,Kalkaji Police Station,28.5489,77.2588,Kalkaji Main Road,South East,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+12,Okhla Industrial Area PS,28.5298,77.2712,"Phase 1, Okhla",South East,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+13,Vasant Vihar Police Station,28.5583,77.1625,Vasant Vihar,South West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+14,Vasant Kunj North PS,28.5392,77.1554,"Sector D, Vasant Kunj",South West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+15,Dwarka Sector 23 PS,28.5562,77.0543,"Sector 23, Dwarka",South West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+16,Delhi Cantt Police Station,28.5912,77.1352,"Sadabahar Marg, Delhi Cantt",South West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+17,Rajouri Garden PS,28.6475,77.1215,Major Sudesh Kumar Marg,West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+18,Punjabi Bagh PS,28.6672,77.1285,"Ring Road, Punjabi Bagh",West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+19,Tilak Nagar PS,28.6364,77.0963,"Najafgarh Road, Tilak Nagar",West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+20,Janakpuri PS,28.6214,77.0874,"Dessu Colony, Janakpuri",West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+21,Rohini Sector 18 PS,28.7362,77.1325,"Sector 18, Rohini",North West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+22,Shalimar Bagh PS,28.7154,77.1584,"Block BH, Shalimar Bagh",North West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+23,Model Town PS,28.7025,77.1932,Model Town II,North West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+24,Pitampura PS (Subhash Place),28.6924,77.1504,Netaji Subhash Place,North West,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+25,Civil Lines PS,28.6812,77.2224,"Rajpur Road, Civil Lines",North,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+26,Kashmere Gate PS,28.6665,77.2301,Kashmere Gate ISBT,North,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+27,Timarpur PS,28.7012,77.2285,Timarpur,North,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+28,Kotwali PS (Chandni Chowk),28.6562,77.2312,Chandni Chowk,Central,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+29,Daryaganj PS,28.6482,77.2405,Netaji Subhash Marg,Central,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+30,Pahar Ganj PS,28.6432,77.2142,Desh Bandhu Gupta Road,Central,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+31,Karol Bagh PS,28.6515,77.1902,"Gurudwara Road, Karol Bagh",Central,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+32,Preet Vihar PS,28.6421,77.2952,"Vikas Marg, Preet Vihar",East,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+33,Laxmi Nagar PS,28.6312,77.2785,Laxmi Nagar,East,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+34,Mayur Vihar PS,28.6084,77.2985,"Phase 1, Mayur Vihar",East,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+35,Seelampur PS,28.6685,77.2684,Seelampur Main Road,North East,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+36,Nand Nagri PS,28.6985,77.3025,Nand Nagri,North East,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+37,Shahdara PS,28.6725,77.2885,"Bhola Nath Nagar, Shahdara",Shahdara,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+38,Vivek Vihar PS,28.6612,77.3152,Vivek Vihar,Shahdara,Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+39,All Women PS Maurice Nagar,28.6895,77.2105,Delhi University North Campus,North,Women Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False
+40,All Women PS Narela,28.8521,77.0954,Narela Industrial Area,North West,Women Police Station,True,OpenStreetMap & Delhi Police Directory,https://delhipolice.gov.in / https://www.openstreetmap.org,False

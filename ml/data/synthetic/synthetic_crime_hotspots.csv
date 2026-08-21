@@ -1,0 +1,7 @@
+hotspot_id,latitude,longitude,intensity,crime_category,year_range,source_type,is_synthetic,source,source_url
+1,28.6432,77.2142,88,Harassment & Snatching,2021-2023,Pahar Ganj / Old Delhi Station Corridor,True,District NCRB Density Allocation & Expert Synthetic Mapping,https://ncrb.gov.in
+2,28.6685,77.2684,92,Stalking & Outrage Modesty,2021-2023,Seelampur Market Underpass Zone,True,District NCRB Density Allocation & Expert Synthetic Mapping,https://ncrb.gov.in
+3,28.5298,77.2712,84,Isolated Industrial Corridor,2021-2023,Okhla Industrial Phase 1 Edge,True,District NCRB Density Allocation & Expert Synthetic Mapping,https://ncrb.gov.in
+4,28.6985,77.3025,86,Poorly Lit Transit Access,2021-2023,Nand Nagri Bus Terminal Surroundings,True,District NCRB Density Allocation & Expert Synthetic Mapping,https://ncrb.gov.in
+5,28.5173,77.1846,79,Low Lighting / Forest Fringe,2021-2023,Mehrauli Bypass Woodland Stretch,True,District NCRB Density Allocation & Expert Synthetic Mapping,https://ncrb.gov.in
+6,28.6985,77.0652,85,High Density Isolated Pocket,2021-2023,Mangolpuri Flyover Underpass,True,District NCRB Density Allocation & Expert Synthetic Mapping,https://ncrb.gov.in

@@ -1,0 +1,33 @@
+{
+    "model_name": "sakhi_contextual_risk",
+    "model_version": "0.1.0",
+    "model_source": "xgboost",
+    "dataset_type": "synthetic_prototype",
+    "training_dataset_size": 1000,
+    "train_size": 800,
+    "test_size": 200,
+    "feature_names": [
+        "hour_sin",
+        "hour_cos",
+        "is_weekend",
+        "environmental_isolation_indicator",
+        "cctv_coverage",
+        "police_proximity",
+        "transit_access",
+        "infrastructure_score",
+        "historical_baseline",
+        "validated_report_signal"
+    ],
+    "evaluation_metrics": {
+        "mae": 4.285336869398286,
+        "mse": 32.236608653806286,
+        "rmse": 5.677729181090473,
+        "r2": 0.8659608964952918,
+        "disclaimer": "These metrics measure performance on synthetic prototype data only."
+    },
+    "xgboost_parameters": {
+        "n_estimators": 100,
+        "learning_rate": 0.1,
+        "max_depth": 5
+    }
+}

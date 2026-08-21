@@ -1,0 +1,4 @@
+mode,segments,segment_count,distance_m,travel_time_s,average_risk,maximum_risk,routing_cost
+fastest,1015 → 1016 → 1017 → 1018,4,22800.0,1824.0,18.68,25.23,1824.0
+balanced,1015 → 1016 → 1017 → 1018,4,22800.0,1824.0,18.68,25.23,2461.32
+safest,1015 → 1016 → 1017 → 1018,4,22800.0,1824.0,18.68,25.23,3098.65
