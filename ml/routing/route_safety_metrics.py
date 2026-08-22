@@ -763,5 +763,5 @@ print(
 
 print(
     "\nNext:"
-    "\nStep 3C → Safety vs travel-time trade-off"
+    "\nStep 3C -> Safety vs travel-time trade-off"
 )

@@ -48,36 +48,17 @@ OUTPUT_FILE = (
 # ============================================================
 
 FEATURES = [
-    "historical_baseline",
-    "cases_per_100k",
-    "severity_weighted_cases_per_100k",
-    "recent_cases_per_100k",
-    "recent_severity_per_100k",
-    "crime_trend_slope",
-
     "distance_m",
     "estimated_travel_time_s",
-
     "lighting_score",
     "cctv_coverage_score",
     "footfall_proxy",
     "contextual_footfall_proxy",
-
     "distance_to_police_m",
     "distance_to_hospital_m",
     "distance_to_medical_facility_m",
     "distance_to_public_toilet_m",
     "distance_to_nearest_amenity_m",
-
-    "nearest_hotspot_distance_m",
-    "nearest_hotspot_intensity",
-
-    "representative_hour",
-    "is_night",
-    "is_late_night",
-    "is_evening_peak",
-    "is_weekend",
-    "is_peak_hour",
     "reduced_activity_context",
     "lighting_relevance",
 ]
@@ -738,6 +719,6 @@ print(
 )
 
 print(
-    "Build road-network graph → Dijkstra/A* "
+    "Build road-network graph -> Dijkstra/A* "
     "safety-aware routing"
 )
