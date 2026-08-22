@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { Alert, Linking, ScrollView, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import JourneyForm from '../components/JourneyForm';
 import JourneyMap from '../components/JourneyMap';
 import RouteOptionsList from '../components/RouteOptionsList';
@@ -114,6 +114,34 @@ export default function JourneyDashboard() {
     }
   };
 
+  const openSelectedRouteInGoogleMaps = async () => {
+    if (!journey) return;
+
+    const routeSegments = selectedRoute?.segments || journey.segments;
+    const coordinates = routeSegments.flatMap((segment) => segment.geometry.coordinates || []);
+    const waypointIndexes = [0.25, 0.5, 0.75]
+      .map((position) => coordinates[Math.round((coordinates.length - 1) * position)])
+      .filter((coordinate): coordinate is number[] => Array.isArray(coordinate) && coordinate.length >= 2);
+
+    const params = new URLSearchParams({
+      api: '1',
+      origin: `${journey.origin.latitude},${journey.origin.longitude}`,
+      destination: `${journey.destination.latitude},${journey.destination.longitude}`,
+      travelmode: 'walking',
+      dir_action: 'navigate',
+    });
+    if (waypointIndexes.length) {
+      params.set('waypoints', waypointIndexes.map(([longitude, latitude]) => `${latitude},${longitude}`).join('|'));
+    }
+
+    const url = `https://www.google.com/maps/dir/?${params.toString()}`;
+    if (!await Linking.canOpenURL(url)) {
+      Alert.alert('Google Maps unavailable', 'Unable to open navigation on this device.');
+      return;
+    }
+    await Linking.openURL(url);
+  };
+
   const currentStyles = isAccessibleMode ? accessibleStyles : styles;
 
   return (
@@ -164,8 +192,19 @@ export default function JourneyDashboard() {
               onSegmentPress={setSelectedSegment}
               publicToilets={publicToilets}
               showPublicToilets={showPublicToilets}
+              onNavigateRequest={openSelectedRouteInGoogleMaps}
             />
           </View>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Navigate selected safe route in Google Maps"
+            onPress={openSelectedRouteInGoogleMaps}
+            style={currentStyles.googleMapsButton}
+          >
+            <Text style={currentStyles.googleMapsButtonText}>NAVIGATE SAFE ROUTE IN GOOGLE MAPS</Text>
+          </TouchableOpacity>
+          <Text style={currentStyles.googleMapsHint}>Tap the map or this button to open the selected route in Google Maps.</Text>
 
           <View style={currentStyles.amenityToggleRow}>
             <View style={{ flex: 1 }}>
@@ -286,6 +325,27 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     height: 300,
+  },
+  googleMapsButton: {
+    backgroundColor: '#1a73e8',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  googleMapsButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  googleMapsHint: {
+    color: '#6b7280',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 6,
+    marginBottom: 10,
+    textAlign: 'center',
   },
   amenityToggleRow: {
     flexDirection: 'row',
@@ -560,6 +620,30 @@ const accessibleStyles = StyleSheet.create({
   },
   amenityToggleTextActive: {
     color: '#fff',
+  },
+  googleMapsButton: {
+    backgroundColor: '#000',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000',
+    marginTop: 2,
+  },
+  googleMapsButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  googleMapsHint: {
+    color: '#000',
+    fontSize: 15,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 10,
+    textAlign: 'center',
   },
 });
 

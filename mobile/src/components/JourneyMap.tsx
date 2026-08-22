@@ -1,183 +1,93 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+
 import { JourneySegment, Location, PublicToilet } from '../types/api';
 
 interface JourneyMapProps {
   origin: Location | null;
   destination: Location | null;
   segments: JourneySegment[];
-  onSegmentPress: (segment: JourneySegment) => void;
   selectedSegmentId: string | null;
+  onSegmentPress: (segment: JourneySegment) => void;
   publicToilets: PublicToilet[];
   showPublicToilets: boolean;
+  onNavigateRequest: () => void;
 }
 
-export default function JourneyMap({ origin, destination, segments, selectedSegmentId, publicToilets, showPublicToilets }: JourneyMapProps) {
-  const html = useMemo(() => {
-    // Build center from origin or default to New Delhi
-    const centerLat = origin?.latitude ?? 28.6139;
-    const centerLon = origin?.longitude ?? 77.2090;
+function riskColor(risk: number | null): string {
+  if ((risk ?? 0) > 65) return '#ef4444';
+  if ((risk ?? 0) >= 35) return '#f59e0b';
+  return '#10b981';
+}
 
-    // Build GeoJSON FeatureCollection for all segments
-    const features = segments.map((seg) => {
-      const isSelected = seg.segment_id === selectedSegmentId;
-      const risk = seg.risk_score || 0;
-      
-      let baseColor = '#10b981'; // LOW: Green
-      if (risk > 65) {
-        baseColor = '#ef4444'; // HIGH: Red
-      } else if (risk >= 35) {
-        baseColor = '#f59e0b'; // MODERATE: Amber
-      }
-      
-      return {
-        type: 'Feature',
-        properties: {
-          color: isSelected ? '#3b82f6' : baseColor, // Blue if selected
-          weight: isSelected ? 6 : 4,
-          opacity: isSelected ? 1.0 : 0.8,
-        },
-        geometry: seg.geometry, // already a GeoJSON LineString in [lon, lat]
-      };
-    });
+function mapRegion(origin: Location | null, destination: Location | null): Region {
+  const centerLatitude = ((origin?.latitude ?? 28.6139) + (destination?.latitude ?? 28.6139)) / 2;
+  const centerLongitude = ((origin?.longitude ?? 77.2090) + (destination?.longitude ?? 77.2090)) / 2;
+  const latitudeDelta = Math.max(Math.abs((origin?.latitude ?? centerLatitude) - (destination?.latitude ?? centerLatitude)) * 1.8, 0.02);
+  const longitudeDelta = Math.max(Math.abs((origin?.longitude ?? centerLongitude) - (destination?.longitude ?? centerLongitude)) * 1.8, 0.02);
 
-    const geojsonString = JSON.stringify({ type: 'FeatureCollection', features });
-    const originJson = origin ? JSON.stringify([origin.latitude, origin.longitude]) : 'null';
-    const destinationJson = destination ? JSON.stringify([destination.latitude, destination.longitude]) : 'null';
-    const toiletsJson = JSON.stringify(publicToilets);
+  return { latitude: centerLatitude, longitude: centerLongitude, latitudeDelta, longitudeDelta };
+}
 
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body, #map { width: 100%; height: 100%; }
-    .leaflet-control-attribution { font-size: 9px; }
-    .legend {
-      background: white;
-      padding: 6px 8px;
-      border-radius: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-      font-family: sans-serif;
-      font-size: 11px;
-      line-height: 16px;
-      color: #374151;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 2px;
-    }
-    .legend-color {
-      width: 12px;
-      height: 4px;
-      margin-right: 6px;
-      border-radius: 2px;
-    }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-  <script>
-    const map = L.map('map', { zoomControl: true }).setView([${centerLat}, ${centerLon}], 14);
-
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    // Add Legend
-    const legend = L.control({position: 'topright'});
-    legend.onAdd = function (map) {
-        const div = L.DomUtil.create('div', 'legend');
-        div.innerHTML = \`
-          <div style="font-weight:bold;margin-bottom:4px;font-size:10px;text-transform:uppercase">Risk Level</div>
-          <div class="legend-item"><div class="legend-color" style="background:#10b981;"></div>Low (<35)</div>
-          <div class="legend-item"><div class="legend-color" style="background:#f59e0b;"></div>Moderate</div>
-          <div class="legend-item"><div class="legend-color" style="background:#ef4444;"></div>High (>65)</div>
-        \`;
-        return div;
-    };
-    legend.addTo(map);
-
-    // Add route segments as GeoJSON (swap lon/lat for Leaflet)
-    const data = ${geojsonString};
-    if (data.features && data.features.length > 0) {
-      const routeLayer = L.geoJSON(data, {
-        coordsToLatLng: function(coords) {
-          return L.latLng(coords[1], coords[0]); // GeoJSON is [lon, lat], Leaflet needs [lat, lon]
-        },
-        style: function(feature) {
-          return {
-            color: feature.properties.color,
-            weight: feature.properties.weight,
-            opacity: feature.properties.opacity,
-          };
-        }
-      }).addTo(map);
-
-      // Fit map to the route bounds
-      try {
-        const bounds = routeLayer.getBounds();
-        if (bounds.isValid()) {
-          map.fitBounds(bounds, { padding: [30, 30] });
-        }
-      } catch(e) {}
-    }
-
-    // Origin marker (green)
-    const originCoord = ${originJson};
-    if (originCoord) {
-      const greenIcon = L.divIcon({
-        html: '<div style="background:#16a34a;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>',
-        iconSize: [14, 14], iconAnchor: [7, 7], className: ''
-      });
-      L.marker(originCoord, { icon: greenIcon }).addTo(map).bindPopup('Origin');
-    }
-
-    // Destination marker (red)
-    const destCoord = ${destinationJson};
-    if (destCoord) {
-      const redIcon = L.divIcon({
-        html: '<div style="background:#dc2626;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4)"></div>',
-        iconSize: [14, 14], iconAnchor: [7, 7], className: ''
-      });
-      L.marker(destCoord, { icon: redIcon }).addTo(map).bindPopup('Destination');
-    }
-
-    const publicToilets = ${toiletsJson};
-    if (${showPublicToilets} && publicToilets.length > 0) {
-      const toiletIcon = L.divIcon({
-        html: '<div style="background:#7c3aed;color:#fff;width:22px;height:22px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:13px">WC</div>',
-        iconSize: [22, 22], iconAnchor: [11, 11], className: ''
-      });
-      publicToilets.forEach((toilet) => {
-        const details = [toilet.type, toilet.address, toilet.district].filter(Boolean).join('<br>');
-        L.marker([toilet.latitude, toilet.longitude], { icon: toiletIcon })
-          .addTo(map)
-          .bindPopup('<strong>' + toilet.name + '</strong><br>' + details);
-      });
-    }
-  </script>
-</body>
-</html>`;
-  }, [origin, destination, segments, selectedSegmentId, publicToilets, showPublicToilets]);
+export default function JourneyMap({
+  origin,
+  destination,
+  segments,
+  selectedSegmentId,
+  onSegmentPress,
+  publicToilets,
+  showPublicToilets,
+  onNavigateRequest,
+}: JourneyMapProps) {
+  const initialRegion = useMemo(() => mapRegion(origin, destination), [origin, destination]);
+  const mapKey = `${origin?.latitude ?? 'none'}-${origin?.longitude ?? 'none'}-${destination?.latitude ?? 'none'}-${destination?.longitude ?? 'none'}`;
 
   return (
     <View style={styles.container}>
-      <WebView
-        style={styles.webview}
-        source={{ html }}
-        scrollEnabled={false}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        originWhitelist={['*']}
-      />
+      <MapView
+        key={mapKey}
+        style={styles.map}
+        provider={PROVIDER_GOOGLE}
+        initialRegion={initialRegion}
+        onPress={onNavigateRequest}
+        showsUserLocation
+        showsMyLocationButton
+        loadingEnabled
+      >
+        {segments.map((segment) => {
+          const coordinates = (segment.geometry.coordinates || [])
+            .filter((coordinate) => Array.isArray(coordinate) && coordinate.length >= 2)
+            .map(([longitude, latitude]) => ({ latitude, longitude }));
+
+          if (coordinates.length < 2) return null;
+
+          const isSelected = segment.segment_id === selectedSegmentId;
+          return (
+            <Polyline
+              key={segment.segment_id}
+              coordinates={coordinates}
+              strokeColor={isSelected ? '#2563eb' : riskColor(segment.risk_score)}
+              strokeWidth={isSelected ? 7 : 5}
+              tappable
+              onPress={() => onSegmentPress(segment)}
+            />
+          );
+        })}
+
+        {origin && <Marker coordinate={origin} pinColor="#16a34a" title="Origin" />}
+        {destination && <Marker coordinate={destination} pinColor="#dc2626" title="Destination" />}
+
+        {showPublicToilets && publicToilets.map((toilet) => (
+          <Marker
+            key={toilet.id}
+            coordinate={{ latitude: toilet.latitude, longitude: toilet.longitude }}
+            pinColor="#7c3aed"
+            title={toilet.name}
+            description={[toilet.type, toilet.address, toilet.district].filter(Boolean).join(' · ')}
+          />
+        ))}
+      </MapView>
     </View>
   );
 }
@@ -190,7 +100,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     backgroundColor: '#e5e7eb',
   },
-  webview: {
+  map: {
     width: '100%',
     height: '100%',
   },
