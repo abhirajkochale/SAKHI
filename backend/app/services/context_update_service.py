@@ -5,11 +5,37 @@ from app.schemas.risk import SegmentContext
 from app.services.context_store import journey_store, JourneyData
 from app.services.risk.risk_service import RiskService
 from app.services.routing.route_ranking_service import RouteRankingService
+from app.models.database import SessionLocal
+from app.models.incident import Incident
+from app.models.route_segment import PersistentRouteSegment
 
 class ContextUpdateService:
     def __init__(self):
         self.risk_service = RiskService()
+        self.risk_service = RiskService()
         self.ranking_service = RouteRankingService()
+
+    def process_incident_from_db(self, incident_id: int):
+        db = SessionLocal()
+        try:
+            incident = db.query(Incident).filter(Incident.id == incident_id).first()
+            if not incident or not incident.active:
+                return
+
+            # Find or create the persistent route segment
+            segment = db.query(PersistentRouteSegment).filter(PersistentRouteSegment.segment_id == incident.segment_id).first()
+            if not segment:
+                segment = PersistentRouteSegment(segment_id=incident.segment_id)
+                db.add(segment)
+            
+            # Simple feedback loop: increase risk based on severity.
+            segment.base_risk_score = min(100.0, segment.base_risk_score + (incident.severity * 0.2))
+            segment.base_confidence_score = min(1.0, segment.base_confidence_score + 0.1)
+            segment.last_updated = datetime.utcnow()
+
+            db.commit()
+        finally:
+            db.close()
 
     def _apply_event_to_context(self, context: SegmentContext, event: ContextUpdateEvent) -> None:
         """Apply the event signal override onto an existing SegmentContext in-place."""

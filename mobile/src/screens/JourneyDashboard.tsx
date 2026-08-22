@@ -7,6 +7,8 @@ import SegmentSafetyPanel from '../components/SegmentSafetyPanel';
 import ContextUpdatePanel from '../components/ContextUpdatePanel';
 import EmergencyPanel from '../components/EmergencyPanel';
 import DeadManSwitchPanel from '../components/DeadManSwitchPanel';
+import ReportIncidentModal from '../components/ReportIncidentModal';
+import QuickFindModal from '../components/QuickFindModal';
 import { sakhiApi } from '../api/sakhiApi';
 import { cacheJourney, getCachedJourney } from '../api/cache';
 import { useAccessibility } from '../contexts/AccessibilityContext';
@@ -22,6 +24,8 @@ export default function JourneyDashboard() {
   const [journey, setJourney] = useState<JourneyResponse | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<JourneySegment | null>(null);
+  const [incidentModalVisible, setIncidentModalVisible] = useState(false);
+  const [quickFindVisible, setQuickFindVisible] = useState(false);
   
   const [updateResult, setUpdateResult] = useState<ContextUpdateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +149,7 @@ export default function JourneyDashboard() {
   const currentStyles = isAccessibleMode ? accessibleStyles : styles;
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView style={currentStyles.container} contentContainerStyle={currentStyles.content}>
       <View style={{flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10}}>
         <TouchableOpacity 
@@ -156,7 +161,6 @@ export default function JourneyDashboard() {
           </Text>
         </TouchableOpacity>
       </View>
-
       <JourneyForm onAnalyze={handleAnalyze} loading={loading} />
       
       {error && (
@@ -241,6 +245,13 @@ export default function JourneyDashboard() {
             <>
               <SegmentSafetyPanel segment={selectedSegment} />
               
+              <TouchableOpacity 
+                style={styles.reportBtn} 
+                onPress={() => setIncidentModalVisible(true)}
+              >
+                <Text style={styles.reportBtnText}>⚠️ Report Incident on this Segment</Text>
+              </TouchableOpacity>
+
               <ContextUpdatePanel 
                 segmentId={selectedSegment.segment_id}
                 journeyId={journey.journey_id}
@@ -275,6 +286,12 @@ export default function JourneyDashboard() {
                   )}
                 </View>
               )}
+
+              <ReportIncidentModal 
+                visible={incidentModalVisible}
+                onClose={() => setIncidentModalVisible(false)}
+                segmentId={selectedSegment.segment_id}
+              />
             </>
           ) : (
             <View style={currentStyles.noSegmentBox}>
@@ -300,6 +317,25 @@ export default function JourneyDashboard() {
         <DeadManSwitchPanel journeyId={journey.journey_id} />
       )}
     </ScrollView>
+
+    {/* Quick Action FAB */}
+    {journey && (
+      <>
+        <TouchableOpacity 
+          style={styles.fab} 
+          onPress={() => setQuickFindVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.fabIcon}>🔍</Text>
+        </TouchableOpacity>
+
+        <QuickFindModal 
+          visible={quickFindVisible}
+          onClose={() => setQuickFindVisible(false)}
+        />
+      </>
+    )}
+    </View>
   );
 }
 
@@ -465,6 +501,40 @@ const styles = StyleSheet.create({
     color: '#f9fafb',
     fontWeight: 'bold',
     fontSize: 12,
+  },
+  reportBtn: {
+    backgroundColor: '#fff',
+    borderColor: '#ef4444',
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignItems: 'center'
+  },
+  reportBtnText: {
+    color: '#ef4444',
+    fontWeight: 'bold',
+    fontSize: 14
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#2563eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  fabIcon: {
+    fontSize: 24,
+    color: '#fff',
   }
 });
 

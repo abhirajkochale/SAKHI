@@ -126,31 +126,41 @@ def test_create_journey_provider_timeout(mock_get):
     )
     assert response.status_code == 503
 
+def mock_ml_predict(features):
+    # Route 1 (Fastest, distance 24700.0) gets high risk
+    if features.distance_m == 24700.0:
+        return 85.0
+    
+    # Route 2 (Safest, distance 25000.0) gets low risk
+    return 45.0
+
+@patch("app.services.risk.ml_model_service.MLModelService.predict")
 @patch("httpx.AsyncClient.get")
-def test_create_journey_ranks_real_route_alternatives(mock_get):
+def test_create_journey_ranks_real_route_alternatives(mock_get, mock_predict):
     """
     Any two OSRM route alternatives receive independent spatial risk scores and
     are ranked without location-specific overrides.
     """
+    mock_predict.side_effect = mock_ml_predict
     TWO_ROUTE_RESPONSE = {
         "code": "Ok",
         "routes": [
-            {
-                "distance": 25000.0,
-                "duration": 1700.0,
-                "legs": [{
-                    "steps": [{
-                        "distance": 25000.0, "duration": 1700.0,
-                        "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
-                    }]
-                }]
-            },
             {
                 "distance": 24700.0,
                 "duration": 1600.0,
                 "legs": [{
                     "steps": [{
                         "distance": 24700.0, "duration": 1600.0,
+                        "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
+                    }]
+                }]
+            },
+            {
+                "distance": 25000.0,
+                "duration": 1700.0,
+                "legs": [{
+                    "steps": [{
+                        "distance": 25000.0, "duration": 1700.0,
                         "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
                     }]
                 }]

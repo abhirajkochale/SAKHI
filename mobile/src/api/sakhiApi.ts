@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, PublicToilet } from '../types/api';
+import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, PublicToilet, IncidentCreate } from '../types/api';
 
 // Use Expo environment variable or fallback to localhost
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -40,6 +40,10 @@ export const sakhiApi = {
       longitude: location.longitude,
       trigger_source: 'manual',
     });
+    return response.data;
+  },
+  submitIncident: async (incident: IncidentCreate): Promise<any> => {
+    const response = await apiClient.post('/incidents/', incident);
     return response.data;
   }
 };

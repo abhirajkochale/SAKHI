@@ -31,6 +31,12 @@ export interface JourneySegment {
   explanation: any | null;
 }
 
+export interface AmenityCounts {
+  washrooms: number;
+  medical: number;
+  police: number;
+}
+
 export interface RouteOption {
   route_id: string;
   mode: string;
@@ -43,6 +49,7 @@ export interface RouteOption {
   uncertainty_penalty: number;
   route_cost: number;
   segments: JourneySegment[];
+  amenity_counts?: AmenityCounts;
 }
 
 export interface RouteRankingResponse {
@@ -90,4 +97,13 @@ export interface ContextUpdateResponse {
   rerouted: boolean;
   reason: string;
   updated_ranking?: RouteRankingResponse | null;
+}
+
+export interface IncidentCreate {
+  segment_id: string;
+  event_type: string;
+  severity: number;
+  latitude?: number;
+  longitude?: number;
+  description?: string;
 }
