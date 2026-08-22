@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, TouchableOpacityProps, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../theme';
+import { baseColors } from '../../theme/colors';
 import { SakhiText } from './SakhiText';
 
 interface SakhiButtonProps extends TouchableOpacityProps {
@@ -13,10 +14,10 @@ export const SakhiButton = ({ title, variant = 'primary', loading, disabled, sty
   const { colors, spacing, radius, isHighContrast } = useTheme();
 
   const getBackgroundColor = () => {
-    if (disabled) return colors.gray300;
+    if (disabled) return baseColors.gray300;
     switch (variant) {
       case 'primary': return colors.primary;
-      case 'secondary': return colors.gray200;
+      case 'secondary': return baseColors.gray200;
       case 'outline': return 'transparent';
       case 'danger': return colors.danger;
       default: return colors.primary;
@@ -24,7 +25,7 @@ export const SakhiButton = ({ title, variant = 'primary', loading, disabled, sty
   };
 
   const getBorderColor = () => {
-    if (disabled) return colors.gray400;
+    if (disabled) return baseColors.gray400;
     if (variant === 'outline') return colors.primary;
     if (isHighContrast) return colors.border;
     return 'transparent';

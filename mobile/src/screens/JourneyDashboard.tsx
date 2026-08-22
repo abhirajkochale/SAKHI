@@ -16,11 +16,15 @@ import { cacheJourney, getCachedJourney } from '../api/cache';
 import { useAccessibility } from '../contexts/AccessibilityContext';
 import { JourneyResponse, RouteOption, JourneySegment, ContextUpdateResponse, WashroomResponse, Location as ApiLocation } from '../types/api';
 import { calculateDistance } from '../utils/distance';
+import { useTheme } from '../theme';
+import { SakhiText } from '../components/ui/SakhiText';
+import { SakhiButton } from '../components/ui/SakhiButton';
 
  // 5 seconds cooldown between SOS triggers
 
 export default function JourneyDashboard() {
   const { isAccessibleMode, toggleAccessibleMode } = useAccessibility();
+  const { colors, spacing } = useTheme();
   const [loading, setLoading] = useState(false);
   const [journey, setJourney] = useState<JourneyResponse | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null);
@@ -157,18 +161,15 @@ export default function JourneyDashboard() {
 
   const currentStyles = isAccessibleMode ? accessibleStyles : styles;
 
-  return (
-    <View style={currentStyles.container}>
-      <ScrollView style={{flex: 1}} contentContainerStyle={currentStyles.content}>
-        <View style={{flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10}}>
-        <TouchableOpacity 
-          onPress={toggleAccessibleMode}
-          style={{backgroundColor: isAccessibleMode ? '#1e3a8a' : '#d1d5db', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: isAccessibleMode ? 2 : 0, borderColor: '#fff'}}
-        >
-          <Text style={{color: isAccessibleMode ? '#fff' : '#374151', fontWeight: 'bold', fontSize: isAccessibleMode ? 16 : 12}}>
-            {isAccessibleMode ? 'ACCESSIBILITY: ON' : 'ACCESSIBILITY: OFF'}
-          </Text>
-        </TouchableOpacity>
+  const renderHome = () => (
+    <>
+      <View style={{ marginBottom: spacing.xl, marginTop: spacing.lg }}>
+        <SakhiText variant="h1" color="primary" style={{ fontSize: 32, marginBottom: spacing.sm }}>
+          Your Safety,{"\n"}Our Priority. ♥
+        </SakhiText>
+        <SakhiText variant="body" color="secondary" style={{ fontSize: 16 }}>
+          Find the safest way, wherever you go.
+        </SakhiText>
       </View>
 
       <JourneyForm onAnalyze={handleAnalyze} loading={loading} />
@@ -179,172 +180,212 @@ export default function JourneyDashboard() {
         </View>
       )}
 
-      {isOffline && (
-        <View style={currentStyles.offlineBanner}>
-          <Text style={currentStyles.offlineBannerText}>⚠️ OFFLINE MODE: Using cached route data. Live context updates unavailable.</Text>
+      <View style={{ marginTop: spacing.xl, paddingHorizontal: spacing.sm }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
+          <Text style={{ fontSize: 24, marginRight: spacing.md }}>🛡</Text>
+          <View>
+            <SakhiText variant="body" style={{ fontWeight: 'bold' }}>Safe Routes</SakhiText>
+            <SakhiText variant="caption" color="muted">Live contextual safety analysis</SakhiText>
+          </View>
         </View>
-      )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
+          <Text style={{ fontSize: 24, marginRight: spacing.md }}>📍</Text>
+          <View>
+            <SakhiText variant="body" style={{ fontWeight: 'bold' }}>Real-time Alerts</SakhiText>
+            <SakhiText variant="caption" color="muted">Stay informed while travelling</SakhiText>
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
+          <Text style={{ fontSize: 24, marginRight: spacing.md }}>♡</Text>
+          <View>
+            <SakhiText variant="body" style={{ fontWeight: 'bold' }}>Always With You</SakhiText>
+            <SakhiText variant="caption" color="muted">Quick access to help</SakhiText>
+          </View>
+        </View>
+      </View>
+    </>
+  );
+
+  const renderDashboard = () => {
+    if (!journey) return null;
+    return (
+      <>
+        {isOffline && (
+          <View style={currentStyles.offlineBanner}>
+            <Text style={currentStyles.offlineBannerText}>⚠️ OFFLINE MODE: Using cached route data. Live context updates unavailable.</Text>
+          </View>
+        )}
+
+        <View style={currentStyles.mapContainer}>
+          <JourneyMap 
+            origin={journey.origin}
+            destination={journey.destination}
+            segments={selectedRoute?.segments || journey.segments}
+            selectedSegmentId={selectedSegment?.segment_id || null}
+            onSegmentPress={setSelectedSegment}
+            washrooms={washrooms}
+            showWashrooms={showWashrooms}
+            onNavigateRequest={openSelectedRouteInGoogleMaps}
+            onWashroomPress={(washroom) => {
+              setSelectedWashroom(washroom);
+            }}
+          />
+        </View>
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Navigate selected safe route in Google Maps"
+          onPress={openSelectedRouteInGoogleMaps}
+          style={currentStyles.googleMapsButton}
+        >
+          <Text style={currentStyles.googleMapsButtonText}>NAVIGATE SAFE ROUTE IN GOOGLE MAPS</Text>
+        </TouchableOpacity>
+        <Text style={currentStyles.googleMapsHint}>Tap the map or this button to open the selected route in Google Maps.</Text>
+
+        <View style={currentStyles.amenityToggleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={currentStyles.amenityToggleTitle}>Right to PEE (Washrooms)</Text>
+            <Text style={currentStyles.amenityToggleCaption}>
+              {washroomsLoading ? 'Loading washroom locations…' : washroomsError || (washrooms.length ? `${washrooms.length} washrooms available nearby` : 'Turn on to find nearby washrooms')}
+            </Text>
+          </View>
+          <TouchableOpacity
+            accessibilityRole="switch"
+            accessibilityState={{ checked: showWashrooms }}
+            accessibilityLabel="Show washroom locations"
+            onPress={() => {
+              if (!showWashrooms) setWashroomsError(null);
+              setShowWashrooms((visible) => !visible);
+            }}
+            style={[currentStyles.amenityToggle, showWashrooms && currentStyles.amenityToggleActive]}
+          >
+            <Text style={[currentStyles.amenityToggleText, showWashrooms && currentStyles.amenityToggleTextActive]}>
+              {showWashrooms ? 'LOCATIONS ON' : 'SHOW LOCATIONS'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        {isAccessibleMode && (
+          <View style={{backgroundColor: '#fff', padding: 8, borderWidth: 2, borderColor: '#000', marginBottom: 10}}>
+            <Text style={{fontWeight: 'bold', fontSize: 18, color: '#000'}}>Map Legend:</Text>
+            <Text style={{fontSize: 18, color: '#000'}}>{"• Green line = Low Risk (<35)"}</Text>
+            <Text style={{fontSize: 18, color: '#000'}}>• Orange/Amber line = Moderate Risk (35-65)</Text>
+            <Text style={{fontSize: 18, color: '#000'}}>{"• Red line = High Risk (>65)"}</Text>
+            <Text style={{fontSize: 18, color: '#000'}}>• Thick blue line = Currently selected segment</Text>
+          </View>
+        )}
+
+        {journey.ranking && (
+          <RouteOptionsList 
+            ranking={journey.ranking}
+            selectedRouteId={selectedRoute?.route_id || null}
+            onSelectRoute={(route) => {
+              setSelectedRoute(route);
+              setSelectedSegment(route.segments && route.segments.length > 0 ? route.segments[0] : null);
+            }}
+          />
+        )}
+
+        {selectedSegment ? (
+          <>
+            <SegmentSafetyPanel 
+              segment={selectedSegment} 
+              onReportIncident={() => setShowReportModal(true)}
+            />
+            
+            <ContextUpdatePanel 
+              segmentId={selectedSegment.segment_id}
+              journeyId={journey.journey_id}
+              onUpdateResult={(result) => {
+                setUpdateResult(result);
+              }}
+            />
+
+            {updateResult && (
+              <View style={currentStyles.updateResultBox}>
+                <Text style={currentStyles.updateResultTitle}>🔄 Dynamic Route Re-Ranking</Text>
+                <Text style={currentStyles.updateReason}>{updateResult.reason}</Text>
+                <View style={currentStyles.beforeAfterRow}>
+                  <View style={currentStyles.beforeBox}>
+                    <Text style={currentStyles.baLabel}>BEFORE</Text>
+                    <Text style={currentStyles.baValue}>{updateResult.before.safest_route_id?.substring(0,6) || "N/A"}</Text>
+                  </View>
+                  <Text style={currentStyles.arrow}>→</Text>
+                  <View style={currentStyles.afterBox}>
+                    <Text style={currentStyles.baLabel}>AFTER</Text>
+                    <Text style={currentStyles.baValue}>{updateResult.after.safest_route_id?.substring(0,6) || "N/A"}</Text>
+                  </View>
+                </View>
+                {updateResult.after && (
+                  <Text style={{fontSize: isAccessibleMode ? 16 : 12, marginTop: 8, color: isAccessibleMode ? '#000' : '#065f46'}}>
+                    New risk score: {updateResult.after.risk.toFixed(1)}
+                  </Text>
+                )}
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={currentStyles.noSegmentBox}>
+            <Text style={currentStyles.noSegmentText}>Segment safety details unavailable.</Text>
+          </View>
+        )}
+
+        <EmergencyPanel journeyId={journey?.journey_id} />
+        
+        {journey?.journey_id && (
+          <DeadManSwitchPanel journeyId={journey.journey_id} />
+        )}
+      </>
+    );
+  };
+
+  return (
+    <View style={[currentStyles.container, { backgroundColor: colors.background }]}>
+      <ScrollView style={{flex: 1}} contentContainerStyle={[currentStyles.content, { paddingHorizontal: spacing.screenHorizontal }]}>
+        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md}}>
+          <SakhiText variant="h1" color="primary">SAKHI</SakhiText>
+          <SakhiButton 
+            title={isAccessibleMode ? 'ACCESSIBILITY: ON' : 'ACCESSIBILITY: OFF'}
+            variant={isAccessibleMode ? 'primary' : 'outline'}
+            onPress={toggleAccessibleMode}
+            style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.md }}
+          />
+        </View>
+
+        {!journey ? renderHome() : renderDashboard()}
+      </ScrollView>
 
       {journey && (
-        <>
-          <View style={currentStyles.mapContainer}>
-            <JourneyMap 
-              origin={journey.origin}
-              destination={journey.destination}
-              segments={selectedRoute?.segments || journey.segments}
-              selectedSegmentId={selectedSegment?.segment_id || null}
-              onSegmentPress={setSelectedSegment}
-              washrooms={washrooms}
-              showWashrooms={showWashrooms}
-              onNavigateRequest={openSelectedRouteInGoogleMaps}
-              onWashroomPress={(washroom) => {
-                setSelectedWashroom(washroom);
-              }}
-            />
-          </View>
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Navigate selected safe route in Google Maps"
-            onPress={openSelectedRouteInGoogleMaps}
-            style={currentStyles.googleMapsButton}
-          >
-            <Text style={currentStyles.googleMapsButtonText}>NAVIGATE SAFE ROUTE IN GOOGLE MAPS</Text>
-          </TouchableOpacity>
-          <Text style={currentStyles.googleMapsHint}>Tap the map or this button to open the selected route in Google Maps.</Text>
-
-          <View style={currentStyles.amenityToggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={currentStyles.amenityToggleTitle}>Right to PEE (Washrooms)</Text>
-              <Text style={currentStyles.amenityToggleCaption}>
-                {washroomsLoading ? 'Loading washroom locations…' : washroomsError || (washrooms.length ? `${washrooms.length} washrooms available nearby` : 'Turn on to find nearby washrooms')}
-              </Text>
-            </View>
-            <TouchableOpacity
-              accessibilityRole="switch"
-              accessibilityState={{ checked: showWashrooms }}
-              accessibilityLabel="Show washroom locations"
-              onPress={() => {
-                if (!showWashrooms) setWashroomsError(null);
-                setShowWashrooms((visible) => !visible);
-              }}
-              style={[currentStyles.amenityToggle, showWashrooms && currentStyles.amenityToggleActive]}
-            >
-              <Text style={[currentStyles.amenityToggleText, showWashrooms && currentStyles.amenityToggleTextActive]}>
-                {showWashrooms ? 'LOCATIONS ON' : 'SHOW LOCATIONS'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          
-          {isAccessibleMode && (
-            <View style={{backgroundColor: '#fff', padding: 8, borderWidth: 2, borderColor: '#000', marginBottom: 10}}>
-              <Text style={{fontWeight: 'bold', fontSize: 18, color: '#000'}}>Map Legend:</Text>
-              <Text style={{fontSize: 18, color: '#000'}}>{"• Green line = Low Risk (<35)"}</Text>
-              <Text style={{fontSize: 18, color: '#000'}}>• Orange/Amber line = Moderate Risk (35-65)</Text>
-              <Text style={{fontSize: 18, color: '#000'}}>{"• Red line = High Risk (>65)"}</Text>
-              <Text style={{fontSize: 18, color: '#000'}}>• Thick blue line = Currently selected segment</Text>
-            </View>
-          )}
-
-          {journey.ranking && (
-            <RouteOptionsList 
-              ranking={journey.ranking}
-              selectedRouteId={selectedRoute?.route_id || null}
-              onSelectRoute={(route) => {
-                setSelectedRoute(route);
-                setSelectedSegment(route.segments && route.segments.length > 0 ? route.segments[0] : null);
-              }}
-            />
-          )}
-
-          {selectedSegment ? (
-            <>
-              <SegmentSafetyPanel 
-                segment={selectedSegment} 
-                onReportIncident={() => setShowReportModal(true)}
-              />
-              
-              <ContextUpdatePanel 
-                segmentId={selectedSegment.segment_id}
-                journeyId={journey.journey_id}
-                onUpdateResult={(result) => {
-                  setUpdateResult(result);
-                  // Refresh journey data to show new routes
-                  // Since the backend re-ranks everything, we would typically refetch or the backend returns the full new journey.
-                  // For the prototype, we assume the backend returns the updated journey data in the result or we just trigger re-analyze.
-                  // For now, just show the update UI
-                }}
-              />
-
-              {updateResult && (
-                <View style={currentStyles.updateResultBox}>
-                  <Text style={currentStyles.updateResultTitle}>🔄 Dynamic Route Re-Ranking</Text>
-                  <Text style={currentStyles.updateReason}>{updateResult.reason}</Text>
-                  <View style={currentStyles.beforeAfterRow}>
-                    <View style={currentStyles.beforeBox}>
-                      <Text style={currentStyles.baLabel}>BEFORE</Text>
-                      <Text style={currentStyles.baValue}>{updateResult.before.safest_route_id?.substring(0,6) || "N/A"}</Text>
-                    </View>
-                    <Text style={currentStyles.arrow}>→</Text>
-                    <View style={currentStyles.afterBox}>
-                      <Text style={currentStyles.baLabel}>AFTER</Text>
-                      <Text style={currentStyles.baValue}>{updateResult.after.safest_route_id?.substring(0,6) || "N/A"}</Text>
-                    </View>
-                  </View>
-                  {updateResult.after && (
-                    <Text style={{fontSize: isAccessibleMode ? 16 : 12, marginTop: 8, color: isAccessibleMode ? '#000' : '#065f46'}}>
-                      New risk score: {updateResult.after.risk.toFixed(1)}
-                    </Text>
-                  )}
-                </View>
-              )}
-            </>
-          ) : (
-            <View style={currentStyles.noSegmentBox}>
-              <Text style={currentStyles.noSegmentText}>Segment safety details unavailable.</Text>
-            </View>
-          )}
-        </>
+        <TouchableOpacity 
+          style={currentStyles.fab} 
+          onPress={() => setShowQuickFindModal(true)}
+        >
+          <Text style={currentStyles.fabIcon}>🔍</Text>
+        </TouchableOpacity>
       )}
 
-      <EmergencyPanel journeyId={journey?.journey_id} />
-      
-      {journey?.journey_id && (
-        <DeadManSwitchPanel journeyId={journey.journey_id} />
+      {selectedSegment && (
+        <ReportIncidentModal
+          visible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          segmentId={selectedSegment.segment_id}
+          latitude={selectedSegment.start_location.latitude}
+          longitude={selectedSegment.start_location.longitude}
+        />
       )}
-    </ScrollView>
 
-    {journey && (
-      <TouchableOpacity 
-        style={currentStyles.fab} 
-        onPress={() => setShowQuickFindModal(true)}
-      >
-        <Text style={currentStyles.fabIcon}>🔍</Text>
-      </TouchableOpacity>
-    )}
-
-    {selectedSegment && (
-      <ReportIncidentModal
-        visible={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        segmentId={selectedSegment.segment_id}
-        latitude={selectedSegment.start_location.latitude}
-        longitude={selectedSegment.start_location.longitude}
+      <QuickFindModal 
+        visible={showQuickFindModal} 
+        onClose={() => setShowQuickFindModal(false)} 
       />
-    )}
 
-    <QuickFindModal 
-      visible={showQuickFindModal} 
-      onClose={() => setShowQuickFindModal(false)} 
-    />
-
-    <WashroomFacilityCard
-      visible={!!selectedWashroom}
-      onClose={() => setSelectedWashroom(null)}
-      washroom={selectedWashroom}
-      distance={selectedWashroom && userLocation ? calculateDistance(userLocation.coords.latitude, userLocation.coords.longitude, selectedWashroom.latitude, selectedWashroom.longitude) : 0}
-    />
-  </View>
+      <WashroomFacilityCard
+        visible={!!selectedWashroom}
+        onClose={() => setSelectedWashroom(null)}
+        washroom={selectedWashroom}
+        distance={selectedWashroom && userLocation ? calculateDistance(userLocation.coords.latitude, userLocation.coords.longitude, selectedWashroom.latitude, selectedWashroom.longitude) : 0}
+      />
+    </View>
   );
 }
 

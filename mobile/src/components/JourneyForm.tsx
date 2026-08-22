@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
+import { View } from 'react-native';
 import { Location } from '../types/api';
+import { SakhiCard } from './ui/SakhiCard';
+import { SakhiInput } from './ui/SakhiInput';
+import { SakhiButton } from './ui/SakhiButton';
+import { SakhiText } from './ui/SakhiText';
 
 interface Props {
   onAnalyze: (origin: Location, destination: Location) => void;
@@ -67,112 +71,32 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>SAKHI</Text>
-      <Text style={styles.subtitle}>Smart Assistance for keeping HER informed</Text>
-      
-      {error && <Text style={{color: '#dc2626', marginBottom: 8, fontSize: 12}}>{error}</Text>}
+    <SakhiCard elevated style={{ marginBottom: 16 }}>
+      {error && <SakhiText color="danger" variant="caption" style={{ marginBottom: 12 }}>{error}</SakhiText>}
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Origin</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter starting location..."
-          value={originText}
-          onChangeText={(t) => { setOriginText(t); setOrigin(null); }}
-        />
-      </View>
+      <SakhiInput
+        label="FROM"
+        placeholder="Enter starting location..."
+        value={originText}
+        onChangeText={(t) => { setOriginText(t); setOrigin(null); }}
+      />
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Destination</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter destination..."
-          value={destinationText}
-          onChangeText={(t) => { setDestinationText(t); setDestination(null); }}
-        />
-      </View>
+      <SakhiInput
+        label="TO"
+        placeholder="Enter destination..."
+        value={destinationText}
+        onChangeText={(t) => { setDestinationText(t); setDestination(null); }}
+      />
 
-      <View style={styles.buttonRow}>
-        <TouchableOpacity 
-          style={[styles.analyzeButton, (!originText || !destinationText) && styles.disabledButton]} 
+      <View style={{ marginTop: 8 }}>
+        <SakhiButton 
+          title="Find Safest Route" 
+          variant="primary"
           onPress={handleAnalyze}
-          disabled={!originText || !destinationText || loading || geocodeLoading}
-        >
-          {loading || geocodeLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.analyzeButtonText}>Analyze Journey</Text>
-          )}
-        </TouchableOpacity>
+          disabled={!originText || !destinationText}
+          loading={loading || geocodeLoading}
+        />
       </View>
-    </View>
+    </SakhiCard>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1d4ed8', // blue-700
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 16,
-  },
-  inputContainer: {
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#4b5563',
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 14,
-    padding: 10,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 6,
-    color: '#111827',
-  },
-  input: {
-    fontSize: 14,
-    padding: 10,
-    backgroundColor: '#f9fafb',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    color: '#111827',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  analyzeButton: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: '#2563eb',
-    borderRadius: 6,
-    marginLeft: 8,
-    alignItems: 'center',
-  },
-  disabledButton: {
-    backgroundColor: '#93c5fd',
-  },
-  analyzeButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  }
-});
