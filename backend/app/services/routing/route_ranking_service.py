@@ -97,10 +97,21 @@ class RouteRankingService:
             
             best_cost, best_c = scored_candidates[0]
             
+            # Inject mock amenity data based on mode
+            from app.schemas.ranking import AmenityCounts
+            amenity_counts = AmenityCounts()
+            if mode_name == "safest":
+                amenity_counts = AmenityCounts(washrooms=2, medical=1, police=1)
+            elif mode_name == "balanced":
+                amenity_counts = AmenityCounts(washrooms=1, medical=0, police=1)
+            elif mode_name == "fastest":
+                amenity_counts = AmenityCounts(washrooms=0, medical=0, police=0)
+            
             return RouteOption(
                 route_id=best_c.route_id,
                 mode=mode_name,
                 rank=1,
+                amenity_counts=amenity_counts,
                 distance_m=best_c.metrics.total_distance_m,
                 duration_s=best_c.metrics.total_duration_s,
                 risk_score=best_c.metrics.route_risk_score,

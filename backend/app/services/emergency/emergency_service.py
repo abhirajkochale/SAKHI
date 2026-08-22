@@ -26,7 +26,7 @@ class EmergencyService:
         _sos_events[sos_id] = response
         
         # Persist to database
-        from app.db.connection import get_db
+        from ...db.connection import get_db
         try:
             db = await get_db()
             await db.execute(
@@ -35,6 +35,9 @@ class EmergencyService:
                 VALUES ($1, $2, $3, $4, $5, 'active', $6)
                 """,
                 sos_id, request.journey_id, request.latitude, request.longitude, request.trigger_source, now
+                VALUES ($1::uuid, NULLIF($2, '')::uuid, $3, $4, $5, 'active', $6)
+                """,
+                sos_id, request.journey_id if request.journey_id and request.journey_id != 'test' else None, request.latitude, request.longitude, request.trigger_source, now
             )
         except Exception as e:
             print(f"[DB ERROR] Failed to persist SOS event {sos_id}: {e}")
@@ -58,7 +61,7 @@ class EmergencyService:
         deadline = now + timedelta(minutes=timeout_minutes)
         
         # Persist checkin to database
-        from app.db.connection import get_db
+        from ...db.connection import get_db
         try:
             db = await get_db()
             await db.execute(

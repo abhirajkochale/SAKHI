@@ -1,144 +1,180 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { RouteOption, RouteRankingResponse } from '../types/api';
+import { SakhiCard } from './ui/SakhiCard';
+import { SakhiText } from './ui/SakhiText';
+import { SakhiButton } from './ui/SakhiButton';
+import { SakhiBadge } from './ui/SakhiBadge';
+import { useTheme } from '../theme';
 
 interface Props {
   ranking: RouteRankingResponse;
   selectedRouteId: string | null;
   onSelectRoute: (route: RouteOption) => void;
+  onOpenMaps?: () => void;
 }
 
-export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRoute }: Props) {
+export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRoute, onOpenMaps }: Props) {
+  const { spacing, colors } = useTheme();
+  
   // Collect all route slots that are non-null
   const rawOptions = [
-    { label: '✅ Recommended (Safest)', key: 'safest', route: ranking.safest_route },
-    { label: '⚖ Balanced', key: 'balanced', route: ranking.balanced_route },
-    { label: '⚠️ High Risk (Not Preferred)', key: 'fastest', route: ranking.fastest_route },
-  ].filter(opt => opt.route != null) as { label: string; key: string; route: RouteOption }[];
+    { label: 'SAFEST (Recommended)', key: 'safest', route: ranking.safest_route, badgeVariant: 'success' as const },
+    { label: 'BALANCED', key: 'balanced', route: ranking.balanced_route, badgeVariant: 'info' as const },
+    { label: 'FASTEST', key: 'fastest', route: ranking.fastest_route, badgeVariant: 'warning' as const },
+  ];
 
-  // Deduplicate by route_id, merging labels for routes that serve multiple roles
-  const uniqueOptions: { label: string; key: string; route: RouteOption }[] = [];
-  for (const opt of rawOptions) {
+  const validOptions = rawOptions.filter(opt => opt.route != null) as { 
+    label: string; 
+    key: string; 
+    route: RouteOption; 
+    badgeVariant: 'success' | 'info' | 'warning' 
+  }[];
+
+  // Deduplicate by route_id
+  const uniqueOptions: typeof validOptions = [];
+  for (const opt of validOptions) {
     const existing = uniqueOptions.find(u => u.route.route_id === opt.route.route_id);
-    if (existing) {
-      // Append only the emoji+word, e.g. "🛡 Safest / ⚡ Fastest"
-      existing.label += ` / ${opt.label}`;
-    } else {
+    if (!existing) {
       uniqueOptions.push({ ...opt });
     }
   }
 
   if (uniqueOptions.length === 0) {
-    return <Text style={styles.errorText}>No routes available.</Text>;
+    return <SakhiText color="danger">No routes available.</SakhiText>;
   }
 
   const isSingleRoute = uniqueOptions.length === 1;
 
+  const getRiskLevel = (score: number) => {
+    if (score >= 70) return 'HIGH';
+    if (score >= 40) return 'MODERATE';
+    return 'LOW';
+  };
+
+  const getRiskColor = (score: number) => {
+    if (score >= 70) return colors.danger;
+    if (score >= 40) return colors.warning;
+    return colors.success;
+  };
+
   return (
     <View style={styles.container}>
-      {isSingleRoute && (
-        <Text style={styles.noteText}>
-          Route risk level: {riskLabel(uniqueOptions[0].route.risk_score)}
-        </Text>
-      )}
+      <SakhiText variant="h2" style={{ marginBottom: spacing.md }}>
+        Choose a different route
+      </SakhiText>
+
       {uniqueOptions.map((opt) => {
         const isSelected = selectedRouteId === opt.route.route_id;
+        const isSafest = opt.key === 'safest';
 
         return (
-          <TouchableOpacity
+          <SakhiCard 
             key={opt.key}
-            style={[styles.card, isSelected && styles.selectedCard]}
-            onPress={() => onSelectRoute(opt.route)}
-            activeOpacity={0.75}
+            elevated
+            style={[
+              styles.card,
+              isSelected && { borderColor: colors.primary, borderWidth: 2 }
+            ]}
           >
-            <Text style={[styles.cardTitle, isSelected && styles.selectedCardTitle]}>
-              {isSingleRoute ? riskLabel(opt.route.risk_score) : opt.label}
-            </Text>
+            {/* Header Row */}
+            <View style={styles.headerRow}>
+              <SakhiText variant="h3" style={{ fontWeight: 'bold' }}>
+                {isSingleRoute ? 'Best available route' : opt.label}
+              </SakhiText>
+              <SakhiBadge 
+                label={`Risk: ${opt.route.risk_score.toFixed(0)}/100`} 
+                variant={opt.badgeVariant} 
+              />
+            </View>
 
-            <View style={styles.metricRow}>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Risk</Text>
-                <Text style={[styles.metricValue, { color: riskColor(opt.route.risk_score) }]}>
-                  {opt.route.risk_score.toFixed(1)}
-                </Text>
+            {/* Sub-header text for single route fallback */}
+            {isSingleRoute && (
+              <SakhiText variant="caption" color="muted" style={{ marginBottom: spacing.sm }}>
+                No comparable alternative route was available for this journey.
+              </SakhiText>
+            )}
+
+            {/* Risk Level */}
+            {!isSingleRoute && (
+              <SakhiText variant="subtext" style={{ marginBottom: spacing.sm, color: getRiskColor(opt.route.risk_score) }}>
+                Risk level: <SakhiText style={{ fontWeight: 'bold', color: getRiskColor(opt.route.risk_score) }}>{getRiskLevel(opt.route.risk_score)}</SakhiText>
+              </SakhiText>
+            )}
+
+            {/* Metrics Row (Time / Distance) */}
+            <View style={styles.metricsRow}>
+              <View style={{ marginRight: spacing.xl }}>
+                <SakhiText variant="body" style={{ fontWeight: 'bold' }}>
+                  {Math.round(opt.route.duration_s / 60)} min
+                </SakhiText>
               </View>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Distance</Text>
-                <Text style={styles.metricValue}>{(opt.route.distance_m / 1000).toFixed(2)} km</Text>
-              </View>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Time</Text>
-                <Text style={styles.metricValue}>{Math.round(opt.route.duration_s / 60)} min</Text>
+              <View>
+                <SakhiText variant="body" style={{ fontWeight: 'bold' }}>
+                  {(opt.route.distance_m / 1000).toFixed(1)} km
+                </SakhiText>
               </View>
             </View>
-          </TouchableOpacity>
+
+            {/* Amenities */}
+            {opt.route.amenity_counts && (
+              <View style={styles.amenitiesRow}>
+                <SakhiText variant="subtext" color="secondary" style={{ marginRight: spacing.md }}>
+                  🚻 {opt.route.amenity_counts.washrooms}
+                </SakhiText>
+                <SakhiText variant="subtext" color="secondary" style={{ marginRight: spacing.md }}>
+                  🏥 {opt.route.amenity_counts.medical}
+                </SakhiText>
+                <SakhiText variant="subtext" color="secondary">
+                  👮 {opt.route.amenity_counts.police}
+                </SakhiText>
+              </View>
+            )}
+
+            {/* Action */}
+            <View style={{ marginTop: spacing.md }}>
+              <SakhiButton 
+                title={isSelected ? "↗ Open in Google Maps" : (isSingleRoute ? "Start Journey →" : "Choose Route →")} 
+                variant={isSelected ? "primary" : "secondary"}
+                onPress={() => {
+                  if (isSelected && onOpenMaps) {
+                    onOpenMaps();
+                  } else {
+                    onSelectRoute(opt.route);
+                  }
+                }}
+                style={{ paddingVertical: spacing.sm }}
+              />
+            </View>
+          </SakhiCard>
         );
       })}
     </View>
   );
 }
 
-function riskColor(score: number): string {
-  if (score >= 70) return '#dc2626'; // red
-  if (score >= 40) return '#d97706'; // amber
-  return '#16a34a'; // green
-}
-
-function riskLabel(score: number): string {
-  if (score >= 70) return '🚨 Only Route — High Risk';
-  if (score >= 40) return '⚠️ Only Route — Moderate Risk';
-  return '✅ Only Route — Low Risk';
-}
-
 const styles = StyleSheet.create({
-  container: { marginVertical: 10 },
+  container: { 
+    marginVertical: 16 
+  },
   card: {
-    padding: 14,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    marginBottom: 16,
+    padding: 16,
   },
-  selectedCard: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
-    borderWidth: 2,
-  },
-  cardTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#374151',
-    marginBottom: 10,
-  },
-  selectedCardTitle: { color: '#1d4ed8' },
-  metricRow: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  metric: { alignItems: 'center' },
-  metricLabel: {
-    fontSize: 11,
-    color: '#9ca3af',
-    marginBottom: 2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  metricValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  noteText: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontStyle: 'italic',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  errorText: { color: 'red' },
+  metricsRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  amenitiesRow: {
+    flexDirection: 'row',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6', // gray100
+  }
 });

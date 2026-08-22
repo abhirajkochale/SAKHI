@@ -1,21 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { JourneySegment } from '../types/api';
+import { SakhiText } from './ui/SakhiText';
+import { SakhiCard } from './ui/SakhiCard';
+import { SakhiBadge } from './ui/SakhiBadge';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
   segment: JourneySegment;
+  onReportIncident?: () => void;
 }
 
-export default function SegmentSafetyPanel({ segment }: Props) {
+export default function SegmentSafetyPanel({ segment, onReportIncident }: Props) {
   if (!segment.risk_score && !segment.explanation) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Segment Safety</Text>
-        <Text style={styles.text}>No risk data available for this segment.</Text>
-      </View>
+      <SakhiCard style={styles.container}>
+        <SakhiText variant="h3">Safety Details</SakhiText>
+        <SakhiText variant="body" color="secondary">No risk data available for this segment.</SakhiText>
+      </SakhiCard>
     );
   }
 
+  // Preserve SHAP logic exactly as is
   const topPos = segment.explanation?.top_positive_factors ? JSON.parse(JSON.stringify(segment.explanation.top_positive_factors)) : [];
   const topNeg = segment.explanation?.top_negative_factors ? JSON.parse(JSON.stringify(segment.explanation.top_negative_factors)) : [];
 
@@ -33,128 +39,225 @@ export default function SegmentSafetyPanel({ segment }: Props) {
       const split = remainder / topNeg.length;
       topNeg.forEach((f: any) => f.shap_value += split);
     } else if (remainder > 0 && topNeg.length > 0) {
-        // If there are no positive factors but remainder is positive (rare edge case), pull it from negatives
         const split = remainder / topNeg.length;
         topNeg.forEach((f: any) => f.shap_value += split);
     }
   }
 
+  // Determine Risk Semantic
+  const riskScore = segment.risk_score || 0;
+  const isHighRisk = riskScore > 65;
+  const isModerateRisk = riskScore >= 35 && riskScore <= 65;
+  
+  let riskStatus: 'success' | 'warning' | 'danger' = 'success';
+  let riskLabel = 'LOW RISK';
+  if (isHighRisk) { riskStatus = 'danger'; riskLabel = 'HIGH RISK'; }
+  else if (isModerateRisk) { riskStatus = 'warning'; riskLabel = 'MODERATE'; }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Segment {segment.sequence} Safety</Text>
-      
-      <View style={styles.row}>
-        <View style={styles.metric}>
-          <Text style={styles.label}>Contextual Risk</Text>
-          <Text style={[styles.value, { color: segment.risk_score! > 50 ? '#ef4444' : '#10b981' }]}>
-            {segment.risk_score?.toFixed(1)} / 100
-          </Text>
+    <SakhiCard style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <View>
+          <SakhiText variant="caption" color="secondary" style={styles.headerSubtitle}>SAFETY DETAILS</SakhiText>
+          <SakhiText variant="h3">Segment {segment.sequence}</SakhiText>
+        </View>
+        <SakhiBadge variant={riskStatus} label={riskLabel} />
+      </View>
+
+      {/* Metrics Row */}
+      <View style={styles.metricsRow}>
+        <View style={styles.metricBlock}>
+          <SakhiText variant="caption" color="secondary">Contextual Risk</SakhiText>
+          <View style={styles.metricValueRow}>
+            <SakhiText variant="h2" color={riskStatus === 'warning' ? undefined : riskStatus} style={riskStatus === 'warning' ? {color: '#F59E0B'} : undefined}>{riskScore.toFixed(1)}</SakhiText>
+            <SakhiText variant="body" color="secondary" style={styles.metricSuffix}>/ 100</SakhiText>
+          </View>
         </View>
         
-        <View style={styles.metric}>
-          <Text style={styles.label}>Confidence</Text>
-          <Text style={[styles.value, { color: segment.confidence_score! > 70 ? '#10b981' : '#f59e0b' }]}>
+        <View style={styles.metricDivider} />
+
+        <View style={styles.metricBlock}>
+          <SakhiText variant="caption" color="secondary">Confidence</SakhiText>
+          <SakhiText variant="h2" color={segment.confidence_score! > 70 ? 'success' : undefined} style={segment.confidence_score! <= 70 ? {color: '#F59E0B'} : undefined}>
             {segment.confidence_score?.toFixed(1)}%
-          </Text>
+          </SakhiText>
         </View>
       </View>
 
+      {/* Explanation Section */}
       {segment.explanation && segment.explanation.available && (
-        <View style={styles.explanationContainer}>
-          <Text style={styles.whyTitle}>Why? (SHAP Factors)</Text>
+        <View style={styles.explanationSection}>
+          <SakhiText variant="h3" style={styles.whyTitle}>Why this score?</SakhiText>
           
-          <Text style={styles.subTitle}>Top Positive Factors (↑ Risk)</Text>
-          {topPos.map((factor: any, index: number) => (
-            <View key={factor.feature_name || `pos-${index}`} style={styles.factorRow}>
-              <Text style={styles.factorName}>
-                {typeof factor.feature_name === 'string' ? factor.feature_name.replace(/_/g, ' ') : 'Unknown factor'}
-              </Text>
-              <Text style={styles.factorValue}>+{factor.shap_value?.toFixed(2)}</Text>
+          {topPos.length > 0 && (
+            <View style={styles.factorGroup}>
+              <SakhiText variant="caption" color="secondary" style={styles.factorGroupTitle}>Higher Risk</SakhiText>
+              {topPos.map((factor: any, index: number) => (
+                <View key={`pos-${index}`} style={styles.factorRow}>
+                  <View style={styles.factorNameRow}>
+                    <Ionicons name="arrow-up" size={16} color="#DC2626" style={styles.factorIcon} />
+                    <SakhiText variant="body" style={styles.factorName}>
+                      {typeof factor.feature_name === 'string' ? factor.feature_name.replace(/_/g, ' ') : 'Unknown factor'}
+                    </SakhiText>
+                  </View>
+                  <SakhiText variant="body" style={styles.factorPosValue}>+{factor.shap_value?.toFixed(2)}</SakhiText>
+                </View>
+              ))}
             </View>
-          ))}
+          )}
           
-          <Text style={[styles.subTitle, { marginTop: 8 }]}>Top Negative Factors (↓ Risk)</Text>
-          {topNeg.map((factor: any, index: number) => (
-            <View key={factor.feature_name || `neg-${index}`} style={styles.factorRow}>
-              <Text style={styles.factorName}>
-                {typeof factor.feature_name === 'string' ? factor.feature_name.replace(/_/g, ' ') : 'Unknown factor'}
-              </Text>
-              <Text style={styles.factorValueNegative}>{factor.shap_value?.toFixed(2)}</Text>
+          {topNeg.length > 0 && (
+            <View style={styles.factorGroup}>
+              <SakhiText variant="caption" color="secondary" style={styles.factorGroupTitle}>Lower Risk</SakhiText>
+              {topNeg.map((factor: any, index: number) => (
+                <View key={`neg-${index}`} style={styles.factorRow}>
+                  <View style={styles.factorNameRow}>
+                    <Ionicons name="arrow-down" size={16} color="#10B981" style={styles.factorIcon} />
+                    <SakhiText variant="body" style={styles.factorName}>
+                      {typeof factor.feature_name === 'string' ? factor.feature_name.replace(/_/g, ' ') : 'Unknown factor'}
+                    </SakhiText>
+                  </View>
+                  <SakhiText variant="body" style={styles.factorNegValue}>{factor.shap_value?.toFixed(2)}</SakhiText>
+                </View>
+              ))}
             </View>
-          ))}
+          )}
         </View>
       )}
-    </View>
+
+      {/* Report Action */}
+      {onReportIncident && (
+        <TouchableOpacity style={styles.reportBtn} onPress={onReportIncident}>
+          <View style={styles.reportBtnContent}>
+            <Ionicons name="warning-outline" size={18} color="#DC2626" style={styles.reportIcon} />
+            <SakhiText variant="body" style={styles.reportBtnText}>Report an incident</SakhiText>
+          </View>
+          <Ionicons name="arrow-forward" size={18} color="#DC2626" />
+        </TouchableOpacity>
+      )}
+    </SakhiCard>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    marginVertical: 12,
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginVertical: 10,
+    borderColor: '#F3F4F6',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  row: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
-  metric: {
+  headerSubtitle: {
+    letterSpacing: 1,
+    marginBottom: 4,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  metricBlock: {
     flex: 1,
   },
-  label: {
+  metricValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 4,
+  },
+  metricSuffix: {
+    marginLeft: 4,
     fontSize: 14,
-    color: '#6b7280',
   },
-  value: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  metricDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 16,
   },
-  text: {
-    color: '#4b5563',
-  },
-  explanationContainer: {
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 8,
+  explanationSection: {
+    marginBottom: 8,
   },
   whyTitle: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#111827',
+    marginBottom: 16,
+    color: '#1F2937',
   },
-  subTitle: {
-    fontSize: 12,
+  factorGroup: {
+    marginBottom: 16,
+  },
+  factorGroupTitle: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
     fontWeight: '600',
-    color: '#4b5563',
-    marginBottom: 4,
+    fontSize: 11,
   },
   factorRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  factorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  factorIcon: {
+    marginRight: 8,
   },
   factorName: {
-    fontSize: 14,
-    color: '#374151',
     textTransform: 'capitalize',
+    color: '#374151',
+    flexShrink: 1,
   },
-  factorValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ef4444', // Red for increased risk
+  factorPosValue: {
+    fontWeight: '600',
+    color: '#DC2626',
+    marginLeft: 12,
   },
-  factorValueNegative: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#10b981', // Green for decreased risk
-  }
+  factorNegValue: {
+    fontWeight: '600',
+    color: '#10B981',
+    marginLeft: 12,
+  },
+  reportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF2F2',
+    padding: 16,
+    borderRadius: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  reportBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reportIcon: {
+    marginRight: 8,
+  },
+  reportBtnText: {
+    color: '#DC2626',
+    fontWeight: '600',
+  },
 });

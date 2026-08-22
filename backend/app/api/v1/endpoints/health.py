@@ -2,14 +2,16 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
-from app.db.connection import get_db
+from app.models.database import get_db
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from fastapi import Depends
 
 @router.get("/health", summary="Health check")
-async def health_check():
+def health_check(db: Session = Depends(get_db)):
     db_status = "error"
     try:
-        db = await get_db()
-        await db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception as e:
         db_status = f"error: {str(e)}"

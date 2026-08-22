@@ -3,14 +3,18 @@ export interface Location {
   longitude: number;
 }
 
-export interface PublicToilet {
-  id: string;
+export interface WashroomResponse {
+  id: number;
   name: string;
-  type: string;
-  address: string;
-  district: string;
+  address: string | null;
   latitude: number;
   longitude: number;
+  is_open: boolean;
+  cleanliness: string;
+  safety: string;
+  accessible: boolean;
+  verified_count: number;
+  last_verified_timestamp: string | null;
 }
 
 export interface JourneySegment {
@@ -31,10 +35,17 @@ export interface JourneySegment {
   explanation: any | null;
 }
 
+export interface AmenityCounts {
+  washrooms: number;
+  medical: number;
+  police: number;
+}
+
 export interface RouteOption {
   route_id: string;
   mode: string;
   rank: number;
+  amenity_counts?: AmenityCounts;
   distance_m: number;
   duration_s: number;
   risk_score: number;

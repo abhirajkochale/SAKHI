@@ -16,10 +16,16 @@ class RouteCandidate(BaseModel):
     metrics: RouteMetrics
     segments: List[JourneySegment]
 
+class AmenityCounts(BaseModel):
+    washrooms: int = 0
+    medical: int = 0
+    police: int = 0
+
 class RouteOption(BaseModel):
     route_id: str
     mode: str
     rank: int
+    amenity_counts: Optional[AmenityCounts] = None
     distance_m: float
     duration_s: float
     risk_score: float

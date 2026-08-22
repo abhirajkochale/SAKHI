@@ -1,8 +1,9 @@
 import axios from 'axios';
-import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, PublicToilet } from '../types/api';
+import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, WashroomResponse } from '../types/api';
 
 // Use Expo environment variable or fallback to localhost
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+console.log('AXIOS BASE URL IS:', BASE_URL);
 
 
 const apiClient = axios.create({
@@ -29,6 +30,21 @@ export const sakhiApi = {
     return response.data;
   },
 
+  getWashrooms: async (latitude: number, longitude: number, radiusKm: number = 5.0): Promise<WashroomResponse[]> => {
+    const response = await apiClient.get<WashroomResponse[]>('/washrooms/', {
+      params: { latitude, longitude, radius_km: radiusKm }
+    });
+    return response.data;
+  },
+
+  submitWashroomFeedback: async (
+    washroomId: number,
+    feedback: { is_open: boolean; cleanliness: string; safety: string; accessible: boolean }
+  ): Promise<{ status: string; message: string }> => {
+    const response = await apiClient.post(`/washrooms/${washroomId}/feedback`, feedback);
+    return response.data;
+  },
+
   createJourney: async (origin: Location, destination: Location, departureTime?: string): Promise<JourneyResponse> => {
     const response = await apiClient.post<JourneyResponse>('/journeys/', {
       origin,
@@ -43,6 +59,11 @@ export const sakhiApi = {
     return response.data;
   },
 
+  submitIncident: async (incident: { segment_id: string; event_type: string; severity: number; latitude: number; longitude: number; description?: string }): Promise<any> => {
+    const response = await apiClient.post('/incidents/', incident);
+    return response.data;
+  },
+
   triggerSos: async (journeyId: string | null, location: Location): Promise<any> => {
     const response = await axios.post(`${BASE_URL}/emergency/sos`, {
       journey_id: journeyId,
@@ -53,3 +74,4 @@ export const sakhiApi = {
     return response.data;
   }
 };
+
