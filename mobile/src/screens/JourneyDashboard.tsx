@@ -6,14 +6,19 @@ import RouteOptionsList from '../components/RouteOptionsList';
 import SegmentSafetyPanel from '../components/SegmentSafetyPanel';
 import ContextUpdatePanel from '../components/ContextUpdatePanel';
 import EmergencyPanel from '../components/EmergencyPanel';
+import ReportIncidentModal from '../components/ReportIncidentModal';
+import QuickFindModal from '../components/QuickFindModal';
 import { sakhiApi } from '../api/sakhiApi';
 import { JourneyResponse, Location, RouteOption, JourneySegment, ContextUpdateResponse } from '../types/api';
+import { TouchableOpacity } from 'react-native';
 
 export default function JourneyDashboard() {
   const [loading, setLoading] = useState(false);
   const [journey, setJourney] = useState<JourneyResponse | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<JourneySegment | null>(null);
+  const [incidentModalVisible, setIncidentModalVisible] = useState(false);
+  const [quickFindVisible, setQuickFindVisible] = useState(false);
   
   const [updateResult, setUpdateResult] = useState<ContextUpdateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +55,7 @@ export default function JourneyDashboard() {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <JourneyForm onAnalyze={handleAnalyze} loading={loading} />
       
@@ -96,7 +102,20 @@ export default function JourneyDashboard() {
             <>
               <SegmentSafetyPanel segment={selectedSegment} />
               
+              <TouchableOpacity 
+                style={styles.reportBtn} 
+                onPress={() => setIncidentModalVisible(true)}
+              >
+                <Text style={styles.reportBtnText}>⚠️ Report Incident on this Segment</Text>
+              </TouchableOpacity>
+
               <ContextUpdatePanel 
+                segmentId={selectedSegment.segment_id}
+              />
+
+              <ReportIncidentModal 
+                visible={incidentModalVisible}
+                onClose={() => setIncidentModalVisible(false)}
                 segmentId={selectedSegment.segment_id}
               />
             </>
@@ -110,6 +129,25 @@ export default function JourneyDashboard() {
 
       <EmergencyPanel />
     </ScrollView>
+
+    {/* Quick Action FAB */}
+    {journey && (
+      <>
+        <TouchableOpacity 
+          style={styles.fab} 
+          onPress={() => setQuickFindVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.fabIcon}>🔍</Text>
+        </TouchableOpacity>
+
+        <QuickFindModal 
+          visible={quickFindVisible}
+          onClose={() => setQuickFindVisible(false)}
+        />
+      </>
+    )}
+    </View>
   );
 }
 
@@ -221,5 +259,39 @@ const styles = StyleSheet.create({
   demoWarningText: {
     color: '#92400e',
     fontSize: 12,
+  },
+  reportBtn: {
+    backgroundColor: '#fff',
+    borderColor: '#ef4444',
+    borderWidth: 1,
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignItems: 'center'
+  },
+  reportBtnText: {
+    color: '#ef4444',
+    fontWeight: 'bold',
+    fontSize: 14
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#2563eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  fabIcon: {
+    fontSize: 24,
+    color: '#fff',
   }
 });

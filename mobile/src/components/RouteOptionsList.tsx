@@ -71,6 +71,14 @@ export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRou
                 <Text style={styles.metricValue}>{Math.round(opt.route.duration_s / 60)} min</Text>
               </View>
             </View>
+            
+            {opt.route.amenity_counts && (
+              <View style={styles.amenityRow}>
+                <Text style={styles.amenityText}>
+                  🚻 Washrooms: {opt.route.amenity_counts.washrooms} | 🏥 Medical: {opt.route.amenity_counts.medical} | 🚓 Police: {opt.route.amenity_counts.police}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         );
       })}
@@ -141,4 +149,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   errorText: { color: 'red' },
+  amenityRow: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    alignItems: 'center',
+  },
+  amenityText: {
+    fontSize: 11,
+    color: '#4b5563',
+    fontWeight: '500',
+  }
 });

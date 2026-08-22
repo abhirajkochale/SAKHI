@@ -16,6 +16,11 @@ class RouteCandidate(BaseModel):
     metrics: RouteMetrics
     segments: List[JourneySegment]
 
+class AmenityCounts(BaseModel):
+    washrooms: int
+    medical: int
+    police: int
+
 class RouteOption(BaseModel):
     route_id: str
     mode: str
@@ -28,6 +33,7 @@ class RouteOption(BaseModel):
     uncertainty_penalty: float
     route_cost: float
     segments: List[JourneySegment]
+    amenity_counts: Optional[AmenityCounts] = None
 
 class RouteRankingResponse(BaseModel):
     journey_id: str

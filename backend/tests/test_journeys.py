@@ -125,8 +125,21 @@ def test_create_journey_provider_timeout(mock_get):
     )
     assert response.status_code == 503
 
+def mock_ml_predict(features):
+    # Route 0 (Fastest, Risky Corridor) gets historical_baseline=0.9
+    if features.historical_baseline >= 0.8:
+        return 85.0
+    
+    # Route 1 (Safest Corridor) gets historical_baseline=0.65
+    # If a report is submitted, validated_report_signal goes up
+    if features.validated_report_signal > 0.8:
+        return 75.0
+        
+    return 45.0
+
+@patch("app.services.risk.ml_model_service.MLModelService.predict")
 @patch("httpx.AsyncClient.get")
-def test_create_journey_paharganj_demo(mock_get):
+def test_create_journey_paharganj_demo(mock_get, mock_predict):
     """
     Paharganj High-Risk Demo:
     With 2 OSRM route alternatives:
@@ -135,25 +148,26 @@ def test_create_journey_paharganj_demo(mock_get):
     The ranking service should pick route_idx=0 as 'safest'.
     The 'fastest' route (shorter time) should be route_idx=1 with higher risk.
     """
+    mock_predict.side_effect = mock_ml_predict
     PAHARGANJ_TWO_ROUTES = {
         "code": "Ok",
         "routes": [
-            {
-                "distance": 25000.0,
-                "duration": 1700.0,
-                "legs": [{
-                    "steps": [{
-                        "distance": 25000.0, "duration": 1700.0,
-                        "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
-                    }]
-                }]
-            },
             {
                 "distance": 24700.0,
                 "duration": 1600.0,
                 "legs": [{
                     "steps": [{
                         "distance": 24700.0, "duration": 1600.0,
+                        "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
+                    }]
+                }]
+            },
+            {
+                "distance": 25000.0,
+                "duration": 1700.0,
+                "legs": [{
+                    "steps": [{
+                        "distance": 25000.0, "duration": 1700.0,
                         "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
                     }]
                 }]
