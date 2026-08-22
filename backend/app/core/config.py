@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     PROJECT_NAME: str = "SAKHI"
     API_V1_STR: str = "/api/v1"
+    SUPABASE_DB_URL: str
     
     # Routing Provider Configuration
     OSRM_BASE_URL: str = "https://router.project-osrm.org"

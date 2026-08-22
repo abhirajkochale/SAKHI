@@ -25,10 +25,27 @@ async def create_journey(
     Creates a new journey by calculating a route between the origin and destination,
     and returns the route divided into actionable JourneySegments.
     """
-    return await routing_service.get_journey(request)
+    journey = await routing_service.get_journey(request)
+    
+    # Persist the active journey in the database
+    from app.db.connection import get_db
+    try:
+        db = await get_db()
+        await db.execute(
+            """
+            INSERT INTO active_journeys (id, origin_lat, origin_lon, dest_lat, dest_lon, status)
+            VALUES ($1, $2, $3, $4, $5, 'active')
+            """,
+            journey.journey_id, request.origin.latitude, request.origin.longitude,
+            request.destination.latitude, request.destination.longitude
+        )
+    except Exception as e:
+        print(f"[DB ERROR] Failed to persist active journey {journey.journey_id}: {e}")
+        
+    return journey
 
 @router.post("/{journey_id}/context-update", response_model=ContextUpdateResponse, summary="Update contextual safety signal for a journey segment")
-def update_journey_context(
+async def update_journey_context(
     journey_id: str,
     event: ContextUpdateEvent,
     context_service: ContextUpdateService = Depends(get_context_update_service)
@@ -38,10 +55,10 @@ def update_journey_context(
     triggers recalculation of risk and confidence, updates SHAP explanations,
     and recalculates Safest/Balanced/Fastest route ranking.
     """
-    return context_service.process_update(journey_id, event)
+    return await context_service.process_update(journey_id, event)
 
 @router.post("/{journey_id}/checkin", response_model=CheckinResponse, summary="Dead-man's switch check-in")
-def check_in_journey(
+async def check_in_journey(
     journey_id: str,
     request: CheckinRequest,
     emergency_service = Depends(get_emergency_service)
@@ -50,4 +67,4 @@ def check_in_journey(
     Records a check-in for the dead-man's switch feature. If a check-in is not received
     within the timeout window, an SOS event is automatically triggered.
     """
-    return emergency_service.record_checkin(journey_id, request)
+    return await emergency_service.record_checkin(journey_id, request)

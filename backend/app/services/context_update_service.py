@@ -27,7 +27,7 @@ class ContextUpdateService:
         elif event.event_type == "crowd_change":
             context.footfall_indicator = 1.0 - severity_norm
 
-    def process_update(self, journey_id: str, event: ContextUpdateEvent) -> ContextUpdateResponse:
+    async def process_update(self, journey_id: str, event: ContextUpdateEvent) -> ContextUpdateResponse:
         if journey_id not in journey_store:
             raise HTTPException(status_code=404, detail="Journey not found in active prototype state")
             
@@ -91,6 +91,29 @@ class ContextUpdateService:
             reason = "Current route remains preferred despite contextual update."
             if len(candidates) == 1:
                 reason = "Only one route candidate exists. Ranking unchanged."
+                
+        # Persist safety report to database
+        from app.db.connection import get_db
+        try:
+            db = await get_db()
+            import uuid
+            report_id = str(uuid.uuid4())
+            now = datetime.now()
+            
+            # Use midpoints from the target segment if exact location isn't provided
+            # We assume for this prototype that the event has some coordinates or we use segment coordinates
+            lat = target_segment.start.latitude
+            lon = target_segment.start.longitude
+            
+            await db.execute(
+                """
+                INSERT INTO safety_reports (id, event_type, severity, latitude, longitude, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                """,
+                report_id, event.event_type, event.severity, lat, lon, now
+            )
+        except Exception as e:
+            print(f"[DB ERROR] Failed to persist safety report: {e}")
                 
         return ContextUpdateResponse(
             journey_id=journey_id,
