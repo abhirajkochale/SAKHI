@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
+import { Modal, View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { sakhiApi } from '../api/sakhiApi';
+import { Ionicons } from '@expo/vector-icons';
+import { SakhiText } from './ui/SakhiText';
+import { SakhiButton } from './ui/SakhiButton';
+import { SakhiInput } from './ui/SakhiInput';
 
 interface Props {
   visible: boolean;
@@ -12,11 +16,25 @@ interface Props {
 
 export default function ReportIncidentModal({ visible, onClose, segmentId, latitude, longitude }: Props) {
   const [loading, setLoading] = useState(false);
-  const [category, setCategory] = useState('Suspicious Activity');
+  const [category, setCategory] = useState<'Suspicious Activity' | 'Streetlight Out'>('Suspicious Activity');
   const [description, setDescription] = useState('');
+  
+  // Custom in-app status state: 'idle' | 'success' | 'error'
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleClose = () => {
+    // Reset state on close
+    setSubmitStatus('idle');
+    setCategory('Suspicious Activity');
+    setDescription('');
+    setErrorMessage('');
+    onClose();
+  };
 
   const submitIncident = async () => {
     setLoading(true);
+    setSubmitStatus('idle');
     try {
       await sakhiApi.submitIncident({
         segment_id: segmentId,
@@ -26,55 +44,125 @@ export default function ReportIncidentModal({ visible, onClose, segmentId, latit
         latitude,
         longitude
       });
-      alert('Report Submitted! This area\'s risk score has been dynamically updated.');
-      onClose();
+      setSubmitStatus('success');
     } catch (err: any) {
-      alert('Error submitting report: ' + err.message);
+      setSubmitStatus('error');
+      setErrorMessage(err.message || 'An unknown error occurred');
     } finally {
       setLoading(false);
     }
   };
 
+  const renderSuccess = () => (
+    <View style={styles.statusContainer}>
+      <View style={styles.successIconWrapper}>
+        <Ionicons name="checkmark-circle" size={64} color="#10B981" />
+      </View>
+      <SakhiText variant="h2" style={{ marginBottom: 8, textAlign: 'center' }}>Report submitted</SakhiText>
+      <SakhiText variant="body" color="secondary" style={{ textAlign: 'center', marginBottom: 32 }}>
+        Your report has been sent for this route.
+      </SakhiText>
+      <SakhiButton title="Done" onPress={handleClose} />
+    </View>
+  );
+
+  const renderError = () => (
+    <View style={styles.statusContainer}>
+      <View style={styles.errorIconWrapper}>
+        <Ionicons name="alert-circle" size={64} color="#DC2626" />
+      </View>
+      <SakhiText variant="h2" style={{ marginBottom: 8, textAlign: 'center' }}>Submission Failed</SakhiText>
+      <SakhiText variant="body" color="secondary" style={{ textAlign: 'center', marginBottom: 32 }}>
+        {errorMessage}
+      </SakhiText>
+      <SakhiButton title="Try Again" onPress={() => setSubmitStatus('idle')} style={{ marginBottom: 12 }} />
+      <SakhiButton title="Cancel" variant="secondary" onPress={handleClose} />
+    </View>
+  );
+
+  const renderForm = () => (
+    <View style={styles.formContainer}>
+      <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <SakhiText variant="h2" style={styles.title}>Report a safety issue</SakhiText>
+          <SakhiText variant="body" color="secondary">Help improve safety information for this route.</SakhiText>
+        </View>
+        <TouchableOpacity onPress={handleClose} style={styles.closeBtnWrapper}>
+          <Ionicons name="close" size={24} color="#6B7280" />
+        </TouchableOpacity>
+      </View>
+
+      <SakhiText variant="h3" style={styles.sectionTitle}>What happened?</SakhiText>
+      <View style={styles.buttonGroup}>
+        <TouchableOpacity 
+          style={[styles.catCard, category === 'Suspicious Activity' && styles.catActive]}
+          onPress={() => setCategory('Suspicious Activity')}
+        >
+          <Ionicons 
+            name="warning" 
+            size={24} 
+            color={category === 'Suspicious Activity' ? '#DC2626' : '#9CA3AF'} 
+            style={{ marginBottom: 8 }}
+          />
+          <SakhiText variant="body" style={category === 'Suspicious Activity' ? styles.catTextActive : styles.catText}>
+            Suspicious Activity
+          </SakhiText>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.catCard, category === 'Streetlight Out' && styles.catActive]}
+          onPress={() => setCategory('Streetlight Out')}
+        >
+          <Ionicons 
+            name="bulb" 
+            size={24} 
+            color={category === 'Streetlight Out' ? '#DC2626' : '#9CA3AF'} 
+            style={{ marginBottom: 8 }}
+          />
+          <SakhiText variant="body" style={category === 'Streetlight Out' ? styles.catTextActive : styles.catText}>
+            Streetlight Out
+          </SakhiText>
+        </TouchableOpacity>
+      </View>
+
+      <SakhiInput
+        label="Additional details (optional)"
+        placeholder="Tell us what you noticed..."
+        multiline
+        value={description}
+        onChangeText={setDescription}
+        style={styles.input}
+      />
+
+      <View style={styles.locationContext}>
+        <Ionicons name="location-sharp" size={16} color="#6B7280" />
+        <SakhiText variant="caption" color="secondary" style={{ marginLeft: 4 }}>
+          Report linked to your current route segment
+        </SakhiText>
+      </View>
+
+      <View style={styles.footer}>
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <SakhiButton title="Cancel" variant="secondary" onPress={handleClose} disabled={loading} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <SakhiButton 
+            title={loading ? "Sending..." : "Submit Report"} 
+            onPress={submitIncident} 
+            disabled={loading} 
+          />
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
       <View style={styles.overlay}>
         <View style={styles.modalView}>
-          <Text style={styles.title}>Report an Incident</Text>
-          
-          <Text style={styles.label}>Category</Text>
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity 
-              style={[styles.catButton, category === 'Suspicious Activity' && styles.catActive]}
-              onPress={() => setCategory('Suspicious Activity')}
-            >
-              <Text style={category === 'Suspicious Activity' ? styles.catTextActive : styles.catText}>Suspicious Activity</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.catButton, category === 'Streetlight Out' && styles.catActive]}
-              onPress={() => setCategory('Streetlight Out')}
-            >
-              <Text style={category === 'Streetlight Out' ? styles.catTextActive : styles.catText}>Streetlight Out</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.label}>Description</Text>
-          <TextInput 
-            style={styles.input}
-            multiline
-            placeholder="Details about what you saw..."
-            value={description}
-            onChangeText={setDescription}
-          />
-
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.submitBtn} onPress={submitIncident} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Submit Report</Text>}
-            </TouchableOpacity>
-          </View>
+          {submitStatus === 'success' && renderSuccess()}
+          {submitStatus === 'error' && renderError()}
+          {submitStatus === 'idle' && renderForm()}
         </View>
       </View>
     </Modal>
@@ -82,19 +170,97 @@ export default function ReportIncidentModal({ visible, onClose, segmentId, latit
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-  modalView: { backgroundColor: '#fff', padding: 20, borderRadius: 12 },
-  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, color: '#1f2937' },
-  label: { fontSize: 14, fontWeight: 'bold', color: '#4b5563', marginBottom: 8 },
-  buttonGroup: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  catButton: { padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#d1d5db' },
-  catActive: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-  catText: { color: '#4b5563' },
-  catTextActive: { color: '#fff', fontWeight: 'bold' },
-  input: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, padding: 12, height: 100, textAlignVertical: 'top', marginBottom: 20 },
-  footer: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
-  cancelBtn: { padding: 12 },
-  cancelText: { color: '#6b7280', fontWeight: 'bold' },
-  submitBtn: { backgroundColor: '#2563eb', padding: 12, borderRadius: 8, minWidth: 100, alignItems: 'center' },
-  submitText: { color: '#fff', fontWeight: 'bold' }
+  overlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(17, 24, 39, 0.6)', 
+    justifyContent: 'flex-end' 
+  },
+  modalView: { 
+    backgroundColor: '#FFFFFF', 
+    padding: 24, 
+    borderTopLeftRadius: 24, 
+    borderTopRightRadius: 24, 
+    minHeight: 400, 
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: -4 }, 
+    shadowOpacity: 0.1, 
+    shadowRadius: 12, 
+    elevation: 20 
+  },
+  formContainer: {
+    flex: 1,
+  },
+  statusContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  successIconWrapper: {
+    marginBottom: 16,
+  },
+  errorIconWrapper: {
+    marginBottom: 16,
+  },
+  header: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-start', 
+    marginBottom: 24 
+  },
+  title: { 
+    color: '#1F2937', 
+    marginBottom: 4 
+  },
+  closeBtnWrapper: { 
+    padding: 4,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    marginLeft: 16,
+  },
+  sectionTitle: {
+    marginBottom: 12,
+  },
+  buttonGroup: { 
+    flexDirection: 'row', 
+    gap: 12, 
+    marginBottom: 24 
+  },
+  catCard: { 
+    flex: 1,
+    padding: 16, 
+    borderRadius: 16, 
+    borderWidth: 1.5, 
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  catActive: { 
+    backgroundColor: '#FEF2F2', 
+    borderColor: '#DC2626' 
+  },
+  catText: { 
+    color: '#4B5563',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  catTextActive: { 
+    color: '#DC2626', 
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  input: { 
+    height: 100, 
+    textAlignVertical: 'top',
+  },
+  locationContext: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  footer: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+  }
 });
