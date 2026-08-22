@@ -127,16 +127,12 @@ def test_create_journey_provider_timeout(mock_get):
     assert response.status_code == 503
 
 @patch("httpx.AsyncClient.get")
-def test_create_journey_paharganj_demo(mock_get):
+def test_create_journey_ranks_real_route_alternatives(mock_get):
     """
-    Paharganj High-Risk Demo:
-    With 2 OSRM route alternatives:
-      - route_idx=0 (safer corridor): moderate synthetic signals -> lower risk
-      - route_idx=1 (risky corridor): full high-risk synthetic signals -> high risk
-    The ranking service should pick route_idx=0 as 'safest'.
-    The 'fastest' route (shorter time) should be route_idx=1 with higher risk.
+    Any two OSRM route alternatives receive independent spatial risk scores and
+    are ranked without location-specific overrides.
     """
-    PAHARGANJ_TWO_ROUTES = {
+    TWO_ROUTE_RESPONSE = {
         "code": "Ok",
         "routes": [
             {
@@ -163,7 +159,7 @@ def test_create_journey_paharganj_demo(mock_get):
     }
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = PAHARGANJ_TWO_ROUTES
+    mock_response.json.return_value = TWO_ROUTE_RESPONSE
     mock_response.raise_for_status.return_value = None
     mock_get.return_value = mock_response
 
@@ -188,7 +184,7 @@ def test_create_journey_paharganj_demo(mock_get):
     assert safest is not None
     assert fastest is not None
 
-    print(f"\nPAHARGANJ safest risk: {safest['risk_score']:.1f}  fastest risk: {fastest['risk_score']:.1f}")
+    print(f"\nSafest risk: {safest['risk_score']:.1f}  fastest risk: {fastest['risk_score']:.1f}")
 
     # Fastest route should have risk score >= safest route
     assert fastest["risk_score"] >= safest["risk_score"], f"Expected fastest route risk ({fastest['risk_score']}) >= safest route risk ({safest['risk_score']})"

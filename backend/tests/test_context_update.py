@@ -129,14 +129,12 @@ def test_context_update_rerouting(mock_calc):
 from unittest.mock import patch, MagicMock
 
 @patch("httpx.AsyncClient.get")
-def test_context_update_paharganj_preserves_high_risk(mock_get):
+def test_context_update_preserves_alternative_route_context(mock_get):
     """
-    Regression test: ensures that after a High-Risk Demo journey is created with
-    differentiated route contexts (safer corridor vs risky corridor), a subsequent
-    context-update on the safer route's segment does NOT reset the risky route back
-    to default baseline, and that updated_ranking is returned correctly.
+    Regression test: a contextual update on one route preserves the context for
+    the other route and returns an updated ranking.
     """
-    PAHARGANJ_TWO_ROUTES = {
+    TWO_ROUTE_RESPONSE = {
         "code": "Ok",
         "routes": [
             {
@@ -156,11 +154,11 @@ def test_context_update_paharganj_preserves_high_risk(mock_get):
 
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = PAHARGANJ_TWO_ROUTES
+    mock_response.json.return_value = TWO_ROUTE_RESPONSE
     mock_response.raise_for_status.return_value = None
     mock_get.return_value = mock_response
 
-    # 1. Create the journey in Paharganj
+    # 1. Create a journey with two route alternatives
     create_resp = client.post(
         f"{settings.API_V1_STR}/journeys/",
         json={

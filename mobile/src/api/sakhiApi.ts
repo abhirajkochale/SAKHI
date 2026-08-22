@@ -7,6 +7,7 @@ const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
   },

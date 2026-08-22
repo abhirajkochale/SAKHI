@@ -15,22 +15,6 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
   const [geocodeLoading, setGeocodeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDemoJourney = () => {
-    // Mumbai demo
-    setOrigin({ latitude: 19.1136, longitude: 72.8697 });
-    setDestination({ latitude: 19.0596, longitude: 72.8295 });
-    setOriginText('Andheri, Mumbai (Demo)');
-    setDestinationText('Bandra West, Mumbai (Demo)');
-  };
-
-  const loadHighRiskDemo = () => {
-    // High-Risk demo
-    setOrigin({ latitude: 28.6433, longitude: 77.2132 });
-    setDestination({ latitude: 28.5525, longitude: 77.0597 });
-    setOriginText('Paharganj, New Delhi (Demo)');
-    setDestinationText('Dwarka Sector 21, New Delhi (Demo)');
-  };
-
   const geocodeAddress = async (address: string): Promise<Location | null> => {
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, {
@@ -57,8 +41,7 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
     let currentOrig = origin;
     let currentDest = destination;
 
-    // Only geocode if the text isn't matching the cached demo coordinates
-    if (!currentOrig || !originText.includes('(Demo)')) {
+    if (!currentOrig) {
       setGeocodeLoading(true);
       currentOrig = await geocodeAddress(originText);
       setGeocodeLoading(false);
@@ -69,7 +52,7 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
       setOrigin(currentOrig);
     }
     
-    if (!currentDest || !destinationText.includes('(Demo)')) {
+    if (!currentDest) {
       setGeocodeLoading(true);
       currentDest = await geocodeAddress(destinationText);
       setGeocodeLoading(false);
@@ -111,16 +94,6 @@ export default function JourneyForm({ onAnalyze, loading }: Props) {
       </View>
 
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.demoButton} onPress={loadDemoJourney}>
-          <Text style={styles.demoButtonText}>Mumbai Demo</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.highRiskDemoButton} onPress={loadHighRiskDemo}>
-          <Text style={styles.highRiskDemoButtonText}>High-Risk Demo</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={[styles.buttonRow, { marginTop: 12 }]}>
         <TouchableOpacity 
           style={[styles.analyzeButton, (!originText || !destinationText) && styles.disabledButton]} 
           onPress={handleAnalyze}
@@ -186,32 +159,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 8,
-  },
-  demoButton: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 6,
-    marginRight: 8,
-    alignItems: 'center',
-  },
-  demoButtonText: {
-    color: '#4b5563',
-    fontWeight: 'bold',
-  },
-  highRiskDemoButton: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: '#fee2e2',
-    borderRadius: 6,
-    marginLeft: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ef4444',
-  },
-  highRiskDemoButtonText: {
-    color: '#b91c1c',
-    fontWeight: 'bold',
   },
   analyzeButton: {
     flex: 1,

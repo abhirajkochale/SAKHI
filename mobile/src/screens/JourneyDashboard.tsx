@@ -173,16 +173,6 @@ export default function JourneyDashboard() {
 
       {journey && (
         <>
-          {Math.abs(journey.origin.latitude - 28.6433) < 0.0001 && Math.abs(journey.origin.longitude - 77.2132) < 0.0001 && (
-            <View style={currentStyles.demoWarningBox}>
-              <Text style={currentStyles.demoWarningTitle}>⚠️ SIMULATED DEMO EVENT / SYNTHETIC SCENARIO</Text>
-              <Text style={currentStyles.demoWarningText}>
-                The following risk data uses synthetic contextual signals for demonstration purposes. 
-                It does not reflect actual real-world crime data or predict crime in this area.
-              </Text>
-            </View>
-          )}
-
           <View style={currentStyles.mapContainer}>
             <JourneyMap 
               origin={journey.origin}
@@ -464,24 +454,6 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontStyle: 'italic',
   },
-  demoWarningBox: {
-    backgroundColor: '#fffbeb',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#f59e0b',
-    marginBottom: 10,
-  },
-  demoWarningTitle: {
-    fontWeight: 'bold',
-    color: '#b45309',
-    marginBottom: 4,
-    fontSize: 14,
-  },
-  demoWarningText: {
-    color: '#92400e',
-    fontSize: 12,
-  },
   offlineBanner: {
     backgroundColor: '#374151',
     padding: 12,
@@ -549,24 +521,6 @@ const accessibleStyles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
-  },
-  demoWarningBox: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 3,
-    borderColor: '#000',
-    marginBottom: 10,
-  },
-  demoWarningTitle: {
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
-    fontSize: 18,
-  },
-  demoWarningText: {
-    color: '#000',
-    fontSize: 16,
   },
   offlineBanner: {
     backgroundColor: '#000',

@@ -7,10 +7,7 @@ Calls the public OSRM routing API to get route candidates, then:
 3. Calculates contextual risk via RiskService (sakhi XGBoost or heuristic)
 4. Aggregates segment metrics and ranks routes (Safest/Balanced/Fastest)
 
-Demo presets (Paharganj, Mumbai) retain differentiated context
-injection to demonstrate risk differentiation — clearly labelled as DEMO.
-
-All real journeys use fully spatial data from the processed Delhi dataset:
+All journeys use fully spatial data from the processed Delhi dataset:
 - Police/hospital/amenity distances: computed from real GPS coordinates
 - District historical baseline: real NCRB data at district level
 - Lighting/CCTV/mobility: nearest synthetic proxy from the processed dataset
@@ -103,58 +100,6 @@ def _build_real_segment_context(
     )
 
 
-def _is_paharganj(request: JourneyRequest) -> bool:
-    """Demo preset detector — Paharganj high-risk Delhi route."""
-    return (
-        abs(request.origin.latitude - 28.6433) < 0.001 and
-        abs(request.origin.longitude - 77.2132) < 0.001
-    )
-
-
-def _is_mumbai_demo(request: JourneyRequest) -> bool:
-    """Demo preset detector — Mumbai Andheri-Bandra route."""
-    return (
-        abs(request.origin.latitude - 19.1136) < 0.001 and
-        abs(request.origin.longitude - 72.8697) < 0.001
-    )
-
-
-def _apply_demo_override(context: SegmentContext, route_idx: int, is_paharganj: bool) -> SegmentContext:
-    """
-    Apply differentiated demo signals for hackathon demonstration.
-    These OVERRIDE the real spatial context with calibrated values to ensure
-    visible risk differentiation between route candidates.
-
-    LABELLED: SIMULATED_DEMO_OVERRIDE — not real contextual data.
-    """
-    if is_paharganj:
-        if route_idx == 0:
-            # Higher-risk route (through Paharganj main bazaar area)
-            context.validated_report_signal = 0.85
-            context.lighting_score = 30.0
-            context.cctv_coverage_score = 20.0
-            context.footfall_proxy = 800.0
-        else:
-            # Lower-risk alternative
-            context.validated_report_signal = 0.25
-            context.lighting_score = 72.0
-            context.cctv_coverage_score = 65.0
-            context.footfall_proxy = 3000.0
-    else:
-        # Mumbai demo
-        if route_idx == 0:
-            context.lighting_score = 40.0
-            context.cctv_coverage_score = 35.0
-            context.footfall_proxy = 1200.0
-            context.validated_report_signal = 0.60
-        else:
-            context.lighting_score = 68.0
-            context.cctv_coverage_score = 60.0
-            context.footfall_proxy = 3500.0
-            context.validated_report_signal = 0.30
-    return context
-
-
 class OSRMRoutingService(RoutingService):
     """Routes journeys via OSRM and applies the SAKHI contextual risk pipeline."""
 
@@ -194,22 +139,6 @@ class OSRMRoutingService(RoutingService):
             raise HTTPException(status_code=404, detail="No route found between the requested locations")
 
         routes = data.get("routes", [])
-        is_paharganj = _is_paharganj(request)
-        is_mumbai = _is_mumbai_demo(request)
-        is_demo = is_paharganj or is_mumbai
-
-        # Ensure at least 2 route candidates for demos
-        if is_demo and len(routes) == 1:
-            import copy
-            synthetic_route = copy.deepcopy(routes[0])
-            synthetic_route["duration"] = synthetic_route.get("duration", 0) * 0.85
-            synthetic_route["distance"] = synthetic_route.get("distance", 0) * 0.98
-            for leg in synthetic_route.get("legs", []):
-                for step in leg.get("steps", []):
-                    step["duration"] = step.get("duration", 0) * 0.85
-            routes.append(synthetic_route)
-            print("[SAKHI DEMO] Single route from OSRM — synthesized 2nd candidate for risk comparison.")
-
         journey_id = str(uuid.uuid4())
         departure = request.departure_time or datetime.now()
         candidates = []
@@ -258,10 +187,6 @@ class OSRMRoutingService(RoutingService):
                     start_lat, start_lon, end_lat, end_lon,
                     departure, dist, dur,
                 )
-
-                # Apply demo differentiation signals if this is a preset demo journey
-                if is_demo:
-                    context = _apply_demo_override(context, route_idx, is_paharganj)
 
                 risk_score = self.risk_service.calculate_risk(segment, context)
                 segment.risk_score = risk_score.risk_score
