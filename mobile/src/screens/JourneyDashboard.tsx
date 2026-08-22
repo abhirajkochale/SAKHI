@@ -59,27 +59,35 @@ export default function JourneyDashboard() {
 
 
   useEffect(() => {
-    (async () => {
+    let active = true;
+    let locationSubscription: Location.LocationSubscription | null = null;
+
+    const startLocationTracking = async () => {
       try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
           console.warn('Permission to access location was denied');
           return;
         }
-        
-        let location = await Location.getCurrentPositionAsync({});
+
+        const location = await Location.getCurrentPositionAsync({});
+        if (!active) return;
         setUserLocation(location);
 
-        const locationSubscription = await Location.watchPositionAsync(
+        locationSubscription = await Location.watchPositionAsync(
           { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
-          (loc) => { setUserLocation(loc); }
+          (loc) => { if (active) setUserLocation(loc); }
         );
-        
-        return () => { locationSubscription.remove(); };
       } catch (err) {
         console.warn('Could not fetch location:', err);
       }
-    })();
+    };
+
+    void startLocationTracking();
+    return () => {
+      active = false;
+      locationSubscription?.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -1141,6 +1149,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  sosButton: {
+    backgroundColor: '#DC2626',
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
   },
   sosTextContainer: {
     flex: 1,
