@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { JourneySegment, Location, WashroomResponse } from '../types/api';
@@ -22,15 +22,15 @@ export default function JourneyMap(props: JourneyMapProps) {
   const lastToiletVisibility = useRef<boolean | null>(null);
   const lastToiletCount = useRef(0);
   const routeKey = props.segments.map((segment) => segment.segment_id).join('|');
-  const sendUpdate = useCallback(() => {
+  useEffect(() => {
+    if (!ready) return;
     const shouldFitBounds = lastRouteKey.current !== routeKey
       || (props.showWashrooms && (lastToiletVisibility.current !== props.showWashrooms || lastToiletCount.current !== props.washrooms.length));
     mapRef.current?.injectJavaScript(updateScript(props, shouldFitBounds));
     lastRouteKey.current = routeKey;
     lastToiletVisibility.current = props.showWashrooms;
     lastToiletCount.current = props.washrooms.length;
-  }, [props, routeKey]);
-  useEffect(() => { if (ready) sendUpdate(); }, [ready, sendUpdate]);
+  }, [ready, routeKey, props.origin, props.destination, props.segments, props.selectedSegmentId, props.washrooms, props.showWashrooms]);
 
   const handleMessage = (event: WebViewMessageEvent) => {
     try { 

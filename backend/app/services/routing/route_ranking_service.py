@@ -3,13 +3,14 @@ from typing import List, Optional, Tuple
 from app.schemas.journey import JourneySegment
 from app.schemas.ranking import RouteCandidate, RouteMetrics, RouteOption, RouteRankingResponse
 from app.core.config import settings
+from app.services.routing.pilot_ranking_provider import PilotRankingProvider
 
 class RouteRankingService:
     """
     Ranks alternative routes based on travel time, contextual risk, and uncertainty.
     """
     def __init__(self):
-        pass
+        self.pilot_ranking = PilotRankingProvider()
         
     def aggregate_metrics(self, segments: List[JourneySegment]) -> RouteMetrics:
         if not segments:
@@ -26,6 +27,7 @@ class RouteRankingService:
         total_dist = sum(s.distance_m for s in segments)
         total_dur = sum(s.duration_s for s in segments)
         
+        pilot_score = self.pilot_ranking.score_segments(segments)
         sum_risk_dur = 0.0
         max_risk = 0.0
         sum_conf = 0.0
@@ -45,6 +47,8 @@ class RouteRankingService:
                 
         route_risk = (sum_risk_dur / total_dur) if total_dur > 0 else 0.0
         avg_conf = sum_conf / len(segments)
+        if pilot_score is not None:
+            route_risk, avg_conf, max_risk = pilot_score
         
         # Uncertainty penalty = 1 - normalized_confidence
         norm_conf = avg_conf / 100.0

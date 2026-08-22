@@ -54,6 +54,7 @@ export default function JourneyDashboard() {
   const [washrooms, setWashrooms] = useState<WashroomResponse[]>([]);
   const [washroomsLoading, setWashroomsLoading] = useState(false);
   const [washroomsError, setWashroomsError] = useState<string | null>(null);
+  const [hasLoadedWashrooms, setHasLoadedWashrooms] = useState(false);
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [selectedWashroom, setSelectedWashroom] = useState<WashroomResponse | null>(null);
 
@@ -91,7 +92,7 @@ export default function JourneyDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!showWashrooms || washrooms.length || washroomsLoading || washroomsError) return;
+    if (!showWashrooms || hasLoadedWashrooms || washroomsLoading || washroomsError) return;
     
     // Determine center for washroom search
     let lat: number;
@@ -114,9 +115,14 @@ export default function JourneyDashboard() {
     sakhiApi.getWashrooms(lat, lon, 10.0)
       .then((data) => { if (!cancelled) setWashrooms(data); })
       .catch(() => { if (!cancelled) setWashroomsError('Washroom locations are unavailable right now.'); })
-      .finally(() => { if (!cancelled) setWashroomsLoading(false); });
+      .finally(() => {
+        if (!cancelled) {
+          setWashroomsLoading(false);
+          setHasLoadedWashrooms(true);
+        }
+      });
     return () => { cancelled = true; };
-  }, [showWashrooms, washrooms.length, washroomsLoading, washroomsError, userLocation, journey]);
+  }, [showWashrooms, hasLoadedWashrooms, washroomsLoading, washroomsError, userLocation, journey]);
 
   const handleAnalyze = async (origin: ApiLocation, destination: ApiLocation, originName: string, destName: string) => {
     setLoading(true);
@@ -365,7 +371,11 @@ export default function JourneyDashboard() {
             accessibilityState={{ checked: showWashrooms }}
             accessibilityLabel="Show nearby washroom locations"
             onPress={() => {
-              if (!showWashrooms) setWashroomsError(null);
+              if (!showWashrooms) {
+                setWashroomsError(null);
+                setWashrooms([]);
+                setHasLoadedWashrooms(false);
+              }
               setShowWashrooms((visible) => !visible);
             }}
             style={[currentStyles.amenityToggle, showWashrooms && currentStyles.amenityToggleActive]}
