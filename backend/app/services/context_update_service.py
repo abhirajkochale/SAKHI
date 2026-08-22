@@ -5,37 +5,11 @@ from app.schemas.risk import SegmentContext
 from app.services.context_store import journey_store, JourneyData
 from app.services.risk.risk_service import RiskService
 from app.services.routing.route_ranking_service import RouteRankingService
-from app.models.database import SessionLocal
-from app.models.incident import Incident
-from app.models.route_segment import PersistentRouteSegment
 
 class ContextUpdateService:
     def __init__(self):
         self.risk_service = RiskService()
-        self.risk_service = RiskService()
         self.ranking_service = RouteRankingService()
-
-    def process_incident_from_db(self, incident_id: int):
-        db = SessionLocal()
-        try:
-            incident = db.query(Incident).filter(Incident.id == incident_id).first()
-            if not incident or not incident.active:
-                return
-
-            # Find or create the persistent route segment
-            segment = db.query(PersistentRouteSegment).filter(PersistentRouteSegment.segment_id == incident.segment_id).first()
-            if not segment:
-                segment = PersistentRouteSegment(segment_id=incident.segment_id)
-                db.add(segment)
-            
-            # Simple feedback loop: increase risk based on severity.
-            segment.base_risk_score = min(100.0, segment.base_risk_score + (incident.severity * 0.2))
-            segment.base_confidence_score = min(1.0, segment.base_confidence_score + 0.1)
-            segment.last_updated = datetime.utcnow()
-
-            db.commit()
-        finally:
-            db.close()
 
     def _apply_event_to_context(self, context: SegmentContext, event: ContextUpdateEvent) -> None:
         """Apply the event signal override onto an existing SegmentContext in-place."""
@@ -53,7 +27,7 @@ class ContextUpdateService:
         elif event.event_type == "crowd_change":
             context.footfall_indicator = 1.0 - severity_norm
 
-    def process_update(self, journey_id: str, event: ContextUpdateEvent) -> ContextUpdateResponse:
+    async def process_update(self, journey_id: str, event: ContextUpdateEvent) -> ContextUpdateResponse:
         if journey_id not in journey_store:
             raise HTTPException(status_code=404, detail="Journey not found in active prototype state")
             
@@ -117,6 +91,29 @@ class ContextUpdateService:
             reason = "Current route remains preferred despite contextual update."
             if len(candidates) == 1:
                 reason = "Only one route candidate exists. Ranking unchanged."
+                
+        # Persist safety report to database
+        from app.db.connection import get_db
+        try:
+            db = await get_db()
+            import uuid
+            report_id = str(uuid.uuid4())
+            now = datetime.now()
+            
+            # Use midpoints from the target segment if exact location isn't provided
+            # We assume for this prototype that the event has some coordinates or we use segment coordinates
+            lat = target_segment.start.latitude
+            lon = target_segment.start.longitude
+            
+            await db.execute(
+                """
+                INSERT INTO safety_reports (id, event_type, severity, latitude, longitude, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                """,
+                report_id, event.event_type, event.severity, lat, lon, now
+            )
+        except Exception as e:
+            print(f"[DB ERROR] Failed to persist safety report: {e}")
                 
         return ContextUpdateResponse(
             journey_id=journey_id,

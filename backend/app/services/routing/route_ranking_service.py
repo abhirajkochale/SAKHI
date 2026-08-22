@@ -97,18 +97,21 @@ class RouteRankingService:
             
             best_cost, best_c = scored_candidates[0]
             
-            # Inject mock amenity counts based on the route profile
+            # Inject mock amenity data based on mode
+            from app.schemas.ranking import AmenityCounts
+            amenity_counts = AmenityCounts()
             if mode_name == "safest":
-                amenities = {"washrooms": 2, "medical": 1, "police": 2}
+                amenity_counts = AmenityCounts(washrooms=2, medical=1, police=1)
+            elif mode_name == "balanced":
+                amenity_counts = AmenityCounts(washrooms=1, medical=0, police=1)
             elif mode_name == "fastest":
-                amenities = {"washrooms": 0, "medical": 0, "police": 0}
-            else: # balanced
-                amenities = {"washrooms": 1, "medical": 1, "police": 1}
+                amenity_counts = AmenityCounts(washrooms=0, medical=0, police=0)
             
             return RouteOption(
                 route_id=best_c.route_id,
                 mode=mode_name,
                 rank=1,
+                amenity_counts=amenity_counts,
                 distance_m=best_c.metrics.total_distance_m,
                 duration_s=best_c.metrics.total_duration_s,
                 risk_score=best_c.metrics.route_risk_score,
@@ -116,8 +119,7 @@ class RouteRankingService:
                 max_segment_risk=best_c.metrics.max_segment_risk,
                 uncertainty_penalty=best_c.metrics.uncertainty_penalty,
                 route_cost=best_cost,
-                segments=best_c.segments,
-                amenity_counts=amenities
+                segments=best_c.segments
             )
 
         safest = evaluate_mode(settings.RANKING_SAFEST_ALPHA, settings.RANKING_SAFEST_BETA, settings.RANKING_SAFEST_GAMMA, "safest")

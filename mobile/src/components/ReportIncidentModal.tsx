@@ -6,9 +6,11 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   segmentId: string;
+  latitude: number;
+  longitude: number;
 }
 
-export default function ReportIncidentModal({ visible, onClose, segmentId }: Props) {
+export default function ReportIncidentModal({ visible, onClose, segmentId, latitude, longitude }: Props) {
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState('Suspicious Activity');
   const [description, setDescription] = useState('');
@@ -19,8 +21,10 @@ export default function ReportIncidentModal({ visible, onClose, segmentId }: Pro
       await sakhiApi.submitIncident({
         segment_id: segmentId,
         event_type: category,
-        severity: category === 'Suspicious Activity' ? 60 : 40, // Different impact based on type
+        severity: category === 'Suspicious Activity' ? 60 : 40,
         description,
+        latitude,
+        longitude
       });
       alert('Report Submitted! This area\'s risk score has been dynamically updated.');
       onClose();

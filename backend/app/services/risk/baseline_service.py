@@ -13,15 +13,17 @@ It does NOT represent the baseline as a crime prediction.
 
 from app.schemas.journey import JourneySegment
 from app.services.risk.segment_lookup_service import get_segment_lookup_service
-from app.models.database import SessionLocal
-from app.models.route_segment import PersistentRouteSegment
 
 
 class HistoricalBaselineService:
     """
-    Returns real NCRB-derived district historical baseline values,
-    overridable by dynamic historical baselines pulled from the database 
-    based on recent user incident reports.
+    Returns real NCRB-derived district historical baseline values.
+
+    Source: ml/data/processed/district_historical_baseline.csv
+    Resolution: District level (11 Delhi districts)
+    Data: Real NCRB Crime in India + Delhi Police Statistical Handbook
+
+    District assignment: via nearest police station coordinate.
     """
 
     def __init__(self):
@@ -29,17 +31,11 @@ class HistoricalBaselineService:
 
     def get_baseline(self, segment: JourneySegment) -> float:
         """
-        Returns the normalized historical baseline (0-100).
-        Checks the database first for dynamic updates, falls back to NCRB district data.
+        Returns the normalized historical baseline (0-100) for the
+        district this segment belongs to.
+
+        Used as a regional context prior — NOT a street-level crime prediction.
         """
-        db = SessionLocal()
-        try:
-            db_segment = db.query(PersistentRouteSegment).filter(PersistentRouteSegment.segment_id == segment.segment_id).first()
-            if db_segment:
-                return float(db_segment.base_risk_score)
-        finally:
-            db.close()
-            
         district = self._get_district(segment)
         stats = self._lookup.get_district_baseline(district)
         return stats.get("historical_baseline", 50.0)

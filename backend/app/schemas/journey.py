@@ -3,8 +3,8 @@ from typing import List, Optional, Any, Dict
 from datetime import datetime
 
 class Location(BaseModel):
-    latitude: float
-    longitude: float
+    latitude: float = Field(ge=-90, le=90, description="Latitude in decimal degrees")
+    longitude: float = Field(ge=-180, le=180, description="Longitude in decimal degrees")
 
 class JourneyRequest(BaseModel):
     origin: Location

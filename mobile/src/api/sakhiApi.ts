@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, PublicToilet, IncidentCreate } from '../types/api';
+import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, WashroomResponse } from '../types/api';
 
 // Use Expo environment variable or fallback to localhost
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -14,8 +14,28 @@ const apiClient = axios.create({
 });
 
 export const sakhiApi = {
-  getPublicToilets: async (): Promise<PublicToilet[]> => {
-    const response = await apiClient.get<PublicToilet[]>('/amenities/public-toilets');
+  getErrorMessage: (error: unknown): string => {
+    if (axios.isAxiosError(error)) {
+      const detail = error.response?.data?.detail;
+      if (typeof detail === 'string') return detail;
+      if (error.code === 'ECONNABORTED') return 'The journey request timed out. Please try again.';
+      if (!error.response) return 'Cannot reach the SAKHI backend. Check that it is running and the device can access it.';
+    }
+    return 'Unable to analyze this journey. Please check both locations and try again.';
+  },
+
+  getWashrooms: async (latitude: number, longitude: number, radiusKm: number = 5.0): Promise<WashroomResponse[]> => {
+    const response = await apiClient.get<WashroomResponse[]>('/washrooms/', {
+      params: { latitude, longitude, radius_km: radiusKm }
+    });
+    return response.data;
+  },
+
+  submitWashroomFeedback: async (
+    washroomId: number,
+    feedback: { is_open: boolean; cleanliness: string; safety: string; accessible: boolean }
+  ): Promise<{ status: string; message: string }> => {
+    const response = await apiClient.post(`/washrooms/${washroomId}/feedback`, feedback);
     return response.data;
   },
 
@@ -33,6 +53,11 @@ export const sakhiApi = {
     return response.data;
   },
 
+  submitIncident: async (incident: { segment_id: string; event_type: string; severity: number; latitude: number; longitude: number; description?: string }): Promise<any> => {
+    const response = await apiClient.post('/incidents/', incident);
+    return response.data;
+  },
+
   triggerSos: async (journeyId: string | null, location: Location): Promise<any> => {
     const response = await axios.post(`${BASE_URL}/emergency/sos`, {
       journey_id: journeyId,
@@ -40,10 +65,6 @@ export const sakhiApi = {
       longitude: location.longitude,
       trigger_source: 'manual',
     });
-    return response.data;
-  },
-  submitIncident: async (incident: IncidentCreate): Promise<any> => {
-    const response = await apiClient.post('/incidents/', incident);
     return response.data;
   }
 };

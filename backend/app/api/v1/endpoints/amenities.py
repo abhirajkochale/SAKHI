@@ -17,6 +17,6 @@ class PublicToilet(BaseModel):
 
 
 @router.get("/public-toilets", response_model=list[PublicToilet], summary="List public toilet locations")
-def list_public_toilets():
+async def list_public_toilets():
     """Expose verified public toilet/washroom coordinates for the mobile map."""
-    return get_segment_lookup_service().get_public_toilets()
+    return await get_segment_lookup_service().get_public_toilets()

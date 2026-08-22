@@ -9,7 +9,7 @@ _dead_man_events: Dict[str, DeadManEvent] = {}
 _checkins: Dict[str, dict] = {} # journey_id -> {"last_seen_at": datetime, "timeout_minutes": int, "location": dict}
 
 class EmergencyService:
-    def trigger_sos(self, request: SOSRequest) -> SOSResponse:
+    async def trigger_sos(self, request: SOSRequest) -> SOSResponse:
         sos_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
         
@@ -24,10 +24,25 @@ class EmergencyService:
         )
         
         _sos_events[sos_id] = response
+        
+        # Persist to database
+        from app.db.connection import get_db
+        try:
+            db = await get_db()
+            await db.execute(
+                """
+                INSERT INTO emergency_events (id, journey_id, latitude, longitude, trigger_source, status, triggered_at)
+                VALUES ($1::uuid, NULLIF($2, '')::uuid, $3, $4, $5, 'active', $6)
+                """,
+                sos_id, request.journey_id if request.journey_id and request.journey_id != 'test' else None, request.latitude, request.longitude, request.trigger_source, now
+            )
+        except Exception as e:
+            print(f"[DB ERROR] Failed to persist SOS event {sos_id}: {e}")
+
         print(f"[EMERGENCY] SOS Triggered: {request.trigger_source} at {request.latitude}, {request.longitude}")
         return response
 
-    def record_checkin(self, journey_id: str, request: CheckinRequest) -> CheckinResponse:
+    async def record_checkin(self, journey_id: str, request: CheckinRequest) -> CheckinResponse:
         now = datetime.now(timezone.utc)
         timeout_minutes = 5 # Default 5 mins for prototype
         
@@ -38,9 +53,24 @@ class EmergencyService:
         }
         
         # Calculate next deadline (naive approach for prototype)
-        import timedelta
+        
         from datetime import timedelta
         deadline = now + timedelta(minutes=timeout_minutes)
+        
+        # Persist checkin to database
+        from app.db.connection import get_db
+        try:
+            db = await get_db()
+            await db.execute(
+                """
+                UPDATE active_journeys 
+                SET last_checkin_at = $1 
+                WHERE id = $2
+                """,
+                now, journey_id
+            )
+        except Exception as e:
+            print(f"[DB ERROR] Failed to update last_checkin_at for {journey_id}: {e}")
         
         return CheckinResponse(
             status="checked_in",
@@ -80,7 +110,18 @@ class EmergencyService:
                     longitude=loc.get("longitude", 0.0),
                     trigger_source="dead_man_switch"
                 )
-                self.trigger_sos(sos_req)
+                
+                # Cannot easily await this here if check_dead_man_timeouts is sync. 
+                # For prototype, we'll run it in the event loop or make it async.
+                # But since we are keeping it sync for now, we'll just queue it or make this method async.
+                # Actually, making check_dead_man_timeouts async is cleaner.
+                # (For the sake of simplicity, we'll leave it as a sync call but trigger_sos is now async)
+                import asyncio
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(self.trigger_sos(sos_req))
+                except RuntimeError:
+                    asyncio.run(self.trigger_sos(sos_req))
                 
                 # Remove from active checkins so we don't trigger repeatedly
                 del _checkins[journey_id]

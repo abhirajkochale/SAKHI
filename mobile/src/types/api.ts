@@ -3,14 +3,18 @@ export interface Location {
   longitude: number;
 }
 
-export interface PublicToilet {
-  id: string;
+export interface WashroomResponse {
+  id: number;
   name: string;
-  type: string;
-  address: string;
-  district: string;
+  address: string | null;
   latitude: number;
   longitude: number;
+  is_open: boolean;
+  cleanliness: string;
+  safety: string;
+  accessible: boolean;
+  verified_count: number;
+  last_verified_timestamp: string | null;
 }
 
 export interface JourneySegment {
@@ -41,6 +45,7 @@ export interface RouteOption {
   route_id: string;
   mode: string;
   rank: number;
+  amenity_counts?: AmenityCounts;
   distance_m: number;
   duration_s: number;
   risk_score: number;
@@ -49,7 +54,6 @@ export interface RouteOption {
   uncertainty_penalty: number;
   route_cost: number;
   segments: JourneySegment[];
-  amenity_counts?: AmenityCounts;
 }
 
 export interface RouteRankingResponse {
@@ -97,13 +101,4 @@ export interface ContextUpdateResponse {
   rerouted: boolean;
   reason: string;
   updated_ranking?: RouteRankingResponse | null;
-}
-
-export interface IncidentCreate {
-  segment_id: string;
-  event_type: string;
-  severity: number;
-  latitude?: number;
-  longitude?: number;
-  description?: string;
 }

@@ -128,34 +128,24 @@ def test_context_update_rerouting(mock_calc):
 
 from unittest.mock import patch, MagicMock
 
-def mock_ml_predict(features):
-    # Route 1 (Fastest, distance 24700.0) gets high risk
-    if features.distance_m == 24700.0:
-        return 85.0
-    
-    # Route 2 (Safest, distance 25000.0) gets low risk
-    return 45.0
-
-@patch("app.services.risk.ml_model_service.MLModelService.predict")
 @patch("httpx.AsyncClient.get")
-def test_context_update_preserves_alternative_route_context(mock_get, mock_predict):
+def test_context_update_preserves_alternative_route_context(mock_get):
     """
     Regression test: a contextual update on one route preserves the context for
     the other route and returns an updated ranking.
     """
-    mock_predict.side_effect = mock_ml_predict
     TWO_ROUTE_RESPONSE = {
         "code": "Ok",
         "routes": [
             {
-                "distance": 24700.0, "duration": 1600.0,
-                "legs": [{"steps": [{"distance": 24700.0, "duration": 1600.0,
+                "distance": 25000.0, "duration": 1700.0,
+                "legs": [{"steps": [{"distance": 25000.0, "duration": 1700.0,
                     "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
                 }]}]
             },
             {
-                "distance": 25000.0, "duration": 1700.0,
-                "legs": [{"steps": [{"distance": 25000.0, "duration": 1700.0,
+                "distance": 24700.0, "duration": 1600.0,
+                "legs": [{"steps": [{"distance": 24700.0, "duration": 1600.0,
                     "geometry": {"type": "LineString", "coordinates": [[77.2132, 28.6433], [77.0597, 28.5525]]}
                 }]}]
             }

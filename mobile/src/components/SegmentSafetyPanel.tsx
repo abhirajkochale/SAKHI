@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { JourneySegment } from '../types/api';
 
 interface Props {
   segment: JourneySegment;
+  onReportIncident?: () => void;
 }
 
-export default function SegmentSafetyPanel({ segment }: Props) {
+export default function SegmentSafetyPanel({ segment, onReportIncident }: Props) {
   if (!segment.risk_score && !segment.explanation) {
     return (
       <View style={styles.container}>
@@ -41,7 +42,14 @@ export default function SegmentSafetyPanel({ segment }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Segment {segment.sequence} Safety</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Segment {segment.sequence} Safety</Text>
+        {onReportIncident && (
+          <TouchableOpacity style={styles.reportBtn} onPress={onReportIncident}>
+            <Text style={styles.reportBtnText}>⚠️ Report</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       
       <View style={styles.row}>
         <View style={styles.metric}>
@@ -97,10 +105,28 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     marginVertical: 10,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
+  },
+  reportBtn: {
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#f87171',
+  },
+  reportBtnText: {
+    color: '#b91c1c',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   row: {
     flexDirection: 'row',

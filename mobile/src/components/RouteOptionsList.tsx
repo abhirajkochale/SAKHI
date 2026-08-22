@@ -55,36 +55,36 @@ export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRou
               {isSingleRoute ? riskLabel(opt.route.risk_score) : opt.label}
             </Text>
 
-            <View style={styles.metricRow}>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Risk</Text>
-                <Text style={[styles.metricValue, { color: riskColor(opt.route.risk_score) }]}>
-                  {opt.route.risk_score.toFixed(1)}
-                </Text>
+              <View style={styles.metricRow}>
+                <View style={styles.metric}>
+                  <Text style={styles.metricLabel}>Risk</Text>
+                  <Text style={[styles.metricValue, { color: riskColor(opt.route.risk_score) }]}>
+                    {opt.route.risk_score.toFixed(1)}
+                  </Text>
+                </View>
+                <View style={styles.metric}>
+                  <Text style={styles.metricLabel}>Distance</Text>
+                  <Text style={styles.metricValue}>{(opt.route.distance_m / 1000).toFixed(2)} km</Text>
+                </View>
+                <View style={styles.metric}>
+                  <Text style={styles.metricLabel}>Time</Text>
+                  <Text style={styles.metricValue}>{Math.round(opt.route.duration_s / 60)} min</Text>
+                </View>
               </View>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Distance</Text>
-                <Text style={styles.metricValue}>{(opt.route.distance_m / 1000).toFixed(2)} km</Text>
-              </View>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Time</Text>
-                <Text style={styles.metricValue}>{Math.round(opt.route.duration_s / 60)} min</Text>
-              </View>
-            </View>
-            
-            {opt.route.amenity_counts && (
-              <View style={styles.amenityRow}>
-                <Text style={styles.amenityText}>
-                  🚻 Washrooms: {opt.route.amenity_counts.washrooms} | 🏥 Medical: {opt.route.amenity_counts.medical} | 🚓 Police: {opt.route.amenity_counts.police}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-}
+
+              {opt.route.amenity_counts && (
+                <View style={styles.amenityRow}>
+                  <Text style={styles.amenityText}>
+                    🚻 {opt.route.amenity_counts.washrooms} • 🏥 {opt.route.amenity_counts.medical} • 👮 {opt.route.amenity_counts.police}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
 
 function riskColor(score: number): string {
   if (score >= 70) return '#dc2626'; // red
@@ -142,6 +142,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#374151',
   },
+  amenityRow: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    alignItems: 'center',
+  },
+  amenityText: {
+    fontSize: 13,
+    color: '#4b5563',
+    fontWeight: '500',
+  },
   noteText: {
     fontSize: 12,
     color: '#6b7280',
@@ -149,16 +161,4 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   errorText: { color: 'red' },
-  amenityRow: {
-    marginTop: 10,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-    alignItems: 'center',
-  },
-  amenityText: {
-    fontSize: 11,
-    color: '#4b5563',
-    fontWeight: '500',
-  }
 });

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert, Linking, ScrollView, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import * as Location from 'expo-location';
 import JourneyForm from '../components/JourneyForm';
 import JourneyMap from '../components/JourneyMap';
 import RouteOptionsList from '../components/RouteOptionsList';
@@ -9,11 +10,13 @@ import EmergencyPanel from '../components/EmergencyPanel';
 import DeadManSwitchPanel from '../components/DeadManSwitchPanel';
 import ReportIncidentModal from '../components/ReportIncidentModal';
 import QuickFindModal from '../components/QuickFindModal';
+import WashroomFacilityCard from '../components/WashroomFacilityCard';
 import { sakhiApi } from '../api/sakhiApi';
 import { cacheJourney, getCachedJourney } from '../api/cache';
 import { useAccessibility } from '../contexts/AccessibilityContext';
-import { JourneyResponse, Location, RouteOption, JourneySegment, ContextUpdateResponse, PublicToilet } from '../types/api';
+import { JourneyResponse, RouteOption, JourneySegment, ContextUpdateResponse, WashroomResponse, Location as ApiLocation } from '../types/api';
 import { Accelerometer } from 'expo-sensors';
+import { calculateDistance } from '../utils/distance';
 
 const SHAKE_THRESHOLD = 1.8; // g-force threshold for a shake (lowered for easier testing)
 const SHAKE_COOLDOWN_MS = 5000; // 5 seconds cooldown between SOS triggers
@@ -24,15 +27,21 @@ export default function JourneyDashboard() {
   const [journey, setJourney] = useState<JourneyResponse | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<JourneySegment | null>(null);
-  const [incidentModalVisible, setIncidentModalVisible] = useState(false);
-  const [quickFindVisible, setQuickFindVisible] = useState(false);
   
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showQuickFindModal, setShowQuickFindModal] = useState(false);
+
   const [updateResult, setUpdateResult] = useState<ContextUpdateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [isShakeEnabled, setIsShakeEnabled] = useState(true);
-  const [showPublicToilets, setShowPublicToilets] = useState(false);
-  const [publicToilets, setPublicToilets] = useState<PublicToilet[]>([]);
+  
+  const [showWashrooms, setShowWashrooms] = useState(false);
+  const [washrooms, setWashrooms] = useState<WashroomResponse[]>([]);
+  const [washroomsLoading, setWashroomsLoading] = useState(false);
+  const [washroomsError, setWashroomsError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const [selectedWashroom, setSelectedWashroom] = useState<WashroomResponse | null>(null);
   const lastShakeTime = React.useRef(0);
 
   React.useEffect(() => {
@@ -65,7 +74,59 @@ export default function JourneyDashboard() {
     };
   }, [isShakeEnabled, journey?.journey_id]);
 
-  const handleAnalyze = async (origin: Location, destination: Location) => {
+  useEffect(() => {
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.warn('Permission to access location was denied');
+          return;
+        }
+        
+        let location = await Location.getCurrentPositionAsync({});
+        setUserLocation(location);
+
+        const locationSubscription = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+          (loc) => { setUserLocation(loc); }
+        );
+        
+        return () => { locationSubscription.remove(); };
+      } catch (err) {
+        console.warn('Could not fetch location:', err);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!showWashrooms || washrooms.length || washroomsLoading || washroomsError) return;
+    
+    // Determine center for washroom search
+    let lat: number;
+    let lon: number;
+    if (userLocation) {
+      lat = userLocation.coords.latitude;
+      lon = userLocation.coords.longitude;
+    } else if (journey) {
+      lat = journey.origin.latitude;
+      lon = journey.origin.longitude;
+    } else {
+      // Default to Delhi if no location available
+      lat = 28.6139;
+      lon = 77.2090;
+    }
+
+    let cancelled = false;
+    setWashroomsLoading(true);
+    // Fetch washrooms using location
+    sakhiApi.getWashrooms(lat, lon, 10.0)
+      .then((data) => { if (!cancelled) setWashrooms(data); })
+      .catch(() => { if (!cancelled) setWashroomsError('Washroom locations are unavailable right now.'); })
+      .finally(() => { if (!cancelled) setWashroomsLoading(false); });
+    return () => { cancelled = true; };
+  }, [showWashrooms, washrooms.length, washroomsLoading, washroomsError, userLocation, journey]);
+
+  const handleAnalyze = async (origin: ApiLocation, destination: ApiLocation) => {
     setLoading(true);
     setError(null);
     setUpdateResult(null);
@@ -73,32 +134,13 @@ export default function JourneyDashboard() {
     try {
       const response = await sakhiApi.createJourney(origin, destination);
       setJourney(response);
-      try {
-        setPublicToilets(await sakhiApi.getPublicToilets());
-      } catch (amenityError) {
-        console.warn('Could not load public toilet locations:', amenityError);
-        setPublicToilets([]);
-      }
-      
-      // Cache the journey for offline use
-      cacheJourney(response);
-      
-      // Default to safest route if ranking available
-      let initialRoute = null;
-      if (response.ranking && response.ranking.safest_route) {
-        initialRoute = response.ranking.safest_route;
-      } else {
-        // Fallback for missing ranking
-        const mockOption: RouteOption = {
-          route_id: 'primary', mode: 'safest', rank: 1, 
-          distance_m: response.distance_m, duration_s: response.duration_s,
-          risk_score: 0, confidence: 0, max_segment_risk: 0, uncertainty_penalty: 0,
-          route_cost: 0, segments: response.segments
-        };
-        initialRoute = mockOption;
-      }
+      const initialRoute: RouteOption = response.ranking?.safest_route ?? {
+        route_id: 'primary', mode: 'safest', rank: 1, distance_m: response.distance_m, duration_s: response.duration_s,
+        risk_score: 0, confidence: 0, max_segment_risk: 0, uncertainty_penalty: 0, route_cost: 0, segments: response.segments,
+      };
       setSelectedRoute(initialRoute);
       setSelectedSegment(initialRoute.segments && initialRoute.segments.length > 0 ? initialRoute.segments[0] : null);
+      void cacheJourney(response);
     } catch (err: any) {
       console.error(err);
       // Try offline fallback
@@ -111,7 +153,7 @@ export default function JourneyDashboard() {
           setSelectedSegment(cached.ranking.safest_route.segments.length > 0 ? cached.ranking.safest_route.segments[0] : null);
         }
       } else {
-        setError(err.message || 'Error creating journey and no cached data available.');
+        setError(sakhiApi.getErrorMessage(err));
       }
     } finally {
       setLoading(false);
@@ -149,9 +191,9 @@ export default function JourneyDashboard() {
   const currentStyles = isAccessibleMode ? accessibleStyles : styles;
 
   return (
-    <View style={{ flex: 1 }}>
-    <ScrollView style={currentStyles.container} contentContainerStyle={currentStyles.content}>
-      <View style={{flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10}}>
+    <View style={currentStyles.container}>
+      <ScrollView style={{flex: 1}} contentContainerStyle={currentStyles.content}>
+        <View style={{flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10}}>
         <TouchableOpacity 
           onPress={toggleAccessibleMode}
           style={{backgroundColor: isAccessibleMode ? '#1e3a8a' : '#d1d5db', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: isAccessibleMode ? 2 : 0, borderColor: '#fff'}}
@@ -161,6 +203,7 @@ export default function JourneyDashboard() {
           </Text>
         </TouchableOpacity>
       </View>
+
       <JourneyForm onAnalyze={handleAnalyze} loading={loading} />
       
       {error && (
@@ -184,9 +227,12 @@ export default function JourneyDashboard() {
               segments={selectedRoute?.segments || journey.segments}
               selectedSegmentId={selectedSegment?.segment_id || null}
               onSegmentPress={setSelectedSegment}
-              publicToilets={publicToilets}
-              showPublicToilets={showPublicToilets}
+              washrooms={washrooms}
+              showWashrooms={showWashrooms}
               onNavigateRequest={openSelectedRouteInGoogleMaps}
+              onWashroomPress={(washroom) => {
+                setSelectedWashroom(washroom);
+              }}
             />
           </View>
 
@@ -202,20 +248,23 @@ export default function JourneyDashboard() {
 
           <View style={currentStyles.amenityToggleRow}>
             <View style={{ flex: 1 }}>
-              <Text style={currentStyles.amenityToggleTitle}>Right to PEE</Text>
+              <Text style={currentStyles.amenityToggleTitle}>Right to PEE (Washrooms)</Text>
               <Text style={currentStyles.amenityToggleCaption}>
-                {publicToilets.length ? `${publicToilets.length} public toilets available on the map` : 'Toilet locations unavailable offline'}
+                {washroomsLoading ? 'Loading washroom locations…' : washroomsError || (washrooms.length ? `${washrooms.length} washrooms available nearby` : 'Turn on to find nearby washrooms')}
               </Text>
             </View>
             <TouchableOpacity
               accessibilityRole="switch"
-              accessibilityState={{ checked: showPublicToilets }}
-              accessibilityLabel="Show public toilet locations"
-              onPress={() => setShowPublicToilets((visible) => !visible)}
-              style={[currentStyles.amenityToggle, showPublicToilets && currentStyles.amenityToggleActive]}
+              accessibilityState={{ checked: showWashrooms }}
+              accessibilityLabel="Show washroom locations"
+              onPress={() => {
+                if (!showWashrooms) setWashroomsError(null);
+                setShowWashrooms((visible) => !visible);
+              }}
+              style={[currentStyles.amenityToggle, showWashrooms && currentStyles.amenityToggleActive]}
             >
-              <Text style={[currentStyles.amenityToggleText, showPublicToilets && currentStyles.amenityToggleTextActive]}>
-                {showPublicToilets ? 'LOCATIONS ON' : 'SHOW LOCATIONS'}
+              <Text style={[currentStyles.amenityToggleText, showWashrooms && currentStyles.amenityToggleTextActive]}>
+                {showWashrooms ? 'LOCATIONS ON' : 'SHOW LOCATIONS'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -243,15 +292,11 @@ export default function JourneyDashboard() {
 
           {selectedSegment ? (
             <>
-              <SegmentSafetyPanel segment={selectedSegment} />
+              <SegmentSafetyPanel 
+                segment={selectedSegment} 
+                onReportIncident={() => setShowReportModal(true)}
+              />
               
-              <TouchableOpacity 
-                style={styles.reportBtn} 
-                onPress={() => setIncidentModalVisible(true)}
-              >
-                <Text style={styles.reportBtnText}>⚠️ Report Incident on this Segment</Text>
-              </TouchableOpacity>
-
               <ContextUpdatePanel 
                 segmentId={selectedSegment.segment_id}
                 journeyId={journey.journey_id}
@@ -286,12 +331,6 @@ export default function JourneyDashboard() {
                   )}
                 </View>
               )}
-
-              <ReportIncidentModal 
-                visible={incidentModalVisible}
-                onClose={() => setIncidentModalVisible(false)}
-                segmentId={selectedSegment.segment_id}
-              />
             </>
           ) : (
             <View style={currentStyles.noSegmentBox}>
@@ -318,24 +357,37 @@ export default function JourneyDashboard() {
       )}
     </ScrollView>
 
-    {/* Quick Action FAB */}
     {journey && (
-      <>
-        <TouchableOpacity 
-          style={styles.fab} 
-          onPress={() => setQuickFindVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.fabIcon}>🔍</Text>
-        </TouchableOpacity>
-
-        <QuickFindModal 
-          visible={quickFindVisible}
-          onClose={() => setQuickFindVisible(false)}
-        />
-      </>
+      <TouchableOpacity 
+        style={currentStyles.fab} 
+        onPress={() => setShowQuickFindModal(true)}
+      >
+        <Text style={currentStyles.fabIcon}>🔍</Text>
+      </TouchableOpacity>
     )}
-    </View>
+
+    {selectedSegment && (
+      <ReportIncidentModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        segmentId={selectedSegment.segment_id}
+        latitude={selectedSegment.start_location.latitude}
+        longitude={selectedSegment.start_location.longitude}
+      />
+    )}
+
+    <QuickFindModal 
+      visible={showQuickFindModal} 
+      onClose={() => setShowQuickFindModal(false)} 
+    />
+
+    <WashroomFacilityCard
+      visible={!!selectedWashroom}
+      onClose={() => setSelectedWashroom(null)}
+      washroom={selectedWashroom}
+      distance={selectedWashroom && userLocation ? calculateDistance(userLocation.coords.latitude, userLocation.coords.longitude, selectedWashroom.latitude, selectedWashroom.longitude) : 0}
+    />
+  </View>
   );
 }
 
@@ -502,24 +554,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 12,
   },
-  reportBtn: {
-    backgroundColor: '#fff',
-    borderColor: '#ef4444',
-    borderWidth: 1,
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 10,
-    alignItems: 'center'
-  },
-  reportBtnText: {
-    color: '#ef4444',
-    fontWeight: 'bold',
-    fontSize: 14
-  },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
+    bottom: 30,
+    right: 20,
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -529,7 +567,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 5,
     elevation: 8,
   },
   fabIcon: {
@@ -540,6 +578,24 @@ const styles = StyleSheet.create({
 
 const accessibleStyles = StyleSheet.create({
   ...styles,
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#000',
+    borderWidth: 3,
+    borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 10,
+  },
+  fabIcon: {
+    fontSize: 30,
+    color: '#fff',
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
