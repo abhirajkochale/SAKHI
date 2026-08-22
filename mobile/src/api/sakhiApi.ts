@@ -3,6 +3,7 @@ import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, W
 
 // Use Expo environment variable or fallback to localhost
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+console.log('AXIOS BASE URL IS:', BASE_URL);
 
 
 const apiClient = axios.create({
@@ -68,3 +69,4 @@ export const sakhiApi = {
     return response.data;
   }
 };
+

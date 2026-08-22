@@ -15,11 +15,9 @@ import { sakhiApi } from '../api/sakhiApi';
 import { cacheJourney, getCachedJourney } from '../api/cache';
 import { useAccessibility } from '../contexts/AccessibilityContext';
 import { JourneyResponse, RouteOption, JourneySegment, ContextUpdateResponse, WashroomResponse, Location as ApiLocation } from '../types/api';
-import { Accelerometer } from 'expo-sensors';
 import { calculateDistance } from '../utils/distance';
 
-const SHAKE_THRESHOLD = 1.8; // g-force threshold for a shake (lowered for easier testing)
-const SHAKE_COOLDOWN_MS = 5000; // 5 seconds cooldown between SOS triggers
+ // 5 seconds cooldown between SOS triggers
 
 export default function JourneyDashboard() {
   const { isAccessibleMode, toggleAccessibleMode } = useAccessibility();
@@ -34,7 +32,6 @@ export default function JourneyDashboard() {
   const [updateResult, setUpdateResult] = useState<ContextUpdateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
-  const [isShakeEnabled, setIsShakeEnabled] = useState(true);
   
   const [showWashrooms, setShowWashrooms] = useState(false);
   const [washrooms, setWashrooms] = useState<WashroomResponse[]>([]);
@@ -42,37 +39,7 @@ export default function JourneyDashboard() {
   const [washroomsError, setWashroomsError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [selectedWashroom, setSelectedWashroom] = useState<WashroomResponse | null>(null);
-  const lastShakeTime = React.useRef(0);
 
-  React.useEffect(() => {
-    let subscription: any;
-    if (isShakeEnabled) {
-      Accelerometer.setUpdateInterval(400); // 400ms interval is enough for a shake detection without draining battery
-      subscription = Accelerometer.addListener(accelerometerData => {
-        const { x, y, z } = accelerometerData;
-        const acceleration = Math.sqrt(x * x + y * y + z * z);
-        
-        if (acceleration > SHAKE_THRESHOLD) {
-          const now = Date.now();
-          if (now - lastShakeTime.current > SHAKE_COOLDOWN_MS) {
-            lastShakeTime.current = now;
-            console.log("Shake detected! Triggering SOS...");
-            // Trigger SOS API
-            const loc = { latitude: 28.6139, longitude: 77.2090 }; // Mock location
-            sakhiApi.triggerSos(journey?.journey_id || null, loc)
-              .then(res => console.log('Shake SOS Sent:', res.sos_id))
-              .catch(err => console.error('Shake SOS Failed:', err));
-          }
-        }
-      });
-    }
-
-    return () => {
-      if (subscription) {
-        subscription.remove();
-      }
-    };
-  }, [isShakeEnabled, journey?.journey_id]);
 
   useEffect(() => {
     (async () => {
@@ -339,16 +306,6 @@ export default function JourneyDashboard() {
           )}
         </>
       )}
-
-      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 10, paddingHorizontal: 4}}>
-        <Text style={{color: isAccessibleMode ? '#000' : '#4b5563', fontWeight: 'bold', fontSize: isAccessibleMode ? 18 : 14}}>Shake to SOS Feature</Text>
-        <TouchableOpacity 
-          onPress={() => setIsShakeEnabled(!isShakeEnabled)}
-          style={{backgroundColor: isShakeEnabled ? '#10b981' : '#d1d5db', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: isAccessibleMode ? 2 : 0, borderColor: '#000'}}
-        >
-          <Text style={{color: '#fff', fontWeight: 'bold', fontSize: isAccessibleMode ? 16 : 12}}>{isShakeEnabled ? 'ENABLED' : 'DISABLED'}</Text>
-        </TouchableOpacity>
-      </View>
 
       <EmergencyPanel journeyId={journey?.journey_id} />
       
@@ -726,4 +683,6 @@ const accessibleStyles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+
 
