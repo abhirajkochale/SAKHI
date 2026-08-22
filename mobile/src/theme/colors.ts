@@ -1,6 +1,5 @@
-﻿export const baseColors = {
-  magenta: '#D11A72',
-  pink: '#FDF2F8',
+export const baseColors = {
+  red: '#DC2626',
   white: '#FFFFFF',
   black: '#000000',
   gray50: '#F9FAFB',
@@ -22,7 +21,7 @@
 export const lightTheme = {
   background: baseColors.gray50,
   surface: baseColors.white,
-  primary: baseColors.magenta,
+  primary: baseColors.red,
   primaryText: baseColors.white,
   text: baseColors.gray900,
   textSecondary: baseColors.gray600,
