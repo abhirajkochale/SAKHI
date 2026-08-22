@@ -14,6 +14,16 @@ const apiClient = axios.create({
 });
 
 export const sakhiApi = {
+  getErrorMessage: (error: unknown): string => {
+    if (axios.isAxiosError(error)) {
+      const detail = error.response?.data?.detail;
+      if (typeof detail === 'string') return detail;
+      if (error.code === 'ECONNABORTED') return 'The journey request timed out. Please try again.';
+      if (!error.response) return 'Cannot reach the SAKHI backend. Check that it is running and the device can access it.';
+    }
+    return 'Unable to analyze this journey. Please check both locations and try again.';
+  },
+
   getPublicToilets: async (): Promise<PublicToilet[]> => {
     const response = await apiClient.get<PublicToilet[]>('/amenities/public-toilets');
     return response.data;

@@ -29,6 +29,8 @@ export default function JourneyDashboard() {
   const [isShakeEnabled, setIsShakeEnabled] = useState(true);
   const [showPublicToilets, setShowPublicToilets] = useState(false);
   const [publicToilets, setPublicToilets] = useState<PublicToilet[]>([]);
+  const [toiletsLoading, setToiletsLoading] = useState(false);
+  const [toiletsError, setToiletsError] = useState<string | null>(null);
   const lastShakeTime = React.useRef(0);
 
   React.useEffect(() => {
@@ -61,6 +63,17 @@ export default function JourneyDashboard() {
     };
   }, [isShakeEnabled, journey?.journey_id]);
 
+  React.useEffect(() => {
+    if (!showPublicToilets || publicToilets.length || toiletsLoading || toiletsError) return;
+    let cancelled = false;
+    setToiletsLoading(true);
+    sakhiApi.getPublicToilets()
+      .then((toilets) => { if (!cancelled) setPublicToilets(toilets); })
+      .catch(() => { if (!cancelled) setToiletsError('Public toilet locations are unavailable right now.'); })
+      .finally(() => { if (!cancelled) setToiletsLoading(false); });
+    return () => { cancelled = true; };
+  }, [showPublicToilets, publicToilets.length, toiletsLoading, toiletsError]);
+
   const handleAnalyze = async (origin: Location, destination: Location) => {
     setLoading(true);
     setError(null);
@@ -69,32 +82,13 @@ export default function JourneyDashboard() {
     try {
       const response = await sakhiApi.createJourney(origin, destination);
       setJourney(response);
-      try {
-        setPublicToilets(await sakhiApi.getPublicToilets());
-      } catch (amenityError) {
-        console.warn('Could not load public toilet locations:', amenityError);
-        setPublicToilets([]);
-      }
-      
-      // Cache the journey for offline use
-      cacheJourney(response);
-      
-      // Default to safest route if ranking available
-      let initialRoute = null;
-      if (response.ranking && response.ranking.safest_route) {
-        initialRoute = response.ranking.safest_route;
-      } else {
-        // Fallback for missing ranking
-        const mockOption: RouteOption = {
-          route_id: 'primary', mode: 'safest', rank: 1, 
-          distance_m: response.distance_m, duration_s: response.duration_s,
-          risk_score: 0, confidence: 0, max_segment_risk: 0, uncertainty_penalty: 0,
-          route_cost: 0, segments: response.segments
-        };
-        initialRoute = mockOption;
-      }
+      const initialRoute: RouteOption = response.ranking?.safest_route ?? {
+        route_id: 'primary', mode: 'safest', rank: 1, distance_m: response.distance_m, duration_s: response.duration_s,
+        risk_score: 0, confidence: 0, max_segment_risk: 0, uncertainty_penalty: 0, route_cost: 0, segments: response.segments,
+      };
       setSelectedRoute(initialRoute);
       setSelectedSegment(initialRoute.segments && initialRoute.segments.length > 0 ? initialRoute.segments[0] : null);
+      void cacheJourney(response);
     } catch (err: any) {
       console.error(err);
       // Try offline fallback
@@ -107,7 +101,7 @@ export default function JourneyDashboard() {
           setSelectedSegment(cached.ranking.safest_route.segments.length > 0 ? cached.ranking.safest_route.segments[0] : null);
         }
       } else {
-        setError(err.message || 'Error creating journey and no cached data available.');
+        setError(sakhiApi.getErrorMessage(err));
       }
     } finally {
       setLoading(false);
@@ -200,14 +194,17 @@ export default function JourneyDashboard() {
             <View style={{ flex: 1 }}>
               <Text style={currentStyles.amenityToggleTitle}>Right to PEE</Text>
               <Text style={currentStyles.amenityToggleCaption}>
-                {publicToilets.length ? `${publicToilets.length} public toilets available on the map` : 'Toilet locations unavailable offline'}
+                {toiletsLoading ? 'Loading public toilet locations…' : toiletsError || (publicToilets.length ? `${publicToilets.length} public toilets available on the map` : 'Turn on to load public toilet locations')}
               </Text>
             </View>
             <TouchableOpacity
               accessibilityRole="switch"
               accessibilityState={{ checked: showPublicToilets }}
               accessibilityLabel="Show public toilet locations"
-              onPress={() => setShowPublicToilets((visible) => !visible)}
+              onPress={() => {
+                if (!showPublicToilets) setToiletsError(null);
+                setShowPublicToilets((visible) => !visible);
+              }}
               style={[currentStyles.amenityToggle, showPublicToilets && currentStyles.amenityToggleActive]}
             >
               <Text style={[currentStyles.amenityToggleText, showPublicToilets && currentStyles.amenityToggleTextActive]}>
