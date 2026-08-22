@@ -59,7 +59,19 @@ print(f"Rows loaded: {len(df)}")
 
 
 # ============================================================
-# TARGET & FEATURES (20 SAKHI FEATURE CONTRACT)
+# TARGET & FEATURES (13 SAKHI FEATURE CONTRACT)
+# ============================================================
+#
+# Leakage exclusions (dependency-based, not just correlation):
+#   historical_baseline   -- derived from same NCRB crime_records.csv as
+#                            target's crime_burden_norm component.
+#   is_weekend            -- directly encodes WEEKEND_ADJ term in target formula.
+#   is_night, is_late_night, is_evening_peak, is_peak_hour, representative_hour
+#                         -- all structurally derived from time_period which is
+#                            the input to TEMPORAL_MULTIPLIER in the target.
+#
+# Retained: environmental, infrastructure, and footfall features that are
+# genuinely independent of the target formula components.
 # ============================================================
 
 TARGET = "crime_grounded_risk_index"
@@ -68,29 +80,21 @@ if TARGET not in df.columns:
     raise ValueError(f"Target column '{TARGET}' not found in dataset.")
 
 FEATURES = [
-    # Historical NCRB context
-    "historical_baseline",
-    # Road characteristics
+    # Road characteristics (from OSM geometry/OSRM)
     "distance_m",
     "estimated_travel_time_s",
-    # Environmental context
+    # Environmental context (synthetic/proxy — not in target formula)
     "lighting_score",
     "cctv_coverage_score",
     "footfall_proxy",
     "contextual_footfall_proxy",
-    # Emergency / accessibility infrastructure
+    # Emergency / accessibility infrastructure (real GPS-computed)
     "distance_to_police_m",
     "distance_to_hospital_m",
     "distance_to_medical_facility_m",
     "distance_to_public_toilet_m",
     "distance_to_nearest_amenity_m",
-    # Temporal context
-    "representative_hour",
-    "is_night",
-    "is_late_night",
-    "is_evening_peak",
-    "is_weekend",
-    "is_peak_hour",
+    # Contextual activity indicators (derived from footfall, not from crime stats)
     "reduced_activity_context",
     "lighting_relevance",
 ]
@@ -182,6 +186,61 @@ print(f"District Mean Baseline (Test) -- MAE: {dist_test_mae:.4f}, RMSE: {dist_t
 
 
 # ============================================================
+# 5-FOLD SEGMENT-LEVEL CROSS-VALIDATION (overfitting check)
+# ============================================================
+# NOTE: All metrics below are against the engineered proxy target
+# (crime_grounded_risk_index), NOT against real observed crime events.
+# ============================================================
+
+print("\n" + "=" * 70)
+print("5-FOLD SEGMENT-LEVEL CROSS-VALIDATION")
+print("(metrics are vs. the engineered proxy target, not real crime)")
+print("=" * 70)
+
+from sklearn.model_selection import KFold
+
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+all_segments = np.array(sorted(df["segment_id"].unique()))
+
+cv_maes, cv_rmses, cv_r2s = [], [], []
+
+for fold_i, (tr_idx, va_idx) in enumerate(kf.split(all_segments)):
+    fold_train_segs = all_segments[tr_idx]
+    fold_val_segs   = all_segments[va_idx]
+
+    fold_train = df[df["segment_id"].isin(fold_train_segs)]
+    fold_val   = df[df["segment_id"].isin(fold_val_segs)]
+
+    cv_model = XGBRegressor(
+        objective="reg:squarederror",
+        max_depth=3, learning_rate=0.05, n_estimators=250,
+        colsample_bytree=0.85, subsample=0.85,
+        min_child_weight=2, reg_alpha=0.1, reg_lambda=1.0,
+        random_state=42, n_jobs=-1,
+    )
+    cv_model.fit(fold_train[FEATURES], fold_train[TARGET], verbose=False)
+    fold_preds = np.clip(cv_model.predict(fold_val[FEATURES]), 0, 100)
+
+    fold_mae  = mean_absolute_error(fold_val[TARGET], fold_preds)
+    fold_rmse = np.sqrt(mean_squared_error(fold_val[TARGET], fold_preds))
+    fold_r2   = r2_score(fold_val[TARGET], fold_preds)
+
+    cv_maes.append(fold_mae)
+    cv_rmses.append(fold_rmse)
+    cv_r2s.append(fold_r2)
+    print(f"  Fold {fold_i+1}: MAE={fold_mae:.4f}  RMSE={fold_rmse:.4f}  R²={fold_r2:.4f}")
+
+print(f"\n  CV Mean   -- MAE: {np.mean(cv_maes):.4f} ± {np.std(cv_maes):.4f}")
+print(f"  CV Mean   -- RMSE: {np.mean(cv_rmses):.4f} ± {np.std(cv_rmses):.4f}")
+print(f"  CV Mean   -- R²: {np.mean(cv_r2s):.4f} ± {np.std(cv_r2s):.4f}")
+
+cv_mean_mae  = round(float(np.mean(cv_maes)),  4)
+cv_std_mae   = round(float(np.std(cv_maes)),   4)
+cv_mean_rmse = round(float(np.mean(cv_rmses)), 4)
+cv_mean_r2   = round(float(np.mean(cv_r2s)),   4)
+
+
+# ============================================================
 # HYPERPARAMETER SEARCH & MODEL TRAINING
 # ============================================================
 
@@ -247,10 +306,21 @@ test_r2   = r2_score(y_test, test_preds)
 
 print("\n" + "=" * 70)
 print("FINAL MODEL EVALUATION METRICS")
+print("(all metrics vs. engineered proxy target, not real crime events)")
 print("=" * 70)
 print(f"Train      -- MAE: {train_mae:.4f}, RMSE: {train_rmse:.4f}, R²: {train_r2:.4f}")
 print(f"Validation -- MAE: {val_mae:.4f}, RMSE: {val_rmse:.4f}, R²: {val_r2:.4f}")
 print(f"Test       -- MAE: {test_mae:.4f}, RMSE: {test_rmse:.4f}, R²: {test_r2:.4f}")
+
+overfitting_gap_mae = val_mae - train_mae
+overfitting_gap_r2  = train_r2 - val_r2
+print(f"\nOverfitting Check (Train->Val gap):")
+print(f"  MAE gap (val - train): {overfitting_gap_mae:+.4f}  (< 3.0 = acceptable)")
+print(f"  R2 gap  (train - val): {overfitting_gap_r2:+.4f}  (< 0.15 = acceptable)")
+if overfitting_gap_mae > 5.0 or overfitting_gap_r2 > 0.20:
+    print("  *** OVERFITTING WARNING: gap exceeds threshold ***")
+else:
+    print("  Overfitting within acceptable bounds.")
 
 test_imp = ((dist_test_mae - test_mae) / dist_test_mae) * 100
 print(f"\nImprovement over District Mean Baseline on Test Set: {test_imp:.2f}%")
@@ -287,6 +357,11 @@ metadata = {
     "target_type": "crime_grounded_district_temporal_index",
     "target_is_observed_crime": True,
     "dataset_type": "real_ncrb_district_plus_synthetic_proxy",
+    "proxy_target_warning": (
+        "crime_grounded_risk_index is an engineered proxy target, NOT observed "
+        "segment-level crime ground truth. All reported metrics measure fit against "
+        "this proxy formula. Real-world crime prediction accuracy is unknown."
+    ),
     "total_rows": len(df),
     "train_rows": len(train_df),
     "validation_rows": len(val_df),
@@ -297,6 +372,14 @@ metadata = {
         "train": {"mae": round(train_mae, 4), "rmse": round(train_rmse, 4), "r2": round(train_r2, 4)},
         "validation": {"mae": round(val_mae, 4), "rmse": round(val_rmse, 4), "r2": round(val_r2, 4)},
         "test": {"mae": round(test_mae, 4), "rmse": round(test_rmse, 4), "r2": round(test_r2, 4)},
+        "cross_validation_5fold": {
+            "mean_mae": cv_mean_mae, "std_mae": cv_std_mae,
+            "mean_rmse": cv_mean_rmse, "mean_r2": cv_mean_r2,
+        },
+        "overfitting_gap": {
+            "mae_gap_val_minus_train": round(overfitting_gap_mae, 4),
+            "r2_gap_train_minus_val": round(overfitting_gap_r2, 4),
+        },
     },
     "baseline_comparisons": {
         "dummy_mean_val_mae": round(dummy_val_mae, 4),

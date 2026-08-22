@@ -17,20 +17,17 @@ def test_extract_features_temporal():
     dt = datetime(2026, 8, 14, 0, 0)
     context = SegmentContext(departure_time=dt)
     features = service.extract(segment, context)
-    
-    assert features.is_weekend == 0.0
-    assert math.isclose(features.representative_hour, 0.0, abs_tol=1e-5)
-    assert features.is_night == 1.0
-    assert features.is_late_night == 1.0
+
+    # reduced_activity_context should be 1.0 (late night)
+    assert features.reduced_activity_context == 1.0
     
     # Test Noon (Saturday)
     dt = datetime(2026, 8, 15, 12, 0)
     context = SegmentContext(departure_time=dt)
     features = service.extract(segment, context)
     
-    assert features.is_weekend == 1.0
-    assert math.isclose(features.representative_hour, 12.0, abs_tol=1e-5)
-    assert features.is_night == 0.0
+    # Noon should have reduced_activity_context = 0.0
+    assert features.reduced_activity_context == 0.0
 
 def test_extract_features_isolation():
     service = FeatureExtractionService()
@@ -60,4 +57,4 @@ def test_extract_features_missing_context():
     # Feature scores should be in valid normalized/raw bounds
     assert 0.0 <= features.lighting_score <= 100.0
     assert 0.0 <= features.cctv_coverage_score <= 100.0
-    assert features.historical_baseline >= 0.0
+    # No historical baseline anymore

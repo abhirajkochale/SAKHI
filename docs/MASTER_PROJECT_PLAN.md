@@ -10,14 +10,14 @@
 
 ## 1. EXECUTIVE SUMMARY (CURRENT STATE)
 
-SAKHI is currently a highly advanced, technically functional **prototype**. Following the consolidation of the friend's Delhi-focused repository into the root codebase, SAKHI possesses a robust 27-feature contextual ML pipeline and a fully working React Native application with offline fallback and simulated dynamic route reranking.
+SAKHI is currently a highly advanced, technically functional **prototype**. Following the consolidation of the friend's Delhi-focused repository into the root codebase, SAKHI possesses a robust 13-feature contextual ML pipeline and a fully working React Native application with offline fallback and simulated dynamic route reranking.
 
 However, despite its technical complexity, the project **does not yet meet the criteria for a scientifically validated, real-world deployment.** 
 
 **What is Fully Complete (REAL):**
 - **Infrastructure:** End-to-end FastAPI backend and Expo React Native mobile app.
 - **Routing Engine:** OSRM integration extracting physical GPS paths.
-- **Contextual Processing:** Spatial mapping of 27 features along route segments.
+- **Contextual Processing:** Spatial mapping of 13 features along route segments.
 - **Heuristic Ranking:** Dynamic scoring of routes based on ML output + uncertainty penalty.
 - **Offline Resilience:** SQLite journey caching (Mobile).
 - **Device Features:** Accelerometer-based Shake-to-SOS, Dead-Man switch timer, Accessibility toggle.
@@ -90,7 +90,7 @@ The model must be repositioned. If we cannot get segment-level observed crime ta
 
 ### A. Backend Services
 - **OSRM Client / Segment Generation:** FULLY IMPLEMENTED (Real spatial mapping).
-- **Risk Service (27-feature pipeline):** FULLY IMPLEMENTED.
+- **Risk Service (13-feature pipeline):** FULLY IMPLEMENTED.
 - **XGBoost Inference:** FULLY IMPLEMENTED.
 - **SHAP Service:** FULLY IMPLEMENTED (Working perfectly to explain risk).
 - **Confidence Service:** FULLY IMPLEMENTED (Penalizes synthetic data).

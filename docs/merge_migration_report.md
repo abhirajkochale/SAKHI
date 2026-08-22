@@ -22,20 +22,20 @@
 |------|--------|
 | `app/api/v1/api.py` | Added emergency router |
 | `app/api/v1/endpoints/journeys.py` | Updated for new schema |
-| `app/services/risk/risk_service.py` | 27-feature sakhi pipeline, spatial enrichment, segment lookup |
-| `app/services/risk/feature_service.py` | 27-feature extraction with temporal, infrastructure, synthetic proxies |
+| `app/services/risk/risk_service.py` | 13-feature sakhi pipeline, spatial enrichment, segment lookup |
+| `app/services/risk/feature_service.py` | 13-feature extraction with temporal, infrastructure, synthetic proxies |
 | `app/services/risk/ml_model_service.py` | Dual model loading (sakhi primary + legacy fallback) |
-| `app/services/risk/shap_service.py` | SHAP for 27-feature sakhi model |
+| `app/services/risk/shap_service.py` | SHAP for 13-feature sakhi model |
 | `app/services/risk/confidence_service.py` | Data quality + mapping quality + infrastructure quality formula |
 | `app/services/risk/baseline_service.py` | Real NCRB district baseline via segment lookup |
 | `app/services/routing/osrm_client.py` | Real spatial context building + demo override separation |
 | `app/services/routing/routing_service.py` | Updated interface |
 | `app/services/routing/route_ranking_service.py` | Updated ranking |
 | `app/services/context_update_service.py` | Updated context update logic |
-| `app/schemas/risk.py` | Expanded RiskFeatures (27 features), new SegmentContext fields |
+| `app/schemas/risk.py` | Expanded RiskFeatures (13 features), new SegmentContext fields |
 | `requirements.txt` | Added xgboost, shap dependencies |
 | All `__init__.py` files | Updated module exports |
-| All `tests/*.py` | Updated to match new 27-feature services |
+| All `tests/*.py` | Updated to match new 13-feature services |
 
 ### ML — New Files & Data
 | File/Directory | Purpose |
@@ -43,7 +43,7 @@
 | `ml/data/raw/` (7 CSV files) | Real Delhi datasets: crime_records, hospitals, medical_facilities, police_stations, population, public_amenities, road_segments |
 | `ml/data/processed/` (17 files) | Processed pipeline outputs: district baselines, training dataset, predictions, SHAP explanations, route artifacts |
 | `ml/data/synthetic/` (4 new CSV files) | synthetic_cctv, synthetic_crime_hotspots, synthetic_lighting, synthetic_mobility |
-| `ml/models/sakhi_xgboost_risk_model.json` | Primary 27-feature XGBoost model |
+| `ml/models/sakhi_xgboost_risk_model.json` | Primary 13-feature XGBoost model |
 | `ml/models/sakhi_model_metadata.json` | Model metadata |
 | `ml/models/train_xgboost.py` | XGBoost training script |
 | `ml/models/build_confidence.py` | Confidence artifact builder |
@@ -126,13 +126,13 @@ tests/test_shap_service.py          4 PASSED
 > **⚠️ The current XGBoost model is a prototype. It is NOT a validated production model.**
 
 ### Current State
-- Model: `sakhi_xgboost_risk_model.json` (27-feature XGBoost regressor)
-- Training target: `prototype_risk_target` (synthetic composite, NOT observed crime)
+- Model: `sakhi_xgboost_risk_model.json` (13-feature XGBoost regressor)
+- Training target: `crime_grounded_risk_index` (synthetic composite, NOT observed crime)
 - Training data: Real NCRB district stats + synthetic environmental proxies
 - Geography: Delhi (11 districts)
 
 ### TODO for ML Validation
-- [ ] Target audit: validate `prototype_risk_target` against real crime outcomes
+- [ ] Target audit: validate `crime_grounded_risk_index` against real crime outcomes
 - [ ] Feature/target leakage analysis
 - [ ] Proper train/validation/test split methodology
 - [ ] Baseline model comparison (e.g., simple district mean)

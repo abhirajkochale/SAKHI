@@ -64,49 +64,49 @@ class SegmentContext(BaseModel):
 
 class RiskFeatures(BaseModel):
     """
-    20-feature vector for the sakhi XGBoost contextual risk model.
+    13-feature vector for the sakhi XGBoost contextual risk model.
     Feature ORDER must exactly match training (ml/models/train_xgboost.py FEATURES list).
 
-    Data honesty:
-    - Historical district features: real NCRB data at district resolution.
-    - Infrastructure distance features: computed from real GPS coordinates.
-    - Lighting/CCTV/mobility/hotspot: synthetic/proxy data, clearly labelled.
-    - Temporal features: derived from departure_time.
-    """
-    # 1. Historical district context (real - district level)
-    historical_baseline: float = Field(default=50.0)
+    Leakage exclusions (dependency-based):
+    - historical_baseline: derived from same NCRB crime_records.csv as target crime_burden_norm.
+    - is_weekend: structurally encodes the WEEKEND_ADJ term in the target formula.
+    - is_night, is_late_night, is_evening_peak, is_peak_hour, representative_hour:
+      all derived from time_period which is the exact input to TEMPORAL_MULTIPLIER
+      used to build 35% of the target. Keeping these would let the model trivially
+      reproduce the target's temporal component.
 
-    # 2. Road characteristics
+    Data provenance:
+    - Road characteristics: OSM geometry / OSRM routing.
+    - Environmental (lighting, CCTV, footfall): synthetic proxies, clearly labelled.
+    - Infrastructure distances: computed from real GPS coordinates (normalized datasets).
+    - Activity context (reduced_activity_context, lighting_relevance): derived from
+      footfall proxies only — not from crime statistics.
+    """
+    # 1. Road characteristics (from OSM geometry/OSRM)
     distance_m: float = Field(default=300.0)
     estimated_travel_time_s: float = Field(default=240.0)
 
-    # 3. Environmental context (synthetic/proxy)
+    # 2. Environmental context (synthetic/proxy)
     lighting_score: float = Field(default=50.0)
     cctv_coverage_score: float = Field(default=50.0)
     footfall_proxy: float = Field(default=2000.0)
     contextual_footfall_proxy: float = Field(default=1300.0)
 
-    # 4. Infrastructure distances (real GPS-computed)
+    # 3. Infrastructure distances (real GPS-computed)
     distance_to_police_m: float = Field(default=800.0)
     distance_to_hospital_m: float = Field(default=3000.0)
     distance_to_medical_facility_m: float = Field(default=2000.0)
     distance_to_public_toilet_m: float = Field(default=1200.0)
     distance_to_nearest_amenity_m: float = Field(default=1000.0)
 
-    # 5. Temporal context (derived from departure_time)
-    representative_hour: float = Field(default=12.0)
-    is_night: float = Field(default=0.0)
-    is_late_night: float = Field(default=0.0)
-    is_evening_peak: float = Field(default=0.0)
-    is_weekend: float = Field(default=0.0)
-    is_peak_hour: float = Field(default=0.0)
+    # 4. Contextual activity indicators (derived from footfall proxy, not crime stats)
     reduced_activity_context: float = Field(default=0.0)
     lighting_relevance: float = Field(default=0.5)
 
 
-# Legacy 10-feature schema for heuristic fallback
+# Legacy 9-feature schema for heuristic fallback
 class SimpleRiskFeatures(BaseModel):
-    """10-feature vector for the legacy synthetic-only model heuristic fallback."""
+    """9-feature vector for the legacy synthetic-only model heuristic fallback."""
     hour_sin: float
     hour_cos: float
     is_weekend: float
@@ -115,7 +115,6 @@ class SimpleRiskFeatures(BaseModel):
     police_proximity: float
     transit_access: float
     infrastructure_score: float
-    historical_baseline: float
     validated_report_signal: float
 
 

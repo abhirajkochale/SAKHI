@@ -1,0 +1,11 @@
+amenity_id,type,name,lat,lon,is_24_7,source_file,source_type,source_date_range,normalization_notes
+AMN_0001,TOILET,MCD Public Toilet CP,28.632,77.218,True,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.
+AMN_0002,HOSPITAL,LNJP Hospital,28.6366,77.241,True,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.
+AMN_0003,TOILET,Swachh Complex Kashmere Gate,28.667,77.228,True,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.
+AMN_0004,HOSPITAL,AIIMS Hospital,28.5672,77.21,True,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.
+AMN_0005,PHARMACY,24/7 Apollo Pharmacy,28.568,77.211,True,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.
+AMN_0006,TOILET,MCD Toilet Hauz Khas,28.548,77.202,False,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.
+AMN_0007,HOSPITAL,Safdarjung Hospital,28.5695,77.208,True,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.
+AMN_0008,TOILET,Sulabh Shauchalaya Dwarka,28.553,77.059,True,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.
+AMN_0009,PHARMACY,Max Pharmacy Saket,28.525,77.207,True,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.
+AMN_0010,TOILET,MCD Toilet Karol Bagh,28.645,77.189,False,delhi_amenities_v1.csv,REAL,2024-2025,Categories mapped to standard OpenStreetMap tags.

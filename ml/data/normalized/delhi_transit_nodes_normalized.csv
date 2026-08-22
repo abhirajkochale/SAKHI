@@ -1,0 +1,11 @@
+stop_id,stop_name,lat,lon,type,source_file,source_type,source_date_range,normalization_notes
+STP_0001,Rajiv Chowk Metro,28.6328,77.2195,METRO,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.
+STP_0002,Kashmere Gate ISBT,28.6675,77.2282,BUS_ISBT,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.
+STP_0003,AIIMS Metro,28.5659,77.2078,METRO,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.
+STP_0004,Anand Vihar ISBT Metro,28.6469,77.316,METRO_BUS,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.
+STP_0005,Hauz Khas Metro,28.5432,77.2064,METRO,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.
+STP_0006,Karol Bagh Metro,28.6441,77.1883,METRO,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.
+STP_0007,Lajpat Nagar Bus Hub,28.5701,77.2384,BUS,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.
+STP_0008,Dwarka Sec 21 Metro,28.5522,77.0583,METRO,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.
+STP_0009,Ito Bus Depot,28.6291,77.2412,BUS,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.
+STP_0010,Chandni Chowk Station,28.6506,77.2303,METRO,delhi_transit_nodes_v1.csv,REAL,2024-2025,GTFS node standard formatting applied.

@@ -6,17 +6,12 @@
     "target_type": "crime_grounded_district_temporal_index",
     "target_is_observed_crime": true,
     "dataset_type": "real_ncrb_district_plus_synthetic_proxy",
+    "proxy_target_warning": "crime_grounded_risk_index is an engineered proxy target, NOT observed segment-level crime ground truth. All reported metrics measure fit against this proxy formula. Real-world crime prediction accuracy is unknown.",
     "total_rows": 300,
     "train_rows": 190,
     "validation_rows": 50,
     "test_rows": 60,
     "feature_names": [
-        "historical_baseline",
-        "cases_per_100k",
-        "severity_weighted_cases_per_100k",
-        "recent_cases_per_100k",
-        "recent_severity_per_100k",
-        "crime_trend_slope",
         "distance_m",
         "estimated_travel_time_s",
         "lighting_score",
@@ -28,48 +23,50 @@
         "distance_to_medical_facility_m",
         "distance_to_public_toilet_m",
         "distance_to_nearest_amenity_m",
-        "nearest_hotspot_distance_m",
-        "nearest_hotspot_intensity",
-        "representative_hour",
-        "is_night",
-        "is_late_night",
-        "is_evening_peak",
-        "is_weekend",
-        "is_peak_hour",
         "reduced_activity_context",
         "lighting_relevance"
     ],
-    "feature_count": 27,
+    "feature_count": 13,
     "evaluation_metrics": {
         "train": {
-            "mae": 0.0665,
-            "rmse": 0.101,
-            "r2": 1.0
+            "mae": 2.5137,
+            "rmse": 2.7915,
+            "r2": 0.9738
         },
         "validation": {
-            "mae": 1.8474,
-            "rmse": 3.8606,
-            "r2": 0.922
+            "mae": 7.8561,
+            "rmse": 10.1297,
+            "r2": 0.2134
         },
         "test": {
-            "mae": 1.6097,
-            "rmse": 3.5308,
-            "r2": 0.9273
+            "mae": 14.1367,
+            "rmse": 16.4001,
+            "r2": -1.0481
+        },
+        "cross_validation_5fold": {
+            "mean_mae": 11.4315,
+            "std_mae": 3.7599,
+            "mean_rmse": 14.5705,
+            "mean_r2": -0.2297
+        },
+        "overfitting_gap": {
+            "mae_gap_val_minus_train": 5.3423,
+            "r2_gap_train_minus_val": 0.7604
         }
     },
     "baseline_comparisons": {
-        "dummy_mean_val_mae": 13.6141,
-        "dummy_mean_test_mae": 12.6538,
-        "district_mean_val_mae": 11.1387,
-        "district_mean_test_mae": 11.2979,
-        "xgboost_test_mae_improvement_pct": 85.75
+        "dummy_mean_val_mae": 10.5282,
+        "dummy_mean_test_mae": 10.4452,
+        "district_mean_val_mae": 9.7345,
+        "district_mean_test_mae": 9.8198,
+        "xgboost_test_mae_improvement_pct": -43.96
     },
     "xgboost_parameters": {
-        "max_depth": 3,
-        "learning_rate": 0.08,
-        "n_estimators": 200,
-        "colsample_bytree": 0.9,
-        "subsample": 0.9
+        "max_depth": 4,
+        "learning_rate": 0.03,
+        "n_estimators": 300,
+        "colsample_bytree": 0.8,
+        "subsample": 0.8
     },
     "limitations": [
         "District-level crime burden aggregate -- segment-level spatial variation relies on environmental features.",

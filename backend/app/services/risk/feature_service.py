@@ -1,16 +1,20 @@
 """
 FeatureExtractionService
 ========================
-Builds the 20-feature RiskFeatures vector for the sakhi XGBoost model
+Builds the 13-feature RiskFeatures vector for the sakhi XGBoost model
 from a JourneySegment + SegmentContext.
 
 Feature sources:
-  1. Historical district (real NCRB data, district-level): from SegmentLookupService
-  2. Road characteristics: from segment geometry / OSRM
-  3. Environmental proxies (SYNTHETIC): nearest lighting/CCTV/mobility measurement
-  4. Infrastructure distances (real GPS-computed): police/hospital/amenity
-  5. Temporal context: derived from departure_time
-  6. Context override signals: from SegmentContext (dynamic updates)
+  1. Road characteristics: from segment geometry / OSRM
+  2. Environmental proxies (SYNTHETIC): nearest lighting/CCTV/mobility measurement
+  3. Infrastructure distances (real GPS-computed): police/hospital/amenity
+  4. Activity context: derived from footfall proxies only
+
+Excluded from model vector (dependency-based leakage):
+  historical_baseline   -- same NCRB source as target's crime_burden_norm
+  is_weekend            -- encodes target's WEEKEND_ADJ directly
+  is_night, is_late_night, is_evening_peak, is_peak_hour, representative_hour
+                        -- encode target's TEMPORAL_MULTIPLIER directly
 
 Feature ORDER must match ml/models/train_xgboost.py FEATURES list exactly.
 """
@@ -88,7 +92,7 @@ def _build_temporal_features(dt: datetime, footfall_proxy: float) -> Dict[str, A
 
 class FeatureExtractionService:
     """
-    Extracts the complete 20-feature vector from a JourneySegment + SegmentContext.
+    Extracts the complete 13-feature vector from a JourneySegment + SegmentContext.
     """
 
     def __init__(self):
@@ -100,7 +104,7 @@ class FeatureExtractionService:
         context: SegmentContext,
     ) -> RiskFeatures:
         """
-        Build the 20-feature RiskFeatures from segment + context.
+        Build the 13-feature RiskFeatures from segment + context.
 
         Priority for feature values:
         1. Explicit overrides on context (dynamic context-update signals)
@@ -116,12 +120,7 @@ class FeatureExtractionService:
             lat = (segment.start_location.latitude + segment.end_location.latitude) / 2.0
             lon = (segment.start_location.longitude + segment.end_location.longitude) / 2.0
 
-        # ── 1. Historical district context ────────────────────────────────
-        district = context.district or self._lookup.get_district(lat, lon)
-        dist_stats = self._lookup.get_district_baseline(district)
-        historical_baseline = context.historical_baseline or dist_stats.get("historical_baseline", 50.0)
-
-        # ── 2. Road characteristics ───────────────────────────────────────
+        # ── 1. Road characteristics ───────────────────────────────────────
         distance_m = context.distance_m or float(segment.distance_m or 300.0)
         estimated_travel_time_s = context.estimated_travel_time_s or float(segment.duration_s or 240.0)
 
@@ -166,7 +165,7 @@ class FeatureExtractionService:
                 infra["distance_to_hospital_m"] = context.distance_to_hospital_m
 
 
-        # ── 6. Temporal context ───────────────────────────────────────────
+        # ── 4. Temporal context (compute but only use non-leaking outputs) ──
         departure = context.departure_time or datetime.now(timezone.utc)
         temporal = _build_temporal_features(departure, footfall_proxy)
 
@@ -174,9 +173,8 @@ class FeatureExtractionService:
         if context.contextual_footfall_proxy is not None:
             temporal["contextual_footfall_proxy"] = context.contextual_footfall_proxy
 
-        # ── Assemble RiskFeatures (ordered as SAKHI_FEATURE_ORDER) ─────
+        # ── Assemble RiskFeatures (13 features, leakage-free) ─────────────
         return RiskFeatures(
-            historical_baseline=float(historical_baseline),
             distance_m=float(distance_m),
             estimated_travel_time_s=float(estimated_travel_time_s),
             lighting_score=float(lighting_score),
@@ -188,12 +186,6 @@ class FeatureExtractionService:
             distance_to_medical_facility_m=float(infra["distance_to_medical_facility_m"]),
             distance_to_public_toilet_m=float(infra["distance_to_public_toilet_m"]),
             distance_to_nearest_amenity_m=float(infra["distance_to_nearest_amenity_m"]),
-            representative_hour=float(temporal["representative_hour"]),
-            is_night=float(temporal["is_night"]),
-            is_late_night=float(temporal["is_late_night"]),
-            is_evening_peak=float(temporal["is_evening_peak"]),
-            is_weekend=float(temporal["is_weekend"]),
-            is_peak_hour=float(temporal["is_peak_hour"]),
             reduced_activity_context=float(temporal["reduced_activity_context"]),
             lighting_relevance=float(temporal["lighting_relevance"]),
         )

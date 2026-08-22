@@ -1,0 +1,16 @@
+ps_id,ps_name,district,lat,lon,source_file,source_type,source_date_range,normalization_notes
+PS001,Connaught Place,NEW DELHI,28.6315,77.2167,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS002,Kotwali,NORTH,28.6562,77.2301,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS003,Hauz Khas,SOUTH,28.5494,77.2001,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS004,Rajouri Garden,WEST,28.6415,77.1209,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS005,Kashmere Gate,CENTRAL,28.6665,77.2274,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS006,Karol Bagh,CENTRAL,28.6514,77.1907,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS007,Lajpat Nagar,SOUTH EAST,28.5672,77.2433,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS008,Mayur Vihar,EAST,28.6083,77.2954,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS009,Rohini Sector 18,ROHINI,28.7425,77.1284,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS010,Dwarka Sector 23,DWARKA,28.5521,77.0589,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS011,Janakpuri,WEST,28.6219,77.0875,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS012,Saket,SOUTH,28.5244,77.2066,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS013,Shahdara,SHAH DARA,28.6732,77.2882,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS014,Pitampura,NORTH WEST,28.6987,77.1354,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.
+PS015,Vasant Kunj,SOUTH WEST,28.5293,77.1522,delhi_police_stations_v1.csv,REAL,2024,Coordinates verified in WGS84 EPSG:4326 bounding box for Delhi.

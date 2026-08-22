@@ -5,14 +5,14 @@ Orchestrates the full contextual safety risk pipeline for a JourneySegment:
 
   1. Confidence (evidence quality — independent of risk)
   2. Spatial context enrichment (district, infrastructure distances, synthetic proxies)
-  3. Feature extraction (27 features for sakhi model)
+  3. Feature extraction (13 features for sakhi model)
   4. XGBoost inference (sakhi primary model)
   5. SHAP explanation
   6. Heuristic fallback if model unavailable
 
 IMPORTANT:
 - The risk score is a contextual safety indicator (0-100), not a crime prediction.
-- The training target is prototype_risk_target, target_is_observed_crime = False.
+- The training target is crime_grounded_risk_index (proxy).
 - Confidence is calculated BEFORE filling feature defaults.
 """
 
@@ -31,7 +31,7 @@ from app.services.risk.segment_lookup_service import get_segment_lookup_service
 class RiskService:
     """
     Contextual safety risk calculator.
-    Primary model: sakhi XGBoost 20-feature model.
+    Primary model: sakhi XGBoost 13-feature model.
     Fallback: deterministic prototype heuristic.
     """
 
@@ -70,11 +70,20 @@ class RiskService:
         # ── 1. Confidence (BEFORE filling defaults) ───────────────────────
         conf_score, conf_level = self.confidence_service.calculate_confidence(context)
 
-        # ── 2. Feature extraction (20-feature vector) ─────────────────────
+        # ── 2. Feature extraction (13-feature vector) ─────────────────────
         features = self.feature_service.extract(segment, context)
 
         # ── 3. Primary XGBoost inference ──────────────────────────────────
         ml_score = self.ml_service.predict(features)
+
+        # Compute temporal fields for reporting/heuristics since they were removed from ML features
+        dt = context.departure_time or datetime.now(timezone.utc)
+        hour = dt.hour
+        is_night = int(hour >= 22 or hour < 6)
+        is_late_night = int(hour < 6)
+        is_evening_peak = int(17 <= hour < 22)
+        
+        hist_baseline = context.historical_baseline or self._lookup.get_district_baseline(context.district).get("historical_baseline", 50.0)
 
         if ml_score is not None:
             final_risk = ml_score
@@ -85,8 +94,8 @@ class RiskService:
                 "ml_inference": True,
                 "model_source": model_source,
                 "district": context.district,
-                "historical_baseline": features.historical_baseline,
-                "is_night": bool(features.is_night),
+                "historical_baseline": hist_baseline,
+                "is_night": bool(is_night),
                 "lighting_score": features.lighting_score,
                 "cctv_coverage_score": features.cctv_coverage_score,
                 "distance_to_police_m": features.distance_to_police_m,
@@ -94,13 +103,14 @@ class RiskService:
 
         else:
             # ── 4. Heuristic fallback ─────────────────────────────────────
-            # Based on 20-feature inputs but using simple linear combination
-            norm_baseline = features.historical_baseline / 100.0  # 0-1
+            # Based on 13-feature inputs plus context, using simple linear combination
+            norm_baseline = hist_baseline / 100.0  # 0-1
             norm_lighting = (100.0 - features.lighting_score) / 100.0  # invert: lower lighting = riskier
             norm_police = min(1.0, features.distance_to_police_m / 3000.0)   # further = riskier
             norm_cctv = (100.0 - features.cctv_coverage_score) / 100.0
-            norm_time = features.is_night * 0.3 + features.is_late_night * 0.2 + features.is_evening_peak * 0.1
-            norm_hotspot = max(0.0, 1.0 - features.nearest_hotspot_distance_m / 5000.0)
+            norm_time = is_night * 0.3 + is_late_night * 0.2 + is_evening_peak * 0.1
+            hotspot_dist = context.nearest_hotspot_distance_m or self._lookup.get_synthetic_proxies(lat, lon).get("nearest_hotspot_distance_m", 5000.0)
+            norm_hotspot = max(0.0, 1.0 - hotspot_dist / 5000.0)
             report_risk = (
                 (context.validated_report_signal or 0.0) * 20.0
                 if context.validated_report_signal is not None else 0.0

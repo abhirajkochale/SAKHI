@@ -55,31 +55,26 @@ GLOBAL_OUTPUT_FILE = (
 # ============================================================
 #
 # MUST MATCH THE FEATURES USED DURING XGBOOST TRAINING.
+# See: ml/models/train_xgboost.py FEATURES list (13 features).
 #
+# Excluded (dependency-based leakage):
+#   historical_baseline -- same NCRB source as target crime_burden_norm
+#   is_weekend          -- encodes WEEKEND_ADJ in target formula
+#   is_night, is_late_night, is_evening_peak, is_peak_hour, representative_hour
+#                       -- encode TEMPORAL_MULTIPLIER in target formula
 
 FEATURES = [
-    "historical_baseline",
-
     "distance_m",
     "estimated_travel_time_s",
-
     "lighting_score",
     "cctv_coverage_score",
     "footfall_proxy",
     "contextual_footfall_proxy",
-
     "distance_to_police_m",
     "distance_to_hospital_m",
     "distance_to_medical_facility_m",
     "distance_to_public_toilet_m",
     "distance_to_nearest_amenity_m",
-
-    "representative_hour",
-    "is_night",
-    "is_late_night",
-    "is_evening_peak",
-    "is_weekend",
-    "is_peak_hour",
     "reduced_activity_context",
     "lighting_relevance",
 ]

@@ -11,6 +11,7 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 RAW_DIR = PROJECT_ROOT / "ml" / "data" / "raw"
+NORMALIZED_DIR = PROJECT_ROOT / "ml" / "data" / "normalized"
 SYNTHETIC_DIR = PROJECT_ROOT / "ml" / "data" / "synthetic"
 PROCESSED_DIR = PROJECT_ROOT / "ml" / "data" / "processed"
 
@@ -21,10 +22,13 @@ PROCESSED_DIR.mkdir(
 
 
 ROAD_FILE = RAW_DIR / "road_segments.csv"
-POLICE_FILE = RAW_DIR / "police_stations.csv"
+POLICE_FILE = NORMALIZED_DIR / "delhi_police_stations_normalized.csv"
+AMENITY_FILE = NORMALIZED_DIR / "delhi_amenities_normalized.csv"
+TRANSIT_FILE = NORMALIZED_DIR / "delhi_transit_nodes_normalized.csv"
+
+# Fallback/Legacy raw references if needed
 HOSPITAL_FILE = RAW_DIR / "hospitals.csv"
 MEDICAL_FILE = RAW_DIR / "medical_facilities.csv"
-AMENITY_FILE = RAW_DIR / "public_amenities.csv"
 
 LIGHTING_FILE = SYNTHETIC_DIR / "synthetic_lighting.csv"
 CCTV_FILE = SYNTHETIC_DIR / "synthetic_cctv.csv"
@@ -115,19 +119,24 @@ baseline = pd.read_csv(
 
 police = pd.read_csv(
     POLICE_FILE
-)
-
-hospitals = pd.read_csv(
-    HOSPITAL_FILE
-)
-
-medical = pd.read_csv(
-    MEDICAL_FILE
-)
+).rename(columns={"lat": "latitude", "lon": "longitude"})
 
 amenities = pd.read_csv(
     AMENITY_FILE
-)
+).rename(columns={"lat": "latitude", "lon": "longitude"})
+
+transit = pd.read_csv(
+    TRANSIT_FILE
+).rename(columns={"lat": "latitude", "lon": "longitude"})
+
+# Extract hospitals and medical facilities directly from normalized amenities dataset
+hospitals = amenities[amenities["type"].astype(str).str.upper().isin(["HOSPITAL", "CLINIC"])].copy()
+if len(hospitals) == 0 and HOSPITAL_FILE.exists():
+    hospitals = pd.read_csv(HOSPITAL_FILE).rename(columns={"lat": "latitude", "lon": "longitude"})
+
+medical = amenities[amenities["type"].astype(str).str.upper().isin(["HOSPITAL", "PHARMACY", "CLINIC", "MEDICAL"])].copy()
+if len(medical) == 0 and MEDICAL_FILE.exists():
+    medical = pd.read_csv(MEDICAL_FILE).rename(columns={"lat": "latitude", "lon": "longitude"})
 
 lighting = pd.read_csv(
     LIGHTING_FILE
@@ -148,10 +157,11 @@ hotspots = pd.read_csv(
 
 print(f"Road segments: {len(roads)}")
 print(f"District mappings: {len(district_map)}")
-print(f"Police stations: {len(police)}")
-print(f"Hospitals: {len(hospitals)}")
-print(f"Medical facilities: {len(medical)}")
-print(f"Public amenities: {len(amenities)}")
+print(f"Police stations (normalized): {len(police)}")
+print(f"Amenities (normalized): {len(amenities)}")
+print(f"Transit nodes (normalized): {len(transit)}")
+print(f"Hospitals derived: {len(hospitals)}")
+print(f"Medical facilities derived: {len(medical)}")
 print(f"Lighting records: {len(lighting)}")
 print(f"CCTV records: {len(cctv)}")
 print(f"Mobility records: {len(mobility)}")
@@ -456,6 +466,18 @@ features = add_nearest_distance(
 
 
 # ============================================================
+# TRANSIT NODE PROXIMITY
+# ============================================================
+
+if len(transit) > 0:
+    features = add_nearest_distance(
+        features,
+        transit,
+        "distance_to_transit_node_m"
+    )
+
+
+# ============================================================
 # CRIME HOTSPOT PROXIMITY
 # ============================================================
 
@@ -613,6 +635,7 @@ output_columns = [
 
     "distance_to_public_toilet_m",
     "distance_to_nearest_amenity_m",
+    "distance_to_transit_node_m",
 
     "nearest_hotspot_distance_m",
     "nearest_hotspot_intensity",

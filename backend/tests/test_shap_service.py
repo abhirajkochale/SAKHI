@@ -22,7 +22,7 @@ def test_shap_service_loads_and_explains():
     assert explanation.available is True
     assert math.isclose(explanation.predicted_risk, predicted_risk, abs_tol=1e-2)
     assert explanation.all_contributions is not None
-    assert len(explanation.all_contributions) == 27
+    assert len(explanation.all_contributions) == 13
     
     # Check directions
     for contrib in explanation.all_contributions:
