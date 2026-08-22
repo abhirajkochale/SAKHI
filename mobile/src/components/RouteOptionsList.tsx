@@ -11,9 +11,10 @@ interface Props {
   ranking: RouteRankingResponse;
   selectedRouteId: string | null;
   onSelectRoute: (route: RouteOption) => void;
+  onOpenMaps?: () => void;
 }
 
-export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRoute }: Props) {
+export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRoute, onOpenMaps }: Props) {
   const { spacing, colors } = useTheme();
   
   // Collect all route slots that are non-null
@@ -60,7 +61,7 @@ export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRou
   return (
     <View style={styles.container}>
       <SakhiText variant="h2" style={{ marginBottom: spacing.md }}>
-        Choose your route
+        Choose a different route
       </SakhiText>
 
       {uniqueOptions.map((opt) => {
@@ -133,10 +134,15 @@ export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRou
             {/* Action */}
             <View style={{ marginTop: spacing.md }}>
               <SakhiButton 
-                title={isSelected ? "Selected" : (isSingleRoute ? "Start Journey →" : "Choose Route →")} 
+                title={isSelected ? "↗ Open in Google Maps" : (isSingleRoute ? "Start Journey →" : "Choose Route →")} 
                 variant={isSelected ? "primary" : "secondary"}
-                onPress={() => onSelectRoute(opt.route)}
-                disabled={isSelected}
+                onPress={() => {
+                  if (isSelected && onOpenMaps) {
+                    onOpenMaps();
+                  } else {
+                    onSelectRoute(opt.route);
+                  }
+                }}
                 style={{ paddingVertical: spacing.sm }}
               />
             </View>
