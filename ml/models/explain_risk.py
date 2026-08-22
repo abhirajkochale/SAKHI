@@ -59,11 +59,6 @@ GLOBAL_OUTPUT_FILE = (
 
 FEATURES = [
     "historical_baseline",
-    "cases_per_100k",
-    "severity_weighted_cases_per_100k",
-    "recent_cases_per_100k",
-    "recent_severity_per_100k",
-    "crime_trend_slope",
 
     "distance_m",
     "estimated_travel_time_s",
@@ -78,9 +73,6 @@ FEATURES = [
     "distance_to_medical_facility_m",
     "distance_to_public_toilet_m",
     "distance_to_nearest_amenity_m",
-
-    "nearest_hotspot_distance_m",
-    "nearest_hotspot_intensity",
 
     "representative_hour",
     "is_night",

@@ -64,7 +64,7 @@ class SegmentContext(BaseModel):
 
 class RiskFeatures(BaseModel):
     """
-    27-feature vector for the sakhi XGBoost contextual risk model.
+    20-feature vector for the sakhi XGBoost contextual risk model.
     Feature ORDER must exactly match training (ml/models/train_xgboost.py FEATURES list).
 
     Data honesty:
@@ -75,11 +75,6 @@ class RiskFeatures(BaseModel):
     """
     # 1. Historical district context (real - district level)
     historical_baseline: float = Field(default=50.0)
-    cases_per_100k: float = Field(default=300.0)
-    severity_weighted_cases_per_100k: float = Field(default=220.0)
-    recent_cases_per_100k: float = Field(default=375.0)
-    recent_severity_per_100k: float = Field(default=275.0)
-    crime_trend_slope: float = Field(default=-1.5)
 
     # 2. Road characteristics
     distance_m: float = Field(default=300.0)
@@ -98,11 +93,7 @@ class RiskFeatures(BaseModel):
     distance_to_public_toilet_m: float = Field(default=1200.0)
     distance_to_nearest_amenity_m: float = Field(default=1000.0)
 
-    # 5. Crime hotspot context (synthetic/proxy)
-    nearest_hotspot_distance_m: float = Field(default=5000.0)
-    nearest_hotspot_intensity: float = Field(default=0.5)
-
-    # 6. Temporal context (derived from departure_time)
+    # 5. Temporal context (derived from departure_time)
     representative_hour: float = Field(default=12.0)
     is_night: float = Field(default=0.0)
     is_late_night: float = Field(default=0.0)

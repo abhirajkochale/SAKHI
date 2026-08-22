@@ -59,7 +59,7 @@ print(f"Rows loaded: {len(df)}")
 
 
 # ============================================================
-# TARGET & FEATURES (27 SAKHI FEATURE CONTRACT)
+# TARGET & FEATURES (20 SAKHI FEATURE CONTRACT)
 # ============================================================
 
 TARGET = "crime_grounded_risk_index"
@@ -70,11 +70,6 @@ if TARGET not in df.columns:
 FEATURES = [
     # Historical NCRB context
     "historical_baseline",
-    "cases_per_100k",
-    "severity_weighted_cases_per_100k",
-    "recent_cases_per_100k",
-    "recent_severity_per_100k",
-    "crime_trend_slope",
     # Road characteristics
     "distance_m",
     "estimated_travel_time_s",
@@ -89,9 +84,6 @@ FEATURES = [
     "distance_to_medical_facility_m",
     "distance_to_public_toilet_m",
     "distance_to_nearest_amenity_m",
-    # Crime hotspot context
-    "nearest_hotspot_distance_m",
-    "nearest_hotspot_intensity",
     # Temporal context
     "representative_hour",
     "is_night",

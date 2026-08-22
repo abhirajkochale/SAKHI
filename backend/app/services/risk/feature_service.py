@@ -1,7 +1,7 @@
 """
 FeatureExtractionService
 ========================
-Builds the 27-feature RiskFeatures vector for the sakhi XGBoost model
+Builds the 20-feature RiskFeatures vector for the sakhi XGBoost model
 from a JourneySegment + SegmentContext.
 
 Feature sources:
@@ -9,9 +9,8 @@ Feature sources:
   2. Road characteristics: from segment geometry / OSRM
   3. Environmental proxies (SYNTHETIC): nearest lighting/CCTV/mobility measurement
   4. Infrastructure distances (real GPS-computed): police/hospital/amenity
-  5. Crime hotspot context (SYNTHETIC): nearest synthetic hotspot
-  6. Temporal context: derived from departure_time
-  7. Context override signals: from SegmentContext (dynamic updates)
+  5. Temporal context: derived from departure_time
+  6. Context override signals: from SegmentContext (dynamic updates)
 
 Feature ORDER must match ml/models/train_xgboost.py FEATURES list exactly.
 """
@@ -89,7 +88,7 @@ def _build_temporal_features(dt: datetime, footfall_proxy: float) -> Dict[str, A
 
 class FeatureExtractionService:
     """
-    Extracts the complete 27-feature vector from a JourneySegment + SegmentContext.
+    Extracts the complete 20-feature vector from a JourneySegment + SegmentContext.
     """
 
     def __init__(self):
@@ -101,7 +100,7 @@ class FeatureExtractionService:
         context: SegmentContext,
     ) -> RiskFeatures:
         """
-        Build the 27-feature RiskFeatures from segment + context.
+        Build the 20-feature RiskFeatures from segment + context.
 
         Priority for feature values:
         1. Explicit overrides on context (dynamic context-update signals)
@@ -120,23 +119,7 @@ class FeatureExtractionService:
         # ── 1. Historical district context ────────────────────────────────
         district = context.district or self._lookup.get_district(lat, lon)
         dist_stats = self._lookup.get_district_baseline(district)
-
         historical_baseline = context.historical_baseline or dist_stats.get("historical_baseline", 50.0)
-        cases_per_100k = context.cases_per_100k or dist_stats.get("cases_per_100k", 300.0)
-        severity_weighted_cases_per_100k = (
-            context.severity_weighted_cases_per_100k
-            or dist_stats.get("severity_weighted_cases_per_100k", 220.0)
-        )
-        recent_cases_per_100k = context.recent_cases_per_100k or dist_stats.get("recent_cases_per_100k", 375.0)
-        recent_severity_per_100k = (
-            context.recent_severity_per_100k
-            or dist_stats.get("recent_severity_per_100k", 275.0)
-        )
-        crime_trend_slope = (
-            context.crime_trend_slope
-            if context.crime_trend_slope is not None
-            else dist_stats.get("crime_trend_slope", -1.5)
-        )
 
         # ── 2. Road characteristics ───────────────────────────────────────
         distance_m = context.distance_m or float(segment.distance_m or 300.0)
@@ -182,17 +165,6 @@ class FeatureExtractionService:
             if context.distance_to_hospital_m is not None:
                 infra["distance_to_hospital_m"] = context.distance_to_hospital_m
 
-        # ── 5. Crime hotspot context (synthetic) ─────────────────────────
-        if context.nearest_hotspot_distance_m is not None:
-            nearest_hotspot_distance_m = context.nearest_hotspot_distance_m
-            nearest_hotspot_intensity = context.nearest_hotspot_intensity or 0.5
-        else:
-            proxies = self._lookup.get_synthetic_proxies(lat, lon)
-            nearest_hotspot_distance_m = proxies["nearest_hotspot_distance_m"]
-            nearest_hotspot_intensity = proxies["nearest_hotspot_intensity"]
-        # validated_report_signal reduces effective hotspot distance (makes location appear riskier)
-        if context.validated_report_signal is not None and context.validated_report_signal > 0.5:
-            nearest_hotspot_distance_m = max(100.0, nearest_hotspot_distance_m * 0.3)
 
         # ── 6. Temporal context ───────────────────────────────────────────
         departure = context.departure_time or datetime.now(timezone.utc)
@@ -205,11 +177,6 @@ class FeatureExtractionService:
         # ── Assemble RiskFeatures (ordered as SAKHI_FEATURE_ORDER) ─────
         return RiskFeatures(
             historical_baseline=float(historical_baseline),
-            cases_per_100k=float(cases_per_100k),
-            severity_weighted_cases_per_100k=float(severity_weighted_cases_per_100k),
-            recent_cases_per_100k=float(recent_cases_per_100k),
-            recent_severity_per_100k=float(recent_severity_per_100k),
-            crime_trend_slope=float(crime_trend_slope),
             distance_m=float(distance_m),
             estimated_travel_time_s=float(estimated_travel_time_s),
             lighting_score=float(lighting_score),
@@ -221,8 +188,6 @@ class FeatureExtractionService:
             distance_to_medical_facility_m=float(infra["distance_to_medical_facility_m"]),
             distance_to_public_toilet_m=float(infra["distance_to_public_toilet_m"]),
             distance_to_nearest_amenity_m=float(infra["distance_to_nearest_amenity_m"]),
-            nearest_hotspot_distance_m=float(nearest_hotspot_distance_m),
-            nearest_hotspot_intensity=float(nearest_hotspot_intensity),
             representative_hour=float(temporal["representative_hour"]),
             is_night=float(temporal["is_night"]),
             is_late_night=float(temporal["is_late_night"]),

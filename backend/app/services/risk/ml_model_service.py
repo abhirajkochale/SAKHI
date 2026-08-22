@@ -4,7 +4,7 @@ MLModelService
 Loads and runs the primary sakhi XGBoost contextual risk model.
 
 Primary model : ml/models/sakhi_xgboost_risk_model.json
-  - 27 features, trained on ml_training_dataset.csv
+  - 20 features, trained on ml_training_dataset.csv
   - Loaded via xgboost XGBRegressor.load_model()
 
 Legacy fallback: ml/models/contextual_risk_model.joblib
@@ -23,14 +23,9 @@ import pandas as pd
 
 from app.schemas.risk import RiskFeatures
 
-# Primary 27-feature list — must match ml/models/train_xgboost.py FEATURES exactly
+# Primary 20-feature list — must match ml/models/train_xgboost.py FEATURES exactly
 SAKHI_FEATURE_ORDER: List[str] = [
     "historical_baseline",
-    "cases_per_100k",
-    "severity_weighted_cases_per_100k",
-    "recent_cases_per_100k",
-    "recent_severity_per_100k",
-    "crime_trend_slope",
     "distance_m",
     "estimated_travel_time_s",
     "lighting_score",
@@ -42,8 +37,6 @@ SAKHI_FEATURE_ORDER: List[str] = [
     "distance_to_medical_facility_m",
     "distance_to_public_toilet_m",
     "distance_to_nearest_amenity_m",
-    "nearest_hotspot_distance_m",
-    "nearest_hotspot_intensity",
     "representative_hour",
     "is_night",
     "is_late_night",
@@ -62,7 +55,7 @@ class MLModelService:
     """
 
     def __init__(self, models_dir: Optional[str] = None):
-        self._primary_model = None          # XGBRegressor (sakhi 27-feature)
+        self._primary_model = None          # XGBRegressor (sakhi 20-feature)
         self._legacy_model = None           # joblib model (synthetic 10-feature)
         self._metadata: Dict[str, Any] = {}
         self._model_source: str = "none"
@@ -136,11 +129,11 @@ class MLModelService:
     def get_model_source(self) -> str:
         return self._model_source
 
-    # ── Primary inference (27-feature sakhi model) ─────────────────────
+    # ── Primary inference (20-feature sakhi model) ─────────────────────
 
     def predict(self, features: RiskFeatures) -> Optional[float]:
         """
-        Run inference with the primary sakhi 27-feature XGBoost model.
+        Run inference with the primary sakhi 20-feature XGBoost model.
         Returns None if primary model is unavailable (triggers heuristic fallback).
         """
         if self._primary_model is None:

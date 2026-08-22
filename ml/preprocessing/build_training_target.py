@@ -77,8 +77,9 @@ RECENT_YEARS = [2021, 2022, 2023]
 YEAR_WEIGHTS_RECENT = {2021: 1.0, 2022: 1.1, 2023: 1.2}
 
 # Component weights
-W_CRIME_BURDEN = 0.60
-W_TEMPORAL     = 0.40
+W_CRIME_BURDEN = 0.35
+W_TEMPORAL     = 0.35
+W_SPATIAL      = 0.30
 WEEKEND_ADJ    = 0.05   # Additive, clipped before scaling
 
 # Temporal multipliers: criminological evidence, NOT derived from model features.
@@ -259,9 +260,24 @@ if missing_mult > 0:
 # STEP 4: COMPOSE CRIME-GROUNDED RISK INDEX
 # ============================================================
 
+# Min-max normalize hotspot intensity
+h_min = df["nearest_hotspot_intensity"].min()
+h_max = df["nearest_hotspot_intensity"].max()
+if h_max == h_min:
+    df["_hotspot_norm"] = 0.5
+else:
+    df["_hotspot_norm"] = (df["nearest_hotspot_intensity"] - h_min) / (h_max - h_min)
+
+# Distance decay (e.g., 500m half-life)
+df["_distance_decay"] = np.exp(-df["nearest_hotspot_distance_m"] / 500.0)
+
+# Spatial component
+df["_spatial_mult"] = df["_hotspot_norm"] * df["_distance_decay"]
+
 raw_index = (
     W_CRIME_BURDEN * df["crime_burden_norm"]
     + W_TEMPORAL   * df["_temporal_mult"]
+    + W_SPATIAL    * df["_spatial_mult"]
     + df["_weekend_adj"]
 )
 
@@ -270,10 +286,11 @@ df["crime_grounded_risk_index"] = raw_index.clip(0, 1) * 100
 # Component columns for transparency
 df["target_crime_burden_component"] = W_CRIME_BURDEN * df["crime_burden_norm"] * 100
 df["target_temporal_component"]     = W_TEMPORAL * df["_temporal_mult"] * 100
+df["target_spatial_component"]      = W_SPATIAL * df["_spatial_mult"] * 100
 df["target_weekend_component"]      = df["_weekend_adj"] * 100
 
 # Drop intermediate columns
-df = df.drop(columns=["_temporal_mult", "_weekend_adj"], errors="ignore")
+df = df.drop(columns=["_temporal_mult", "_weekend_adj", "_hotspot_norm", "_distance_decay", "_spatial_mult"], errors="ignore")
 
 
 # ============================================================
@@ -291,12 +308,12 @@ df["risk_band"] = pd.cut(
 # STEP 6: TARGET PROVENANCE
 # ============================================================
 
-df["target_type"] = "crime_grounded_district_temporal_index"
+df["target_type"] = "crime_grounded_district_temporal_spatial_index"
 df["target_is_observed_crime"] = True
 df["target_description"] = (
-    "Severity-weighted NCRB 2021-2023 district crime burden (60%) "
-    "+ criminological temporal multiplier by time-of-day period (40%) "
-    "+ weekend adjustment (5%). District-level aggregate only."
+    "Severity-weighted NCRB district crime burden (35%) "
+    "+ temporal multiplier (35%) + spatial hotspot density (30%) "
+    "+ weekend adjustment (5%)."
 )
 
 # Preserve legacy target column if present
@@ -412,7 +429,8 @@ print(
     df[[
         "segment_id", "district", "time_period", "is_weekend",
         "crime_burden_per_100k", "target_crime_burden_component",
-        "target_temporal_component", "crime_grounded_risk_index", "risk_band",
+        "target_temporal_component", "target_spatial_component",
+        "crime_grounded_risk_index", "risk_band",
     ]].head(10).to_string(index=False)
 )
 

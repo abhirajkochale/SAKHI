@@ -31,7 +31,7 @@ from app.services.risk.segment_lookup_service import get_segment_lookup_service
 class RiskService:
     """
     Contextual safety risk calculator.
-    Primary model: sakhi XGBoost 27-feature model.
+    Primary model: sakhi XGBoost 20-feature model.
     Fallback: deterministic prototype heuristic.
     """
 
@@ -70,7 +70,7 @@ class RiskService:
         # ── 1. Confidence (BEFORE filling defaults) ───────────────────────
         conf_score, conf_level = self.confidence_service.calculate_confidence(context)
 
-        # ── 2. Feature extraction (27-feature vector) ─────────────────────
+        # ── 2. Feature extraction (20-feature vector) ─────────────────────
         features = self.feature_service.extract(segment, context)
 
         # ── 3. Primary XGBoost inference ──────────────────────────────────
@@ -94,7 +94,7 @@ class RiskService:
 
         else:
             # ── 4. Heuristic fallback ─────────────────────────────────────
-            # Based on 27-feature inputs but using simple linear combination
+            # Based on 20-feature inputs but using simple linear combination
             norm_baseline = features.historical_baseline / 100.0  # 0-1
             norm_lighting = (100.0 - features.lighting_score) / 100.0  # invert: lower lighting = riskier
             norm_police = min(1.0, features.distance_to_police_m / 3000.0)   # further = riskier

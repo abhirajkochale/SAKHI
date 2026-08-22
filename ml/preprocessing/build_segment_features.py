@@ -523,19 +523,19 @@ features[
 
 features[
     "lighting_data_synthetic"
-] = True
+] = "synthetic" in str(LIGHTING_FILE).lower()
 
 features[
     "cctv_data_synthetic"
-] = True
+] = "synthetic" in str(CCTV_FILE).lower()
 
 features[
     "mobility_data_synthetic"
-] = True
+] = "synthetic" in str(MOBILITY_FILE).lower()
 
 features[
     "hotspot_data_synthetic"
-] = True
+] = "synthetic" in str(HOTSPOT_FILE).lower()
 
 
 # ============================================================
