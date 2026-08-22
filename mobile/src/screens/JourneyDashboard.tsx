@@ -27,6 +27,7 @@ export default function JourneyDashboard() {
   const { colors, spacing } = useTheme();
   const [loading, setLoading] = useState(false);
   const [journey, setJourney] = useState<JourneyResponse | null>(null);
+  const [routeLabels, setRouteLabels] = useState({ origin: '', destination: '' });
   const [selectedRoute, setSelectedRoute] = useState<RouteOption | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<JourneySegment | null>(null);
   
@@ -97,20 +98,17 @@ export default function JourneyDashboard() {
     return () => { cancelled = true; };
   }, [showWashrooms, washrooms.length, washroomsLoading, washroomsError, userLocation, journey]);
 
-  const handleAnalyze = async (origin: ApiLocation, destination: ApiLocation) => {
+  const handleAnalyze = async (origin: ApiLocation, destination: ApiLocation, originName: string = '', destName: string = '') => {
     setLoading(true);
     setError(null);
     setUpdateResult(null);
     setIsOffline(false);
+    setRouteLabels({ origin: originName, destination: destName });
     try {
       const response = await sakhiApi.createJourney(origin, destination);
       setJourney(response);
-      const initialRoute: RouteOption = response.ranking?.safest_route ?? {
-        route_id: 'primary', mode: 'safest', rank: 1, distance_m: response.distance_m, duration_s: response.duration_s,
-        risk_score: 0, confidence: 0, max_segment_risk: 0, uncertainty_penalty: 0, route_cost: 0, segments: response.segments,
-      };
-      setSelectedRoute(initialRoute);
-      setSelectedSegment(initialRoute.segments && initialRoute.segments.length > 0 ? initialRoute.segments[0] : null);
+      setSelectedRoute(null);
+      setSelectedSegment(null);
       void cacheJourney(response);
     } catch (err: any) {
       console.error(err);
@@ -119,9 +117,9 @@ export default function JourneyDashboard() {
       if (cached) {
         setIsOffline(true);
         setJourney(cached);
-        if (cached.ranking && cached.ranking.safest_route) {
-          setSelectedRoute(cached.ranking.safest_route);
-          setSelectedSegment(cached.ranking.safest_route.segments.length > 0 ? cached.ranking.safest_route.segments[0] : null);
+        if (cached.ranking) {
+          setSelectedRoute(null);
+          setSelectedSegment(null);
         }
       } else {
         setError(sakhiApi.getErrorMessage(err));
@@ -210,9 +208,24 @@ export default function JourneyDashboard() {
     if (!journey) return null;
     return (
       <>
+        {/* Route Results Header */}
+        <View style={{ marginBottom: spacing.md }}>
+          <TouchableOpacity 
+            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}
+            onPress={() => setJourney(null)}
+          >
+            <SakhiText color="primary" style={{ fontWeight: 'bold' }}>← Back / Edit Journey</SakhiText>
+          </TouchableOpacity>
+          {routeLabels.origin && routeLabels.destination && (
+            <SakhiText variant="h3" style={{ fontWeight: 'bold' }}>
+              {routeLabels.origin} → {routeLabels.destination}
+            </SakhiText>
+          )}
+        </View>
+
         {isOffline && (
           <View style={currentStyles.offlineBanner}>
-            <Text style={currentStyles.offlineBannerText}>⚠️ OFFLINE MODE: Using cached route data. Live context updates unavailable.</Text>
+            <Text style={currentStyles.offlineBannerText}>⚠️ OFFLINE MODE: Using cached route data.</Text>
           </View>
         )}
 
@@ -232,15 +245,26 @@ export default function JourneyDashboard() {
           />
         </View>
 
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Navigate selected safe route in Google Maps"
-          onPress={openSelectedRouteInGoogleMaps}
-          style={currentStyles.googleMapsButton}
-        >
-          <Text style={currentStyles.googleMapsButtonText}>NAVIGATE SAFE ROUTE IN GOOGLE MAPS</Text>
-        </TouchableOpacity>
-        <Text style={currentStyles.googleMapsHint}>Tap the map or this button to open the selected route in Google Maps.</Text>
+        {isAccessibleMode && (
+          <View style={{backgroundColor: '#fff', padding: 8, borderWidth: 2, borderColor: '#000', marginBottom: 10, marginTop: 10}}>
+            <Text style={{fontWeight: 'bold', fontSize: 18, color: '#000'}}>Map Legend:</Text>
+            <Text style={{fontSize: 18, color: '#000'}}>{"• Green line = Low Risk (<35)"}</Text>
+            <Text style={{fontSize: 18, color: '#000'}}>• Orange/Amber line = Moderate Risk (35-65)</Text>
+            <Text style={{fontSize: 18, color: '#000'}}>{"• Red line = High Risk (>65)"}</Text>
+            <Text style={{fontSize: 18, color: '#000'}}>• Thick blue line = Currently selected segment</Text>
+          </View>
+        )}
+
+        {journey.ranking && (
+          <RouteOptionsList 
+            ranking={journey.ranking}
+            selectedRouteId={selectedRoute?.route_id || null}
+            onSelectRoute={(route) => {
+              setSelectedRoute(route);
+              setSelectedSegment(route.segments && route.segments.length > 0 ? route.segments[0] : null);
+            }}
+          />
+        )}
 
         <View style={currentStyles.amenityToggleRow}>
           <View style={{ flex: 1 }}>
@@ -264,77 +288,6 @@ export default function JourneyDashboard() {
             </Text>
           </TouchableOpacity>
         </View>
-        
-        {isAccessibleMode && (
-          <View style={{backgroundColor: '#fff', padding: 8, borderWidth: 2, borderColor: '#000', marginBottom: 10}}>
-            <Text style={{fontWeight: 'bold', fontSize: 18, color: '#000'}}>Map Legend:</Text>
-            <Text style={{fontSize: 18, color: '#000'}}>{"• Green line = Low Risk (<35)"}</Text>
-            <Text style={{fontSize: 18, color: '#000'}}>• Orange/Amber line = Moderate Risk (35-65)</Text>
-            <Text style={{fontSize: 18, color: '#000'}}>{"• Red line = High Risk (>65)"}</Text>
-            <Text style={{fontSize: 18, color: '#000'}}>• Thick blue line = Currently selected segment</Text>
-          </View>
-        )}
-
-        {journey.ranking && (
-          <RouteOptionsList 
-            ranking={journey.ranking}
-            selectedRouteId={selectedRoute?.route_id || null}
-            onSelectRoute={(route) => {
-              setSelectedRoute(route);
-              setSelectedSegment(route.segments && route.segments.length > 0 ? route.segments[0] : null);
-            }}
-          />
-        )}
-
-        {selectedSegment ? (
-          <>
-            <SegmentSafetyPanel 
-              segment={selectedSegment} 
-              onReportIncident={() => setShowReportModal(true)}
-            />
-            
-            <ContextUpdatePanel 
-              segmentId={selectedSegment.segment_id}
-              journeyId={journey.journey_id}
-              onUpdateResult={(result) => {
-                setUpdateResult(result);
-              }}
-            />
-
-            {updateResult && (
-              <View style={currentStyles.updateResultBox}>
-                <Text style={currentStyles.updateResultTitle}>🔄 Dynamic Route Re-Ranking</Text>
-                <Text style={currentStyles.updateReason}>{updateResult.reason}</Text>
-                <View style={currentStyles.beforeAfterRow}>
-                  <View style={currentStyles.beforeBox}>
-                    <Text style={currentStyles.baLabel}>BEFORE</Text>
-                    <Text style={currentStyles.baValue}>{updateResult.before.safest_route_id?.substring(0,6) || "N/A"}</Text>
-                  </View>
-                  <Text style={currentStyles.arrow}>→</Text>
-                  <View style={currentStyles.afterBox}>
-                    <Text style={currentStyles.baLabel}>AFTER</Text>
-                    <Text style={currentStyles.baValue}>{updateResult.after.safest_route_id?.substring(0,6) || "N/A"}</Text>
-                  </View>
-                </View>
-                {updateResult.after && (
-                  <Text style={{fontSize: isAccessibleMode ? 16 : 12, marginTop: 8, color: isAccessibleMode ? '#000' : '#065f46'}}>
-                    New risk score: {updateResult.after.risk.toFixed(1)}
-                  </Text>
-                )}
-              </View>
-            )}
-          </>
-        ) : (
-          <View style={currentStyles.noSegmentBox}>
-            <Text style={currentStyles.noSegmentText}>Segment safety details unavailable.</Text>
-          </View>
-        )}
-
-        <EmergencyPanel journeyId={journey?.journey_id} />
-        
-        {journey?.journey_id && (
-          <DeadManSwitchPanel journeyId={journey.journey_id} />
-        )}
       </>
     );
   };
