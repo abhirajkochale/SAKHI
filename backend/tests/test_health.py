@@ -8,7 +8,7 @@ client = TestClient(app)
 def test_health_check():
     response = client.get(f"{settings.API_V1_STR}/health")
     assert response.status_code == 200
-    assert response.json() == {
-        "status": "ok",
-        "service": "sakhi-backend"
-    }
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["service"] == "sakhi-backend"
+    assert body["database"] == "connected"

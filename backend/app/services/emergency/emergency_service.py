@@ -32,9 +32,6 @@ class EmergencyService:
             await db.execute(
                 """
                 INSERT INTO emergency_events (id, journey_id, latitude, longitude, trigger_source, status, triggered_at)
-                VALUES ($1, $2, $3, $4, $5, 'active', $6)
-                """,
-                sos_id, request.journey_id, request.latitude, request.longitude, request.trigger_source, now
                 VALUES ($1::uuid, NULLIF($2, '')::uuid, $3, $4, $5, 'active', $6)
                 """,
                 sos_id, request.journey_id if request.journey_id and request.journey_id != 'test' else None, request.latitude, request.longitude, request.trigger_source, now
