@@ -25,11 +25,6 @@ export const sakhiApi = {
     return 'Unable to analyze this journey. Please check both locations and try again.';
   },
 
-  getPublicToilets: async (): Promise<PublicToilet[]> => {
-    const response = await apiClient.get<PublicToilet[]>('/amenities/public-toilets');
-    return response.data;
-  },
-
   getWashrooms: async (latitude: number, longitude: number, radiusKm: number = 5.0): Promise<WashroomResponse[]> => {
     const response = await apiClient.get<WashroomResponse[]>('/washrooms/', {
       params: { latitude, longitude, radius_km: radiusKm }

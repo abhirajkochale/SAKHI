@@ -56,10 +56,6 @@ export default function JourneyDashboard() {
   const [washroomsError, setWashroomsError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [selectedWashroom, setSelectedWashroom] = useState<WashroomResponse | null>(null);
-  const [showPublicToilets, setShowPublicToilets] = useState(false);
-  const [publicToilets, setPublicToilets] = useState<WashroomResponse[]>([]);
-  const [toiletsLoading, setToiletsLoading] = useState(false);
-  const [toiletsError, setToiletsError] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -114,18 +110,7 @@ export default function JourneyDashboard() {
     return () => { cancelled = true; };
   }, [showWashrooms, washrooms.length, washroomsLoading, washroomsError, userLocation, journey]);
 
-  React.useEffect(() => {
-    if (!showPublicToilets || publicToilets.length || toiletsLoading || toiletsError) return;
-    let cancelled = false;
-    setToiletsLoading(true);
-    sakhiApi.getPublicToilets()
-      .then((toilets) => { if (!cancelled) setPublicToilets(toilets); })
-      .catch(() => { if (!cancelled) setToiletsError('Public toilet locations are unavailable right now.'); })
-      .finally(() => { if (!cancelled) setToiletsLoading(false); });
-    return () => { cancelled = true; };
-  }, [showPublicToilets, publicToilets.length, toiletsLoading, toiletsError]);
-
-  const handleAnalyze = async (origin: Location, destination: Location) => {
+  const handleAnalyze = async (origin: ApiLocation, destination: ApiLocation, originName: string, destName: string) => {
     setLoading(true);
     setError(null);
     setUpdateResult(null);
@@ -143,6 +128,8 @@ export default function JourneyDashboard() {
       setSelectedRoute(initialRoute);
       setSelectedSegment(initialRoute.segments && initialRoute.segments.length > 0 ? initialRoute.segments[0] : null);
       void cacheJourney(response);
+      setIsActiveJourney(true);
+      if (navigationRef.isReady()) navigationRef.navigate('Journeys' as never);
     } catch (err: any) {
       console.error(err);
       // Try offline fallback
@@ -282,34 +269,23 @@ export default function JourneyDashboard() {
             </View>
             <Text style={currentStyles.qaTileText}>Washroom</Text>
           </TouchableOpacity>
-          <Text style={currentStyles.googleMapsHint}>Tap the map or this button to open the selected route in Google Maps.</Text>
-
-          <View style={currentStyles.amenityToggleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={currentStyles.amenityToggleTitle}>Right to PEE</Text>
-              <Text style={currentStyles.amenityToggleCaption}>
-                {toiletsLoading ? 'Loading public toilet locations…' : toiletsError || (publicToilets.length ? `${publicToilets.length} public toilets available on the map` : 'Turn on to load public toilet locations')}
-              </Text>
+          <TouchableOpacity style={currentStyles.qaTileSquare} onPress={() => openQuickFind('Medical Clinic')}>
+            <View style={[currentStyles.qaIconContainer, {backgroundColor: '#14B8A6'}]}>
+              <Text style={currentStyles.qaTileIconWhite}>🏥</Text>
             </View>
-            <TouchableOpacity
-              accessibilityRole="switch"
-              accessibilityState={{ checked: showPublicToilets }}
-              accessibilityLabel="Show public toilet locations"
-              onPress={() => {
-                if (!showPublicToilets) setToiletsError(null);
-                setShowPublicToilets((visible) => !visible);
-              }}
-              style={[currentStyles.amenityToggle, showPublicToilets && currentStyles.amenityToggleActive]}
-            >
-              <Text style={[currentStyles.amenityToggleText, showPublicToilets && currentStyles.amenityToggleTextActive]}>
-                {showPublicToilets ? 'LOCATIONS ON' : 'SHOW LOCATIONS'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-           <TouchableOpacity onPress={handleSOSTap} style={currentStyles.sosButton}>
+            <Text style={currentStyles.qaTileText}>Medical</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={currentStyles.qaTileSquare} onPress={() => openQuickFind('Police Station')}>
+            <View style={[currentStyles.qaIconContainer, {backgroundColor: '#1E40AF'}]}>
+              <Text style={currentStyles.qaTileIconWhite}>🚓</Text>
+            </View>
+            <Text style={currentStyles.qaTileText}>Police</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity onPress={handleSOSTap} style={currentStyles.sosButton}>
           <View style={currentStyles.sosTextContainer}>
-             <Text style={currentStyles.sosTitle}>EMERGENCY SOS</Text>
-             <Text style={currentStyles.sosSubtitle}>Tap for immediate help</Text>
+            <Text style={currentStyles.sosTitle}>EMERGENCY SOS</Text>
+            <Text style={currentStyles.sosSubtitle}>Tap for immediate help</Text>
           </View>
           <Text style={currentStyles.sosArrow}>→</Text>
         </TouchableOpacity>
@@ -368,6 +344,39 @@ export default function JourneyDashboard() {
             onWashroomPress={(washroom) => setSelectedWashroom(washroom)}
           />
         </View>
+
+        <View style={currentStyles.amenityToggleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={currentStyles.amenityToggleTitle}>Right to PEE</Text>
+            <Text style={currentStyles.amenityToggleCaption}>
+              {washroomsLoading ? 'Loading nearby washrooms…' : washroomsError || (washrooms.length ? `${washrooms.length} nearby washrooms available on the map` : 'Show nearby washroom locations on the map')}
+            </Text>
+          </View>
+          <TouchableOpacity
+            accessibilityRole="switch"
+            accessibilityState={{ checked: showWashrooms }}
+            accessibilityLabel="Show nearby washroom locations"
+            onPress={() => {
+              if (!showWashrooms) setWashroomsError(null);
+              setShowWashrooms((visible) => !visible);
+            }}
+            style={[currentStyles.amenityToggle, showWashrooms && currentStyles.amenityToggleActive]}
+          >
+            <Text style={[currentStyles.amenityToggleText, showWashrooms && currentStyles.amenityToggleTextActive]}>
+              {showWashrooms ? 'LOCATIONS ON' : 'SHOW LOCATIONS'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Navigate selected safe route in Google Maps"
+          onPress={openSelectedRouteInGoogleMaps}
+          style={currentStyles.googleMapsButton}
+        >
+          <Text style={currentStyles.googleMapsButtonText}>NAVIGATE SAFE ROUTE IN GOOGLE MAPS</Text>
+        </TouchableOpacity>
+        <Text style={currentStyles.googleMapsHint}>Tap an empty map area or this button to open the selected route in Google Maps.</Text>
 
         {/* Safety Summary Card */}
         <View style={currentStyles.ajSafetyCard}>
