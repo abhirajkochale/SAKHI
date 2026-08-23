@@ -99,7 +99,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
     <View style={styles.callSetupContainer}>
       <SakhiText variant="h2" style={styles.callSetupTitle}>Fake "Call a Friend"</SakhiText>
       <SakhiText variant="body" color="secondary" style={styles.callSetupDesc}>Plays a voice note to make it seem like you are on a call.</SakhiText>
-      
+
       <SakhiText variant="h3" style={styles.label}>Select Language:</SakhiText>
       <View style={styles.row}>
         {['English', 'Hindi'].map((lang) => (
@@ -118,8 +118,8 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
         ))}
       </View>
 
-      <SakhiButton 
-        title="Start Fake Call" 
+      <SakhiButton
+        title="Start Fake Call"
         onPress={() => { setIsSettingUpCall(false); setCallActive(true); }}
         style={styles.startCallBtn}
       />
@@ -134,7 +134,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
       <SakhiText variant="h2" style={styles.callerName}>Unknown Caller</SakhiText>
       <SakhiText variant="h1" style={styles.callStatus}>00:14 / {callDuration}:00</SakhiText>
       <SakhiText variant="body" color="secondary" style={styles.callSubtitle}>Playing {callLanguage} voice notes...</SakhiText>
-      
+
       <TouchableOpacity style={styles.endCallBtn} onPress={reset}>
         <Ionicons name="call" size={24} color="#FFFFFF" style={styles.endCallIcon} />
       </TouchableOpacity>
@@ -145,22 +145,22 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const renderResult = () => (
     <View style={styles.resultContainer}>
       <View style={styles.resultIconWrapper}>
-        <Ionicons 
-          name={selectedCategory === 'Washroom' ? 'water-outline' : selectedCategory === 'Medical Clinic' ? 'medkit-outline' : 'shield-checkmark-outline'} 
-          size={32} 
-          color="#DC2626" 
+        <Ionicons
+          name={selectedCategory === 'Washroom' ? 'water-outline' : selectedCategory === 'Medical Clinic' ? 'medkit-outline' : 'shield-checkmark-outline'}
+          size={32}
+          color="#DC2626"
         />
       </View>
       <SakhiText variant="h3" style={styles.resultCategory}>Found {selectedCategory}</SakhiText>
       <SakhiText variant="body" color="secondary" style={styles.resultMockBadge}>Demo result</SakhiText>
-      
+
       <SakhiCard style={styles.resultCard}>
         <SakhiText variant="h3" style={{ textAlign: 'center', marginBottom: 12 }}>{result}</SakhiText>
       </SakhiCard>
-      
-      <SakhiButton 
-        title="Navigate Now" 
-        onPress={reset} 
+
+      <SakhiButton
+        title="Navigate Now"
+        onPress={reset}
         style={styles.navigateBtn}
       />
     </View>
@@ -200,48 +200,48 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
 }
 
 const styles = StyleSheet.create({
-  overlay: { 
-    flex: 1, 
-    backgroundColor: 'rgba(17, 24, 39, 0.6)', 
-    justifyContent: 'flex-end' 
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 24, 39, 0.6)',
+    justifyContent: 'flex-end'
   },
-  modalView: { 
-    backgroundColor: '#FFFFFF', 
-    padding: 24, 
-    borderTopLeftRadius: 24, 
-    borderTopRightRadius: 24, 
-    minHeight: 350, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: -4 }, 
-    shadowOpacity: 0.1, 
-    shadowRadius: 12, 
-    elevation: 20 
+  modalView: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    minHeight: 350,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20
   },
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'flex-start', 
-    marginBottom: 24 
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24
   },
-  title: { 
-    color: '#1F2937', 
-    marginBottom: 4 
+  title: {
+    color: '#1F2937',
+    marginBottom: 4
   },
-  closeBtnWrapper: { 
+  closeBtnWrapper: {
     padding: 4,
     backgroundColor: '#F3F4F6',
     borderRadius: 20,
   },
-  optionsContainer: { 
-    gap: 12 
+  optionsContainer: {
+    gap: 12
   },
-  optionCard: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#FFFFFF', 
-    padding: 16, 
-    borderRadius: 16, 
-    borderWidth: 1, 
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
     borderColor: '#E5E7EB',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -249,34 +249,34 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  iconContainer: { 
-    width: 48, 
-    height: 48, 
-    borderRadius: 24, 
-    backgroundColor: '#FEF2F2', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginRight: 16 
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16
   },
-  optionTextContainer: { 
-    flex: 1 
+  optionTextContainer: {
+    flex: 1
   },
-  resultContainer: { 
-    alignItems: 'center', 
-    paddingVertical: 12 
+  resultContainer: {
+    alignItems: 'center',
+    paddingVertical: 12
   },
   resultIconWrapper: {
-    width: 64, 
-    height: 64, 
-    borderRadius: 32, 
-    backgroundColor: '#FEF2F2', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginBottom: 16 
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16
   },
-  resultCategory: { 
-    color: '#374151', 
-    marginBottom: 4 
+  resultCategory: {
+    color: '#374151',
+    marginBottom: 4
   },
   resultMockBadge: {
     fontStyle: 'italic',
@@ -289,96 +289,96 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderColor: '#E5E7EB',
   },
-  navigateBtn: { 
-    width: '100%', 
+  navigateBtn: {
+    width: '100%',
   },
-  loadingOverlay: { 
-    ...StyleSheet.absoluteFill, 
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    borderTopLeftRadius: 24, 
-    borderTopRightRadius: 24 
+  loadingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24
   },
-  loadingText: { 
-    marginTop: 16, 
-    color: '#4B5563', 
-    fontWeight: '500' 
+  loadingText: {
+    marginTop: 16,
+    color: '#4B5563',
+    fontWeight: '500'
   },
-  callSetupContainer: { 
-    paddingVertical: 8 
+  callSetupContainer: {
+    paddingVertical: 8
   },
-  callSetupTitle: { 
-    color: '#1F2937', 
-    marginBottom: 8 
+  callSetupTitle: {
+    color: '#1F2937',
+    marginBottom: 8
   },
-  callSetupDesc: { 
-    marginBottom: 24 
+  callSetupDesc: {
+    marginBottom: 24
   },
-  label: { 
-    color: '#374151', 
-    marginBottom: 12, 
-    marginTop: 8 
+  label: {
+    color: '#374151',
+    marginBottom: 12,
+    marginTop: 8
   },
-  row: { 
-    flexDirection: 'row', 
-    gap: 12, 
-    marginBottom: 16 
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16
   },
-  toggleBtn: { 
-    flex: 1, 
-    paddingVertical: 14, 
-    borderWidth: 1, 
-    borderColor: '#D1D5DB', 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    backgroundColor: '#FFFFFF' 
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF'
   },
-  toggleBtnActive: { 
-    borderColor: '#DC2626', 
-    backgroundColor: '#FEF2F2' 
+  toggleBtnActive: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2'
   },
-  toggleBtnText: { 
-    color: '#4B5563', 
-    fontWeight: '600' 
+  toggleBtnText: {
+    color: '#4B5563',
+    fontWeight: '600'
   },
-  toggleBtnTextActive: { 
-    color: '#DC2626' 
+  toggleBtnTextActive: {
+    color: '#DC2626'
   },
-  startCallBtn: { 
-    marginTop: 24 
+  startCallBtn: {
+    marginTop: 24
   },
-  activeCallContainer: { 
-    alignItems: 'center', 
-    paddingVertical: 32 
+  activeCallContainer: {
+    alignItems: 'center',
+    paddingVertical: 32
   },
-  callAvatar: { 
-    width: 96, 
-    height: 96, 
-    borderRadius: 48, 
-    backgroundColor: '#F3F4F6', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    marginBottom: 24 
+  callAvatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24
   },
-  callerName: { 
-    color: '#1F2937', 
-    marginBottom: 12 
+  callerName: {
+    color: '#1F2937',
+    marginBottom: 12
   },
-  callStatus: { 
-    color: '#374151', 
-    marginBottom: 8, 
-    fontVariant: ['tabular-nums'] 
+  callStatus: {
+    color: '#374151',
+    marginBottom: 8,
+    fontVariant: ['tabular-nums']
   },
-  callSubtitle: { 
-    fontStyle: 'italic', 
-    marginBottom: 48 
+  callSubtitle: {
+    fontStyle: 'italic',
+    marginBottom: 48
   },
-  endCallBtn: { 
-    backgroundColor: '#DC2626', 
-    width: 64, 
-    height: 64, 
-    borderRadius: 32, 
+  endCallBtn: {
+    backgroundColor: '#DC2626',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,
