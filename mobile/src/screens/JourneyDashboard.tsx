@@ -390,7 +390,7 @@ export default function JourneyDashboard() {
 
         <View style={currentStyles.amenityToggleRow}>
           <View style={{ flex: 1 }}>
-            <Text style={currentStyles.amenityToggleTitle}>Right to PEE</Text>
+            <Text style={currentStyles.amenityToggleTitle}>Show nearby washroom</Text>
             <Text style={currentStyles.amenityToggleCaption}>
               {washroomsLoading ? 'Loading nearby washrooms…' : washroomsError || (washrooms.length ? `${washrooms.length} nearby washrooms available on the map` : 'Show nearby washroom locations on the map')}
             </Text>
