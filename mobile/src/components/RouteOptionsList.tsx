@@ -60,9 +60,6 @@ export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRou
 
   return (
     <View style={styles.container}>
-      <SakhiText variant="h2" style={{ marginBottom: spacing.md }}>
-        Choose a different route
-      </SakhiText>
 
       {uniqueOptions.map((opt) => {
         const isSelected = selectedRouteId === opt.route.route_id;

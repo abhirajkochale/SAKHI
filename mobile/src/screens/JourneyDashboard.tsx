@@ -415,43 +415,9 @@ export default function JourneyDashboard() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Navigate selected safe route in Google Maps"
-          onPress={openSelectedRouteInGoogleMaps}
-          style={currentStyles.googleMapsButton}
-        >
-          <Text style={currentStyles.googleMapsButtonText}>NAVIGATE SAFE ROUTE IN GOOGLE MAPS</Text>
-        </TouchableOpacity>
-        <Text style={currentStyles.googleMapsHint}>Tap an empty map area or this button to open the selected route in Google Maps.</Text>
 
-        {/* Safety Summary Card */}
-        <View style={currentStyles.ajSafetyCard}>
-          <View style={currentStyles.ajSafetyLeft}>
-            <View style={[currentStyles.ajSafetyShield, {borderColor: riskColor}]}>
-              <Text style={{fontSize: 24, color: riskColor, fontWeight: 'bold'}}>!</Text>
-            </View>
-            <View style={{flex: 1, paddingLeft: 12}}>
-              <Text style={[currentStyles.ajSafetyTitle, {color: riskColor}]}>{riskLabel} Risk</Text>
-              <Text style={currentStyles.ajSafetyDesc}>Stay alert and aware of your surroundings.</Text>
-            </View>
-          </View>
-          <View style={currentStyles.ajSafetyDivider} />
-          <View style={currentStyles.ajSafetyMiddle}>
-            <View style={{flexDirection: 'row', alignItems: 'baseline'}}>
-              <Text style={[currentStyles.ajSafetyScore, {color: riskColor}]}>{selectedRoute.risk_score.toFixed(1)}</Text>
-              <Text style={currentStyles.ajSafetyScoreMax}> / 100</Text>
-            </View>
-            <Text style={currentStyles.ajSafetyLabel}>Route Avg Risk</Text>
-          </View>
-          <View style={currentStyles.ajSafetyDivider} />
-          <View style={currentStyles.ajSafetyRight}>
-            <Text style={currentStyles.ajSafetyStatVal}>{Math.round(selectedRoute.duration_s / 60)} <Text style={currentStyles.ajSafetyStatUnit}>min</Text></Text>
-            <Text style={currentStyles.ajSafetyLabel}>ETA</Text>
-            <Text style={[currentStyles.ajSafetyStatVal, {marginTop: 6}]}>{(selectedRoute.distance_m / 1000).toFixed(1)} <Text style={currentStyles.ajSafetyStatUnit}>km</Text></Text>
-            <Text style={currentStyles.ajSafetyLabel}>Distance</Text>
-          </View>
-        </View>
+
+
 
         {/* Route Options List injected into Active Journey */}
         {journey.ranking && (
