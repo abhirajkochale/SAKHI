@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { Modal, View, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, Linking, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
 import { SakhiButton } from './ui/SakhiButton';
@@ -16,35 +16,113 @@ interface Props {
 export default function QuickFindModal({ visible, onClose, initialCategory }: Props) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [resultCoords, setResultCoords] = useState<{lat: number, lon: number} | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const [isSettingUpCall, setIsSettingUpCall] = useState(false);
   const [callLanguage, setCallLanguage] = useState('English');
   const [callDuration, setCallDuration] = useState(2);
   const [callActive, setCallActive] = useState(false);
+  const [callElapsedSeconds, setCallElapsedSeconds] = useState(0);
 
   React.useEffect(() => {
-    if (visible && initialCategory && !selectedCategory) {
-      handleSearch(initialCategory);
+    if (visible && initialCategory) {
+      if (initialCategory === 'Call a Friend') {
+        setIsSettingUpCall(true);
+      } else if (!selectedCategory) {
+        handleSearch(initialCategory);
+      }
     }
   }, [visible, initialCategory]);
 
-  const handleSearch = (category: string) => {
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (callActive) {
+      interval = setInterval(() => {
+        setCallElapsedSeconds(prev => {
+          const next = prev + 1;
+          if (next >= callDuration * 60) {
+            setCallActive(false);
+            return 0;
+          }
+          return next;
+        });
+      }, 1000);
+    } else {
+      setCallElapsedSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [callActive, callDuration]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const handleSearch = async (category: string) => {
     setSelectedCategory(category);
     setLoading(true);
-    // Simulate network delay to find nearest amenity
-    setTimeout(() => {
+    try {
+      // Map category to API amenity type
+      const typeMap: Record<string, string> = {
+        'Washroom': 'washroom',
+        'Medical Clinic': 'hospital',
+        'Police Station': 'police',
+      };
+      const amenityType = typeMap[category] || 'washroom';
+      
+      // Use a fixed CP center for the search (28.631, 77.219)
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/amenities/nearest?lat=28.631&lon=77.219&type=${amenityType}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setResult(`Nearest ${category}: ${data.name}\n📍 ${data.distance_m}m away | 🚶 ${Math.ceil(data.distance_m / 80)} min walk`);
+        if (data.latitude && data.longitude) {
+          setResultCoords({ lat: data.latitude, lon: data.longitude });
+        }
+      } else {
+        setResult(`Nearest ${category}: Data unavailable`);
+        setResultCoords(null);
+      }
+    } catch (e) {
+      setResult(`Nearest ${category}: Could not reach server`);
+    } finally {
       setLoading(false);
-      setResult(`Nearest ${category}: 280m | 🚶 4 min walk`);
-    }, 1500);
+    }
   };
 
   const reset = () => {
     setResult(null);
+    setResultCoords(null);
     setSelectedCategory(null);
     setIsSettingUpCall(false);
     setCallActive(false);
+    setCallElapsedSeconds(0);
     onClose();
+  };
+
+  const handleNavigateNow = async () => {
+    if (!resultCoords) {
+      Alert.alert('Error', 'Location coordinates are missing. Please try searching again.');
+      reset();
+      return;
+    }
+    // Hardcoded origin: Rajiv Chowk Metro Station for the demo as requested
+    const originLat = 28.6328;
+    const originLon = 77.2197;
+    const destLat = resultCoords.lat;
+    const destLon = resultCoords.lon;
+    
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLon}&destination=${destLat},${destLon}&travelmode=walking`;
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert('Error', 'Could not open Google Maps. Please ensure it is installed.');
+    }
+    reset();
   };
 
   const renderOptions = () => (
@@ -97,7 +175,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
 
   const renderCallSetup = () => (
     <View style={styles.callSetupContainer}>
-      <SakhiText variant="h2" style={styles.callSetupTitle}>Fake "Call a Friend"</SakhiText>
+      <SakhiText variant="h2" style={styles.callSetupTitle}>Call a Friend</SakhiText>
       <SakhiText variant="body" color="secondary" style={styles.callSetupDesc}>Plays a voice note to make it seem like you are on a call.</SakhiText>
 
       <SakhiText variant="h3" style={styles.label}>Select Language:</SakhiText>
@@ -119,7 +197,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
       </View>
 
       <SakhiButton
-        title="Start Fake Call"
+        title="Start Call"
         onPress={() => { setIsSettingUpCall(false); setCallActive(true); }}
         style={styles.startCallBtn}
       />
@@ -132,7 +210,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
         <Ionicons name="person" size={40} color="#9CA3AF" />
       </View>
       <SakhiText variant="h2" style={styles.callerName}>Unknown Caller</SakhiText>
-      <SakhiText variant="h1" style={styles.callStatus}>00:14 / {callDuration}:00</SakhiText>
+      <SakhiText variant="h1" style={styles.callStatus}>{formatTime(callElapsedSeconds)} / {callDuration < 10 ? '0' : ''}{callDuration}:00</SakhiText>
       <SakhiText variant="body" color="secondary" style={styles.callSubtitle}>Playing {callLanguage} voice notes...</SakhiText>
 
       <TouchableOpacity style={styles.endCallBtn} onPress={reset}>
@@ -160,7 +238,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
 
       <SakhiButton
         title="Navigate Now"
-        onPress={reset}
+        onPress={handleNavigateNow}
         style={styles.navigateBtn}
       />
     </View>

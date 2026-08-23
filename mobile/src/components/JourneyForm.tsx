@@ -1,8 +1,19 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Location } from '../types/api';
 import { SakhiText } from './ui/SakhiText';
 import { Ionicons } from '@expo/vector-icons';
+
+// Real Connaught Place pilot locations from verified datasets
+const CP_LOCATIONS: { name: string; coords: Location }[] = [
+  { name: 'Rajiv Chowk Metro Station', coords: { latitude: 28.6328, longitude: 77.2197 } },
+  { name: 'Connaught Place Inner Circle', coords: { latitude: 28.6315, longitude: 77.2167 } },
+  { name: 'Janpath Market', coords: { latitude: 28.6265, longitude: 77.2195 } },
+  { name: 'Palika Bazaar', coords: { latitude: 28.6308, longitude: 77.2185 } },
+  { name: 'Parliament Street', coords: { latitude: 28.6253, longitude: 77.2144 } },
+  { name: 'Barakhamba Road', coords: { latitude: 28.6340, longitude: 77.2260 } },
+  { name: 'Mandi House Metro', coords: { latitude: 28.6258, longitude: 77.2337 } },
+];
 
 interface Props {
   onAnalyze: (origin: Location, destination: Location, originName: string, destName: string) => void;
@@ -23,58 +34,35 @@ export default function JourneyForm({
   const [destinationText, setDestinationText] = useState(initialDestinationText);
   const [origin, setOrigin] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
-  const [geocodeLoading, setGeocodeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showOriginPicker, setShowOriginPicker] = useState(false);
+  const [showDestPicker, setShowDestPicker] = useState(false);
 
-  const geocodeAddress = async (address: string): Promise<Location | null> => {
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`, {
-        headers: { 'User-Agent': 'SAKHI-Hackathon-App' }
-      });
-      const data = await res.json();
-      if (data && data.length > 0) {
-        return { latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) };
-      }
-      return null;
-    } catch (e) {
-      console.error(e);
-      return null;
-    }
+  const selectOrigin = (loc: typeof CP_LOCATIONS[0]) => {
+    setOriginText(loc.name);
+    setOrigin(loc.coords);
+    setShowOriginPicker(false);
+    setError(null);
+  };
+
+  const selectDestination = (loc: typeof CP_LOCATIONS[0]) => {
+    setDestinationText(loc.name);
+    setDestination(loc.coords);
+    setShowDestPicker(false);
+    setError(null);
   };
 
   const handleAnalyze = async () => {
     setError(null);
-    if (!originText || !destinationText) {
-      setError("Please enter origin and destination addresses.");
+    if (!origin || !destination) {
+      setError("Please select both origin and destination from the list.");
       return;
     }
-    
-    let currentOrig = origin;
-    let currentDest = destination;
-
-    if (!currentOrig) {
-      setGeocodeLoading(true);
-      currentOrig = await geocodeAddress(originText);
-      setGeocodeLoading(false);
-      if (!currentOrig) {
-        setError(`Could not find location for: ${originText}`);
-        return;
-      }
-      setOrigin(currentOrig);
+    if (origin.latitude === destination.latitude && origin.longitude === destination.longitude) {
+      setError("Origin and destination cannot be the same.");
+      return;
     }
-    
-    if (!currentDest) {
-      setGeocodeLoading(true);
-      currentDest = await geocodeAddress(destinationText);
-      setGeocodeLoading(false);
-      if (!currentDest) {
-        setError(`Could not find location for: ${destinationText}`);
-        return;
-      }
-      setDestination(currentDest);
-    }
-    
-    onAnalyze(currentOrig, currentDest, originText, destinationText);
+    onAnalyze(origin, destination, originText, destinationText);
   };
 
   const swapLocations = () => {
@@ -86,6 +74,19 @@ export default function JourneyForm({
     setDestination(tempLoc);
   };
 
+  const LocationPicker = ({ onSelect, exclude }: { onSelect: (loc: typeof CP_LOCATIONS[0]) => void; exclude?: string }) => (
+    <View style={styles.pickerDropdown}>
+      <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+        {CP_LOCATIONS.filter(l => l.name !== exclude).map((loc) => (
+          <TouchableOpacity key={loc.name} style={styles.pickerItem} onPress={() => onSelect(loc)}>
+            <Ionicons name="location-outline" size={16} color="#DC2626" style={{ marginRight: 8 }} />
+            <SakhiText variant="body" style={{ color: '#1F2937' }}>{loc.name}</SakhiText>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
   if (compact) {
     return (
       <View style={styles.compactOuterContainer}>
@@ -93,7 +94,6 @@ export default function JourneyForm({
         <View style={styles.compactRow}>
           <View style={[styles.card, styles.compactCard]}>
             <View style={styles.compactGoogleLayout}>
-              {/* Left Column Icons */}
               <View style={styles.compactIconCol}>
                 <View style={styles.compactCircleIcon} />
                 <Ionicons name="ellipsis-vertical" size={16} color="#9CA3AF" style={{marginVertical: 4}} />
@@ -101,65 +101,51 @@ export default function JourneyForm({
                   <View style={styles.compactPinIconDot} />
                 </View>
               </View>
-              
-              {/* Middle Column Inputs */}
               <View style={styles.compactInputCol}>
-                <TextInput
-                  style={styles.compactInputText}
-                  value={originText}
-                  onChangeText={(t) => { setOriginText(t); setOrigin(null); }}
-                  placeholder="Choose starting point"
-                  placeholderTextColor="#6B7280"
-                  onSubmitEditing={handleAnalyze}
-                  returnKeyType="search"
-                />
-                <View style={styles.compactDivider} />
-                <TextInput
-                  style={styles.compactInputText}
-                  value={destinationText}
-                  onChangeText={(t) => { setDestinationText(t); setDestination(null); }}
-                  placeholder="Choose destination"
-                  placeholderTextColor="#6B7280"
-                  onSubmitEditing={handleAnalyze}
-                  returnKeyType="search"
-                />
-              </View>
-              
-              {/* Right Column Actions */}
-              <View style={styles.compactActionCol}>
-                <TouchableOpacity style={{padding: 4}}>
-                  <Ionicons name="ellipsis-vertical" size={20} color="#9CA3AF" />
+                <TouchableOpacity onPress={() => { setShowOriginPicker(!showOriginPicker); setShowDestPicker(false); }}>
+                  <SakhiText style={[styles.compactInputText, !originText && { color: '#6B7280' }]}>
+                    {originText || 'Choose starting point'}
+                  </SakhiText>
                 </TouchableOpacity>
-                <TouchableOpacity style={{padding: 4, marginTop: 12}} onPress={swapLocations}>
+                <View style={styles.compactDivider} />
+                <TouchableOpacity onPress={() => { setShowDestPicker(!showDestPicker); setShowOriginPicker(false); }}>
+                  <SakhiText style={[styles.compactInputText, !destinationText && { color: '#6B7280' }]}>
+                    {destinationText || 'Choose destination'}
+                  </SakhiText>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.compactActionCol}>
+                <TouchableOpacity style={{padding: 4}} onPress={swapLocations}>
                   <Ionicons name="swap-vertical" size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
             </View>
           </View>
-          
           <TouchableOpacity 
             style={styles.compactSearchBtn} 
             onPress={handleAnalyze}
-            disabled={!originText || !destinationText || loading || geocodeLoading}
+            disabled={!origin || !destination || loading}
           >
-            {loading || geocodeLoading ? (
+            {loading ? (
               <ActivityIndicator color="#ffffff" size="small" />
             ) : (
               <Ionicons name="search" size={24} color="#ffffff" />
             )}
           </TouchableOpacity>
         </View>
+        {showOriginPicker && <LocationPicker onSelect={selectOrigin} exclude={destinationText} />}
+        {showDestPicker && <LocationPicker onSelect={selectDestination} exclude={originText} />}
       </View>
     );
   }
 
   return (
     <View style={styles.card}>
+      <SakhiText variant="caption" style={styles.pilotLabel}>CONNAUGHT PLACE PILOT — Supported locations only</SakhiText>
       {error && <SakhiText color="danger" variant="caption" style={styles.error}>{error}</SakhiText>}
 
       <View style={styles.inputGroup}>
-        {/* Origin Row */}
-        <View style={styles.row}>
+        <TouchableOpacity style={styles.row} onPress={() => { setShowOriginPicker(!showOriginPicker); setShowDestPicker(false); }}>
           <View style={styles.iconContainer}>
             <View style={styles.originIconOuter}>
               <View style={styles.originIconInner} />
@@ -167,23 +153,19 @@ export default function JourneyForm({
           </View>
           <View style={styles.fieldContainer}>
             <SakhiText variant="caption" style={styles.label}>From</SakhiText>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter starting point"
-              placeholderTextColor="#9ca3af"
-              value={originText}
-              onChangeText={(t) => { setOriginText(t); setOrigin(null); }}
-            />
+            <SakhiText style={[styles.input, !originText && { color: '#9ca3af' }]}>
+              {originText || 'Select starting point'}
+            </SakhiText>
           </View>
-        </View>
+          <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
+        </TouchableOpacity>
+        {showOriginPicker && <LocationPicker onSelect={selectOrigin} exclude={destinationText} />}
 
-        {/* Dotted Connection Line */}
         <View style={styles.dottedLineContainer}>
           <View style={styles.dottedLine} />
         </View>
 
-        {/* Destination Row */}
-        <View style={styles.row}>
+        <TouchableOpacity style={styles.row} onPress={() => { setShowDestPicker(!showDestPicker); setShowOriginPicker(false); }}>
           <View style={styles.iconContainer}>
             <View style={styles.destinationIcon}>
               <View style={styles.destinationIconHole} />
@@ -191,23 +173,21 @@ export default function JourneyForm({
           </View>
           <View style={styles.fieldContainer}>
             <SakhiText variant="caption" style={styles.label}>To</SakhiText>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter destination"
-              placeholderTextColor="#9ca3af"
-              value={destinationText}
-              onChangeText={(t) => { setDestinationText(t); setDestination(null); }}
-            />
+            <SakhiText style={[styles.input, !destinationText && { color: '#9ca3af' }]}>
+              {destinationText || 'Select destination'}
+            </SakhiText>
           </View>
-        </View>
+          <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
+        </TouchableOpacity>
+        {showDestPicker && <LocationPicker onSelect={selectDestination} exclude={originText} />}
       </View>
 
       <TouchableOpacity 
-        style={[styles.primaryCTA, (!originText || !destinationText) && styles.disabledCTA]} 
+        style={[styles.primaryCTA, (!origin || !destination) && styles.disabledCTA]} 
         onPress={handleAnalyze}
-        disabled={!originText || !destinationText || loading || geocodeLoading}
+        disabled={!origin || !destination || loading}
       >
-        {loading || geocodeLoading ? (
+        {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
           <View style={styles.ctaContent}>
@@ -454,5 +434,34 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     fontSize: 16,
     fontWeight: 'bold',
-  }
+  },
+  pilotLabel: {
+    color: '#DC2626',
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  pickerDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  pickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
 });

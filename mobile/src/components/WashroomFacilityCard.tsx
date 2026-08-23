@@ -1,161 +1,182 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Switch, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { WashroomResponse } from '../types/api';
+import { SakhiCard } from './ui/SakhiCard';
+import { SakhiText } from './ui/SakhiText';
+import { SakhiButton } from './ui/SakhiButton';
+import { Ionicons } from '@expo/vector-icons';
 import { sakhiApi } from '../api/sakhiApi';
 
-interface WashroomFacilityCardProps {
-  visible: boolean;
-  onClose: () => void;
-  washroom: WashroomResponse | null;
-  distance: number;
+// Haversine distance for UI calculation
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3; // meters
+  const p1 = lat1 * Math.PI/180;
+  const p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1) * Math.PI/180;
+  const dl = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(dp/2) * Math.sin(dp/2) +
+            Math.cos(p1) * Math.cos(p2) *
+            Math.sin(dl/2) * Math.sin(dl/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c;
 }
 
-export default function WashroomFacilityCard({ visible, onClose, washroom, distance }: WashroomFacilityCardProps) {
-  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+interface Props {
+  visible: boolean;
+  washroom: WashroomResponse | null;
+  distance: number;
+  onClose: () => void;
+  onFeedbackSubmitted?: () => void;
+}
+
+export default function WashroomFacilityCard({ visible, washroom, distance, onClose, onFeedbackSubmitted }: Props) {
+  const [showFeedback, setShowFeedback] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Feedback form state
+  const [isOpen, setIsOpen] = useState<boolean | null>(null);
+  const [cleanliness, setCleanliness] = useState<string | null>(null);
+  const [safety, setSafety] = useState<string | null>(null);
+  const [accessible, setAccessible] = useState<boolean | null>(null);
 
-  // Form State
-  const [isOpen, setIsOpen] = useState(true);
-  const [cleanliness, setCleanliness] = useState('Clean');
-  const [safety, setSafety] = useState('Safe');
-  const [accessible, setAccessible] = useState(false);
+  const distance_value = distance;
 
-  if (!visible || !washroom) return null;
+  if (!washroom) return null;
 
-  const getFreshnessText = () => {
-    if (!washroom.last_verified_timestamp) {
-      return "⚠️ Status not recently verified.";
-    }
-    const lastVerified = new Date(washroom.last_verified_timestamp);
-    const now = new Date();
-    const diffHours = (now.getTime() - lastVerified.getTime()) / (1000 * 60 * 60);
-
-    if (diffHours < 24) {
-      const displayHours = Math.max(1, Math.round(diffHours));
-      return `✓ Verified by ${washroom.verified_count} users. Last reported: ${displayHours} hours ago.`;
-    } else {
-      const displayDays = Math.round(diffHours / 24);
-      return `⚠️ Status not recently verified. Last verified: ${displayDays} days ago.`;
-    }
-  };
-
-  const handleSubmitFeedback = async () => {
+  const handleSubmit = async () => {
     setSubmitting(true);
     try {
       await sakhiApi.submitWashroomFeedback(washroom.id, {
-        is_open: isOpen,
-        cleanliness: cleanliness,
-        safety: safety,
-        accessible: accessible
+        is_open: isOpen ?? true,
+        cleanliness: cleanliness || 'Average',
+        safety: safety || 'Safe',
+        accessible: accessible ?? true
       });
-      Alert.alert('Success', 'Thank you for keeping the community safe and informed!');
-      setShowFeedbackForm(false);
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to submit feedback. Please try again.');
+      setShowFeedback(false);
+      if (onFeedbackSubmitted) {
+        onFeedbackSubmitted();
+      }
+      onClose(); // Alternatively, could just refresh the washroom
+    } catch (e) {
+      console.warn('Failed to submit feedback');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const renderOptionSelector = (label: string, value: string, options: string[], onChange: (val: string) => void) => (
-    <View style={styles.formGroup}>
-      <Text style={styles.formLabel}>{label}</Text>
-      <View style={styles.optionsRow}>
-        {options.map((opt) => (
-          <TouchableOpacity
-            key={opt}
-            style={[styles.optionBtn, value === opt && styles.optionBtnActive]}
-            onPress={() => onChange(opt)}
-          >
-            <Text style={[styles.optionText, value === opt && styles.optionTextActive]}>{opt}</Text>
-          </TouchableOpacity>
-        ))}
+  const getFreshnessText = () => {
+    if (!washroom.last_verified_timestamp) {
+      return "⚠️ Status not recently verified. Last verified: Never.";
+    }
+    const verifiedDate = new Date(washroom.last_verified_timestamp);
+    const now = new Date();
+    const diffHours = (now.getTime() - verifiedDate.getTime()) / (1000 * 60 * 60);
+
+    if (diffHours < 24) {
+      return `✓ Verified by ${washroom.verified_count} users. Last reported: ${Math.max(1, Math.round(diffHours))} hours ago.`;
+    } else {
+      const days = Math.round(diffHours / 24);
+      return `⚠️ Status not recently verified. Last verified: ${days} days ago.`;
+    }
+  };
+
+  const StatusRow = ({ label, value, good, neutral, bad }: any) => {
+    let color = '#6B7280';
+    let icon = 'ellipse';
+    if (value === good) { color = '#10B981'; icon = 'checkmark-circle'; }
+    else if (value === neutral) { color = '#F59E0B'; icon = 'alert-circle'; }
+    else if (value === bad) { color = '#DC2626'; icon = 'close-circle'; }
+
+    return (
+      <View style={styles.statusRow}>
+        <SakhiText style={{ width: 100, fontWeight: 'bold' }}>{label}</SakhiText>
+        <Ionicons name={icon as any} size={18} color={color} style={{ marginRight: 6 }} />
+        <SakhiText style={{ color }}>{value || 'Unknown'}</SakhiText>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
-      <View style={styles.sheetContainer}>
-        <View style={styles.handleBar} />
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.header}>🚻 Washroom — {distance} m</Text>
-          <Text style={styles.address}>{washroom.name}</Text>
-          {washroom.address && <Text style={styles.addressSub}>{washroom.address}</Text>}
-          
-          <View style={styles.freshnessContainer}>
-            <Text style={styles.freshnessText}>{getFreshnessText()}</Text>
+    <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <View style={styles.cardHeader}>
+            <SakhiText variant="h3" style={{ fontWeight: 'bold' }}>
+              🚻 {washroom.name}
+            </SakhiText>
+            {distance_value !== null && distance_value > 0 && (
+              <SakhiText variant="subtext" style={{ color: '#4B5563', fontWeight: 'bold' }}>
+                {Math.round(distance_value)} m away
+              </SakhiText>
+            )}
           </View>
+          <SakhiText variant="caption" style={{ marginBottom: 16, color: '#6B7280' }}>
+            {washroom.address || 'Location on map'}
+          </SakhiText>
 
-          <View style={styles.statusGrid}>
-            <View style={styles.statusItem}>
-              <Text style={styles.statusLabel}>Status</Text>
-              <Text style={[styles.statusValue, washroom.is_open ? styles.textGreen : styles.textRed]}>
-                {washroom.is_open ? '🟢 Open' : '🔴 Closed'}
-              </Text>
-            </View>
-            <View style={styles.statusItem}>
-              <Text style={styles.statusLabel}>Cleanliness</Text>
-              <Text style={[styles.statusValue, washroom.cleanliness === 'Clean' ? styles.textGreen : (washroom.cleanliness === 'Average' ? styles.textAmber : styles.textRed)]}>
-                {washroom.cleanliness === 'Clean' ? '🟢 ' : (washroom.cleanliness === 'Average' ? '🟡 ' : '🔴 ')}
-                {washroom.cleanliness}
-              </Text>
-            </View>
-            <View style={styles.statusItem}>
-              <Text style={styles.statusLabel}>Safety</Text>
-              <Text style={[styles.statusValue, washroom.safety === 'Safe' ? styles.textGreen : (washroom.safety === 'Concern' ? styles.textAmber : styles.textRed)]}>
-                {washroom.safety === 'Safe' ? '🟢 ' : (washroom.safety === 'Concern' ? '🟡 ' : '🔴 ')}
-                {washroom.safety}
-              </Text>
-            </View>
-            <View style={styles.statusItem}>
-              <Text style={styles.statusLabel}>Accessible</Text>
-              <Text style={[styles.statusValue, washroom.accessible ? styles.textGreen : styles.textRed]}>
-                {washroom.accessible ? '🟢 Yes' : '🔴 No'}
-              </Text>
-            </View>
-          </View>
+          <SakhiText variant="caption" style={{ marginBottom: 16, fontStyle: 'italic' }}>
+            {getFreshnessText()}
+          </SakhiText>
 
-          {!showFeedbackForm ? (
-            <TouchableOpacity style={styles.feedbackButton} onPress={() => setShowFeedbackForm(true)}>
-              <Text style={styles.feedbackButtonText}>Provide Feedback</Text>
-            </TouchableOpacity>
+          {washroom.verified_count === 0 ? (
+            <View style={styles.statusBox}>
+              <SakhiText style={{ textAlign: 'center', color: '#6B7280', fontStyle: 'italic' }}>No ratings yet. Be the first to provide feedback!</SakhiText>
+            </View>
           ) : (
-            <View style={styles.formContainer}>
-              <Text style={styles.formTitle}>Your Review</Text>
+            <View style={styles.statusBox}>
+              <StatusRow label="Status" value={washroom.is_open === null ? null : (washroom.is_open ? 'Open' : 'Closed')} good="Open" bad="Closed" />
+              <StatusRow label="Cleanliness" value={washroom.cleanliness} good="Clean" neutral="Average" bad="Dirty" />
+              <StatusRow label="Safety" value={washroom.safety} good="Safe" neutral="Concern" bad="Unsafe" />
+              <StatusRow label="Accessible" value={washroom.accessible === null ? null : (washroom.accessible ? 'Accessible' : 'Not Accessible')} good="Accessible" bad="Not Accessible" />
+            </View>
+          )}
+
+          {!showFeedback ? (
+            <View style={styles.actions}>
+              <SakhiButton title="Provide Feedback" variant="secondary" onPress={() => setShowFeedback(true)} style={{ flex: 1, marginRight: 8 }} />
+              <SakhiButton title="Close" onPress={onClose} style={{ flex: 1 }} />
+            </View>
+          ) : (
+            <View style={styles.feedbackForm}>
+              <SakhiText variant="h3" style={{ marginBottom: 12 }}>Your Feedback</SakhiText>
               
-              <View style={styles.formGroupRow}>
-                <Text style={styles.formLabel}>Is it Open?</Text>
-                <Switch value={isOpen} onValueChange={setIsOpen} trackColor={{ false: '#d1d5db', true: '#10b981' }} thumbColor="#fff" />
-              </View>
-              
-              {renderOptionSelector('Cleanliness', cleanliness, ['Clean', 'Average', 'Dirty'], setCleanliness)}
-              {renderOptionSelector('Safety', safety, ['Safe', 'Concern', 'Unsafe'], setSafety)}
-              
-              <View style={styles.formGroupRow}>
-                <Text style={styles.formLabel}>Wheelchair Accessible?</Text>
-                <Switch value={accessible} onValueChange={setAccessible} trackColor={{ false: '#d1d5db', true: '#10b981' }} thumbColor="#fff" />
+              <SakhiText style={{ fontWeight: 'bold', marginTop: 8 }}>Is it open?</SakhiText>
+              <View style={styles.pillRow}>
+                <TouchableOpacity onPress={() => setIsOpen(true)} style={[styles.pill, isOpen === true && styles.pillActive]}><SakhiText style={isOpen === true ? styles.pillTextActive : {}}>Yes</SakhiText></TouchableOpacity>
+                <TouchableOpacity onPress={() => setIsOpen(false)} style={[styles.pill, isOpen === false && styles.pillActive]}><SakhiText style={isOpen === false ? styles.pillTextActive : {}}>No</SakhiText></TouchableOpacity>
               </View>
 
-              <View style={styles.formActions}>
-                <TouchableOpacity style={styles.cancelButton} onPress={() => setShowFeedbackForm(false)}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.submitButton} onPress={handleSubmitFeedback} disabled={submitting}>
-                  {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>Submit</Text>}
+              <SakhiText style={{ fontWeight: 'bold', marginTop: 8 }}>Cleanliness</SakhiText>
+              <View style={styles.pillRow}>
+                <TouchableOpacity onPress={() => setCleanliness('Clean')} style={[styles.pill, cleanliness === 'Clean' && styles.pillActive]}><SakhiText style={cleanliness === 'Clean' ? styles.pillTextActive : {}}>Clean</SakhiText></TouchableOpacity>
+                <TouchableOpacity onPress={() => setCleanliness('Average')} style={[styles.pill, cleanliness === 'Average' && styles.pillActive]}><SakhiText style={cleanliness === 'Average' ? styles.pillTextActive : {}}>Average</SakhiText></TouchableOpacity>
+                <TouchableOpacity onPress={() => setCleanliness('Dirty')} style={[styles.pill, cleanliness === 'Dirty' && styles.pillActive]}><SakhiText style={cleanliness === 'Dirty' ? styles.pillTextActive : {}}>Dirty</SakhiText></TouchableOpacity>
+              </View>
+
+              <SakhiText style={{ fontWeight: 'bold', marginTop: 8 }}>Safety</SakhiText>
+              <View style={styles.pillRow}>
+                <TouchableOpacity onPress={() => setSafety('Safe')} style={[styles.pill, safety === 'Safe' && styles.pillActive]}><SakhiText style={safety === 'Safe' ? styles.pillTextActive : {}}>Safe</SakhiText></TouchableOpacity>
+                <TouchableOpacity onPress={() => setSafety('Concern')} style={[styles.pill, safety === 'Concern' && styles.pillActive]}><SakhiText style={safety === 'Concern' ? styles.pillTextActive : {}}>Concern</SakhiText></TouchableOpacity>
+                <TouchableOpacity onPress={() => setSafety('Unsafe')} style={[styles.pill, safety === 'Unsafe' && styles.pillActive]}><SakhiText style={safety === 'Unsafe' ? styles.pillTextActive : {}}>Unsafe</SakhiText></TouchableOpacity>
+              </View>
+
+              <SakhiText style={{ fontWeight: 'bold', marginTop: 8 }}>Wheelchair Accessible?</SakhiText>
+              <View style={styles.pillRow}>
+                <TouchableOpacity onPress={() => setAccessible(true)} style={[styles.pill, accessible === true && styles.pillActive]}><SakhiText style={accessible === true ? styles.pillTextActive : {}}>Yes</SakhiText></TouchableOpacity>
+                <TouchableOpacity onPress={() => setAccessible(false)} style={[styles.pill, accessible === false && styles.pillActive]}><SakhiText style={accessible === false ? styles.pillTextActive : {}}>No</SakhiText></TouchableOpacity>
+              </View>
+
+              <View style={[styles.actions, { marginTop: 16 }]}>
+                <SakhiButton title="Cancel" variant="secondary" onPress={() => setShowFeedback(false)} style={{ flex: 1, marginRight: 8 }} />
+                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
+                  {submitting ? <ActivityIndicator color="#FFF" /> : <SakhiText style={{ color: '#FFF', fontWeight: 'bold' }}>Submit</SakhiText>}
                 </TouchableOpacity>
               </View>
             </View>
           )}
-
-        </ScrollView>
+        </View>
       </View>
     </Modal>
   );
@@ -165,181 +186,71 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
   },
-  sheetContainer: {
+  container: {
     backgroundColor: '#fff',
+    padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
-    paddingBottom: 30,
-    marginTop: 'auto', // Pushes it to bottom
-    elevation: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
+    elevation: 5,
   },
-  handleBar: {
-    width: 40,
-    height: 5,
-    backgroundColor: '#d1d5db',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginVertical: 12,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#111827',
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  address: {
-    fontSize: 16,
-    color: '#374151',
-    fontWeight: '600',
+  statusBox: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
-  addressSub: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  freshnessContainer: {
-    backgroundColor: '#f3f4f6',
-    padding: 10,
-    borderRadius: 8,
-    marginVertical: 14,
-  },
-  freshnessText: {
-    fontSize: 13,
-    color: '#4b5563',
-    fontStyle: 'italic',
-  },
-  statusGrid: {
+  statusRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  statusItem: {
-    width: '48%',
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-  },
-  statusLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  statusValue: {
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  textGreen: { color: '#059669' },
-  textAmber: { color: '#d97706' },
-  textRed: { color: '#dc2626' },
-  
-  feedbackButton: {
-    backgroundColor: '#7c3aed',
-    paddingVertical: 14,
-    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 10,
-  },
-  feedbackButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  
-  formContainer: {
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingTop: 16,
-  },
-  formTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 16,
-  },
-  formGroupRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  formLabel: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#4b5563',
     marginBottom: 8,
   },
-  optionsRow: {
+  actions: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  feedbackForm: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingTop: 16,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    marginTop: 8,
     gap: 8,
   },
-  optionBtn: {
-    flex: 1,
-    paddingVertical: 10,
+  pill: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    borderColor: '#D1D5DB',
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 16,
   },
-  optionBtnActive: {
-    borderColor: '#7c3aed',
-    backgroundColor: '#ede9fe',
+  pillActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
   },
-  optionText: {
-    fontSize: 14,
-    color: '#4b5563',
-    fontWeight: '600',
-  },
-  optionTextActive: {
-    color: '#6d28d9',
-  },
-  formActions: {
-    flexDirection: 'row',
-    marginTop: 20,
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: '#e5e7eb',
-  },
-  cancelButtonText: {
-    color: '#4b5563',
+  pillTextActive: {
+    color: '#FFF',
     fontWeight: 'bold',
-    fontSize: 16,
   },
-  submitButton: {
+  submitBtn: {
     flex: 1,
-    paddingVertical: 14,
+    backgroundColor: '#DC2626',
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#10b981',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    justifyContent: 'center',
   }
 });

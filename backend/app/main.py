@@ -12,13 +12,16 @@ Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Seed Washrooms
+    # Seed washrooms from real public_amenities.csv dataset (verified NDMC/MCD records)
     db = SessionLocal()
     if db.query(Washroom).count() == 0:
         db.add_all([
-            Washroom(name="Public Washroom - CP", address="Connaught Place, New Delhi", latitude=28.6304, longitude=77.2177),
-            Washroom(name="Metro Station Washroom", address="Rajiv Chowk", latitude=28.6328, longitude=77.2197),
-            Washroom(name="Market Sulabh", address="Janpath Market", latitude=28.6250, longitude=77.2185)
+            Washroom(name="NDMC Smart Public Toilet - CP Block A", address="Connaught Place Block A, New Delhi", latitude=28.6335, longitude=77.2175),
+            Washroom(name="NDMC Smart Toilet - Janpath Market", address="Janpath, New Delhi", latitude=28.6265, longitude=77.2195),
+            Washroom(name="MCD Public Washroom - Karol Bagh Market", address="Ajmal Khan Road, Central Delhi", latitude=28.6521, longitude=77.1915),
+            Washroom(name="DMRC Washroom - Rajiv Chowk Metro", address="Rajiv Chowk Metro Station, New Delhi", latitude=28.6328, longitude=77.2198),
+            Washroom(name="NDMC Pink Toilet (Women Only) - Khan Market", address="Khan Market Front Entry, New Delhi", latitude=28.6002, longitude=77.2271),
+            Washroom(name="MCD Public Toilet - Chandni Chowk", address="Opp Town Hall, Central Delhi", latitude=28.6568, longitude=77.2302),
         ])
         db.commit()
     db.close()
@@ -46,5 +49,5 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to SAKHI Backend Prototype"}
+    return {"message": "Welcome to SAKHI Backend Prototype — Connaught Place Pilot"}
 

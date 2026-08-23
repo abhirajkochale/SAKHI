@@ -203,6 +203,9 @@ class OSRMRoutingService(RoutingService):
                 continue
 
             metrics = self.ranking_service.aggregate_metrics(segments)
+            # Add a small penalty based on distance/duration to break ties between nearly identical routes
+            tie_breaker = (metrics.total_distance_m / 10000.0) + (metrics.total_duration_s / 10000.0)
+            metrics.route_risk_score = min(100.0, metrics.route_risk_score + tie_breaker)
             candidates.append(RouteCandidate(route_id=route_id, metrics=metrics, segments=segments))
 
         if not candidates:

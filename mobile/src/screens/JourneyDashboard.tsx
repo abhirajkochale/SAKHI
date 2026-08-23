@@ -53,8 +53,9 @@ export default function JourneyDashboard() {
   const [showWashrooms, setShowWashrooms] = useState(false);
   const [washrooms, setWashrooms] = useState<WashroomResponse[]>([]);
   const [washroomsLoading, setWashroomsLoading] = useState(false);
-  const [washroomsError, setWashroomsError] = useState<string | null>(null);
   const [hasLoadedWashrooms, setHasLoadedWashrooms] = useState(false);
+  const [washroomsError, setWashroomsError] = useState<string | null>(null);
+  const [washroomsRefreshKey, setWashroomsRefreshKey] = useState(0);
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [selectedWashroom, setSelectedWashroom] = useState<WashroomResponse | null>(null);
 
@@ -80,7 +81,22 @@ export default function JourneyDashboard() {
           (loc) => { if (active) setUserLocation(loc); }
         );
       } catch (err) {
-        console.warn('Could not fetch location:', err);
+        // Silently fallback to Connaught Place (Rajiv Chowk) for the pilot demo
+        // This prevents the warning banner on emulators without GPS enabled.
+        if (active) {
+          setUserLocation({
+            coords: {
+              latitude: 28.6328,
+              longitude: 77.2197,
+              altitude: null,
+              accuracy: null,
+              altitudeAccuracy: null,
+              heading: null,
+              speed: null,
+            },
+            timestamp: Date.now(),
+          });
+        }
       }
     };
 
@@ -92,7 +108,7 @@ export default function JourneyDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!showWashrooms || hasLoadedWashrooms || washroomsLoading || washroomsError) return;
+    if (!showWashrooms) return;
     
     // Determine center for washroom search
     let lat: number;
@@ -122,7 +138,7 @@ export default function JourneyDashboard() {
         }
       });
     return () => { cancelled = true; };
-  }, [showWashrooms, hasLoadedWashrooms, washroomsLoading, washroomsError, userLocation, journey]);
+  }, [showWashrooms, washroomsRefreshKey]);
 
   const handleAnalyze = async (origin: ApiLocation, destination: ApiLocation, originName: string, destName: string) => {
     setLoading(true);
@@ -153,7 +169,11 @@ export default function JourneyDashboard() {
         setJourney(cached);
         if (cached.ranking && cached.ranking.safest_route) {
           setSelectedRoute(cached.ranking.safest_route);
-          setSelectedSegment(cached.ranking.safest_route.segments?.[0] || null);
+          if (cached.ranking.safest_route.segments && cached.ranking.safest_route.segments.length > 0) {
+            setSelectedSegment(cached.ranking.safest_route.segments[0]);
+          } else {
+            setSelectedSegment(null);
+          }
           setIsActiveJourney(true);
         } else {
           setSelectedRoute(null);
@@ -295,11 +315,20 @@ export default function JourneyDashboard() {
             </View>
             <Text style={currentStyles.qaTileText}>Police</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={currentStyles.qaTileSquare} onPress={() => openQuickFind('Call a Friend')}>
+            <View style={[currentStyles.qaIconContainer, {backgroundColor: '#D97706'}]}>
+              <Text style={currentStyles.qaTileIconWhite}>📞</Text>
+            </View>
+            <Text style={currentStyles.qaTileText}>Call a Friend</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={handleSOSTap} style={currentStyles.sosButton}>
+        <TouchableOpacity style={currentStyles.sosCard} onPress={handleSOSTap}>
+          <View style={currentStyles.sosIconBox}>
+             <Text style={currentStyles.sosIconText}>SOS</Text>
+          </View>
           <View style={currentStyles.sosTextContainer}>
-            <Text style={currentStyles.sosTitle}>EMERGENCY SOS</Text>
-            <Text style={currentStyles.sosSubtitle}>Tap for immediate help</Text>
+             <Text style={currentStyles.sosTitle}>EMERGENCY SOS</Text>
+             <Text style={currentStyles.sosSubtitle}>Tap for immediate help</Text>
           </View>
           <Text style={currentStyles.sosArrow}>→</Text>
         </TouchableOpacity>
@@ -345,11 +374,11 @@ export default function JourneyDashboard() {
         />
 
         {/* Map Container */}
-        <View style={currentStyles.ajMapContainer}>
+        <View style={[currentStyles.ajMapContainer, { minHeight: 300 }]}>
           <JourneyMap 
             origin={journey.origin}
             destination={journey.destination}
-            segments={selectedRoute.segments}
+            segments={selectedRoute.segments || []}
             selectedSegmentId={selectedSegment?.segment_id || null}
             onSegmentPress={setSelectedSegment}
             washrooms={washrooms}
@@ -410,10 +439,10 @@ export default function JourneyDashboard() {
           <View style={currentStyles.ajSafetyDivider} />
           <View style={currentStyles.ajSafetyMiddle}>
             <View style={{flexDirection: 'row', alignItems: 'baseline'}}>
-              <Text style={[currentStyles.ajSafetyScore, {color: riskColor}]}>{selectedRoute.risk_score.toFixed(0)}</Text>
+              <Text style={[currentStyles.ajSafetyScore, {color: riskColor}]}>{selectedRoute.risk_score.toFixed(1)}</Text>
               <Text style={currentStyles.ajSafetyScoreMax}> / 100</Text>
             </View>
-            <Text style={currentStyles.ajSafetyLabel}>Risk Score</Text>
+            <Text style={currentStyles.ajSafetyLabel}>Route Avg Risk</Text>
           </View>
           <View style={currentStyles.ajSafetyDivider} />
           <View style={currentStyles.ajSafetyRight}>
@@ -427,24 +456,16 @@ export default function JourneyDashboard() {
         {/* Route Options List injected into Active Journey */}
         {journey.ranking && (
           <View style={{ marginBottom: 16 }}>
-            {showRouteOptions ? (
-              <RouteOptionsList 
-                ranking={journey.ranking}
-                selectedRouteId={selectedRoute?.route_id || null}
-                onSelectRoute={(route) => {
-                  setSelectedRoute(route);
-                  setSelectedSegment(route.segments && route.segments.length > 0 ? route.segments[0] : null);
-                  setShowRouteOptions(false);
-                }}
-                onOpenMaps={openSelectedRouteInGoogleMaps}
-              />
-            ) : (
-              <SakhiButton 
-                title="Change route ▾" 
-                variant="secondary" 
-                onPress={() => setShowRouteOptions(true)} 
-              />
-            )}
+            <Text style={[currentStyles.ajSectionTitle, {marginTop: 8}]}>Choose a different route</Text>
+            <RouteOptionsList 
+              ranking={journey.ranking}
+              selectedRouteId={selectedRoute?.route_id || null}
+              onSelectRoute={(route) => {
+                setSelectedRoute(route);
+                setSelectedSegment(route.segments && route.segments.length > 0 ? route.segments[0] : null);
+              }}
+              onOpenMaps={openSelectedRouteInGoogleMaps}
+            />
           </View>
         )}
 
@@ -701,6 +722,7 @@ export default function JourneyDashboard() {
         onClose={() => setSelectedWashroom(null)}
         washroom={selectedWashroom}
         distance={selectedWashroom && userLocation ? calculateDistance(userLocation.coords.latitude, userLocation.coords.longitude, selectedWashroom.latitude, selectedWashroom.longitude) : 0}
+        onFeedbackSubmitted={() => setWashroomsRefreshKey(k => k + 1)}
       />
     </NavigationContainer>
   );

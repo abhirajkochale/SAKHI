@@ -4,15 +4,15 @@ export interface Location {
 }
 
 export interface WashroomResponse {
-  id: number;
+  id: string;
   name: string;
   address: string | null;
   latitude: number;
   longitude: number;
-  is_open: boolean;
-  cleanliness: string;
-  safety: string;
-  accessible: boolean;
+  is_open: boolean | null;
+  cleanliness: string | null;
+  safety: string | null;
+  accessible: boolean | null;
   verified_count: number;
   last_verified_timestamp: string | null;
 }

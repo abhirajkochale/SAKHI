@@ -26,14 +26,14 @@ export const sakhiApi = {
   },
 
   getWashrooms: async (latitude: number, longitude: number, radiusKm: number = 5.0): Promise<WashroomResponse[]> => {
-    const response = await apiClient.get<WashroomResponse[]>('/washrooms/', {
-      params: { latitude, longitude, radius_km: radiusKm }
+    const response = await apiClient.get<{ washrooms: WashroomResponse[] }>('/washrooms', {
+      params: { lat: latitude, lon: longitude, radius_m: radiusKm * 1000 }
     });
-    return response.data;
+    return response.data.washrooms;
   },
 
   submitWashroomFeedback: async (
-    washroomId: number,
+    washroomId: string,
     feedback: { is_open: boolean; cleanliness: string; safety: string; accessible: boolean }
   ): Promise<{ status: string; message: string }> => {
     const response = await apiClient.post(`/washrooms/${washroomId}/feedback`, feedback);

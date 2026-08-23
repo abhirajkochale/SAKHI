@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { Modal, View, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { sakhiApi } from '../api/sakhiApi';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
@@ -81,8 +81,9 @@ export default function ReportIncidentModal({ visible, onClose, segmentId, latit
   );
 
   const renderForm = () => (
-    <View style={styles.formContainer}>
-      <View style={styles.header}>
+    <View style={{ flexShrink: 1 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+        <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <SakhiText variant="h2" style={styles.title}>Report a safety issue</SakhiText>
           <SakhiText variant="body" color="secondary">Help improve safety information for this route.</SakhiText>
@@ -140,6 +141,7 @@ export default function ReportIncidentModal({ visible, onClose, segmentId, latit
           Report linked to your current route segment
         </SakhiText>
       </View>
+      </ScrollView>
 
       <View style={styles.footer}>
         <View style={{ flex: 1, marginRight: 12 }}>
@@ -158,13 +160,16 @@ export default function ReportIncidentModal({ visible, onClose, segmentId, latit
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView 
+        style={styles.overlay} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.modalView}>
           {submitStatus === 'success' && renderSuccess()}
           {submitStatus === 'error' && renderError()}
           {submitStatus === 'idle' && renderForm()}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -181,6 +186,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24, 
     borderTopRightRadius: 24, 
     minHeight: 400, 
+    maxHeight: '90%',
     shadowColor: '#000', 
     shadowOffset: { width: 0, height: -4 }, 
     shadowOpacity: 0.1, 

@@ -1,29 +1,33 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, String, Float, Boolean, DateTime, ForeignKey, Integer
 from sqlalchemy.orm import relationship
-from datetime import datetime
-from app.models.database import Base
+from datetime import datetime, timezone
+import uuid
+
+from .database import Base
 
 class Washroom(Base):
     __tablename__ = "washrooms"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, nullable=False)
     address = Column(String, nullable=True)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    feedbacks = relationship("WashroomFeedback", back_populates="washroom", cascade="all, delete-orphan")
-
+    feedback = relationship("WashroomFeedback", back_populates="washroom")
 
 class WashroomFeedback(Base):
     __tablename__ = "washroom_feedback"
 
-    id = Column(Integer, primary_key=True, index=True)
-    washroom_id = Column(Integer, ForeignKey("washrooms.id"))
-    is_open = Column(Boolean, nullable=False)
-    cleanliness = Column(String, nullable=False) # Clean, Average, Dirty
-    safety = Column(String, nullable=False) # Safe, Concern, Unsafe
-    accessible = Column(Boolean, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    washroom_id = Column(String, ForeignKey("washrooms.id"), nullable=False)
+    
+    is_open = Column(Boolean, nullable=True)
+    cleanliness = Column(String, nullable=True) # Clean, Average, Dirty
+    safety = Column(String, nullable=True) # Safe, Concern, Unsafe
+    accessible = Column(Boolean, nullable=True)
+    
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    washroom = relationship("Washroom", back_populates="feedbacks")
+    washroom = relationship("Washroom", back_populates="feedback")

@@ -83,7 +83,7 @@ export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRou
                 {isSingleRoute ? 'Best available route' : opt.label}
               </SakhiText>
               <SakhiBadge 
-                label={`Risk: ${opt.route.risk_score.toFixed(0)}/100`} 
+                label={`Risk: ${opt.route.risk_score.toFixed(1)}/100`} 
                 variant={opt.badgeVariant} 
               />
             </View>

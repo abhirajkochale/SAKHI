@@ -101,15 +101,28 @@ class RouteRankingService:
             
             best_cost, best_c = scored_candidates[0]
             
-            # Inject mock amenity data based on mode
+            # Compute real amenity counts along the route
             from app.schemas.ranking import AmenityCounts
-            amenity_counts = AmenityCounts()
-            if mode_name == "safest":
-                amenity_counts = AmenityCounts(washrooms=2, medical=1, police=1)
-            elif mode_name == "balanced":
-                amenity_counts = AmenityCounts(washrooms=1, medical=0, police=1)
-            elif mode_name == "fastest":
-                amenity_counts = AmenityCounts(washrooms=0, medical=0, police=0)
+            from app.services.risk.segment_lookup_service import get_segment_lookup_service
+            lookup = get_segment_lookup_service()
+            washroom_set = set()
+            medical_set = set()
+            police_set = set()
+            for seg in best_c.segments:
+                mid_lat = (seg.start_location.latitude + seg.end_location.latitude) / 2
+                mid_lon = (seg.start_location.longitude + seg.end_location.longitude) / 2
+                infra = lookup.get_infrastructure_distances(mid_lat, mid_lon)
+                if infra.get("distance_to_public_toilet_m", 9999) < 500:
+                    washroom_set.add(round(infra["distance_to_public_toilet_m"]))
+                if infra.get("distance_to_hospital_m", 9999) < 2000:
+                    medical_set.add(round(infra["distance_to_hospital_m"]))
+                if infra.get("distance_to_police_m", 9999) < 1000:
+                    police_set.add(round(infra["distance_to_police_m"]))
+            amenity_counts = AmenityCounts(
+                washrooms=len(washroom_set),
+                medical=len(medical_set),
+                police=len(police_set)
+            )
             
             return RouteOption(
                 route_id=best_c.route_id,
