@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, Uuid
 from app.models.database import Base
 from datetime import datetime
 
@@ -6,7 +6,7 @@ class Incident(Base):
     __tablename__ = "incidents"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, index=True, nullable=True) # References users.id
+    user_id = Column(Uuid(as_uuid=False), index=True, nullable=True) # References users.id
     segment_id = Column(String, index=True) # Nearest route segment
     event_type = Column(String, index=True)
     severity = Column(Float)

@@ -1,11 +1,11 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Uuid
 from app.models.database import Base
 from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String, primary_key=True, index=True) # Supabase UUID
+    id = Column(Uuid(as_uuid=False), primary_key=True, index=True) # Supabase UUID
     email = Column(String, unique=True, index=True, nullable=True)
     display_name = Column(String, nullable=True)
     identity_status = Column(String, default="NORMAL") # NORMAL or VERIFIED
