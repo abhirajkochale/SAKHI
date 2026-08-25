@@ -210,40 +210,38 @@ export default function JourneyDashboard() {
 
     const routeSegments = selectedRoute?.segments || journey.segments;
     const coordinates = routeSegments.flatMap((segment) => segment.geometry.coordinates || []);
-    const waypointIndexes = [0.25, 0.5, 0.75]
-      .map((position) => coordinates[Math.round((coordinates.length - 1) * position)])
-      .filter((coordinate): coordinate is number[] => Array.isArray(coordinate) && coordinate.length >= 2);
+    
+    const waypoints: string[] = [];
+    if (coordinates.length > 5) {
+      [0.25, 0.5, 0.75].forEach((fraction) => {
+        const index = Math.round((coordinates.length - 1) * fraction);
+        const pt = coordinates[index];
+        if (Array.isArray(pt) && pt.length >= 2) {
+          const wp = `${pt[1]},${pt[0]}`;
+          if (!waypoints.includes(wp)) {
+            waypoints.push(wp);
+          }
+        }
+      });
+    }
 
-    const destStr = `${journey.destination.latitude},${journey.destination.longitude}`;
-    const origStr = `${journey.origin.latitude},${journey.origin.longitude}`;
-
-    // 1. Native turn-by-turn navigation URI
-    const geoUrl = `google.navigation:q=${destStr}&mode=w`;
-
-    // 2. Web fallback URI
     const params = new URLSearchParams({
       api: '1',
-      origin: origStr,
-      destination: destStr,
-      travelmode: 'walking',
-      dir_action: 'navigate',
+      origin: `${journey.origin.latitude},${journey.origin.longitude}`,
+      destination: `${journey.destination.latitude},${journey.destination.longitude}`,
+      travelmode: 'walking'
     });
-    if (waypointIndexes.length) {
-      params.set('waypoints', waypointIndexes.map(([longitude, latitude]) => `${latitude},${longitude}`).join('|'));
+    
+    if (waypoints.length > 0) {
+      params.set('waypoints', waypoints.join('|'));
     }
-    const webUrl = `https://www.google.com/maps/dir/?${params.toString()}`;
 
+    const url = `https://www.google.com/maps/dir/?${params.toString()}`;
+    
     try {
-      // First try opening the native navigation intent
-      // We skip canOpenURL because Android 11+ package visibility rules block it unless explicitly declared in AndroidManifest
-      await Linking.openURL(geoUrl);
-    } catch (e1) {
-      try {
-        // If the native intent fails (e.g., Google Maps not installed), fallback to browser
-        await Linking.openURL(webUrl);
-      } catch (e2) {
-        Alert.alert('Navigation unavailable', 'Unable to open Google Maps or a browser on this device.');
-      }
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert('Navigation unavailable', 'Unable to open Google Maps or a browser on this device.');
     }
   };
 

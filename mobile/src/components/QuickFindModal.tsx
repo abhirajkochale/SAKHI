@@ -36,7 +36,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   }, [visible, initialCategory]);
 
   React.useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (callActive) {
       interval = setInterval(() => {
         setCallElapsedSeconds(prev => {
