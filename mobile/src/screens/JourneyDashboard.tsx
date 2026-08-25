@@ -127,12 +127,12 @@ export default function JourneyDashboard() {
     // Determine center for washroom search
     let lat: number;
     let lon: number;
-    if (userLocation) {
-      lat = userLocation.coords.latitude;
-      lon = userLocation.coords.longitude;
-    } else if (journey) {
-      lat = journey.origin.latitude;
-      lon = journey.origin.longitude;
+    if (journey) {
+        lat = journey.origin.latitude;
+        lon = journey.origin.longitude;
+      } else if (userLocation) {
+        lat = userLocation.coords.latitude;
+        lon = userLocation.coords.longitude;
     } else {
       // Default to Delhi if no location available
       lat = 28.6139;
@@ -396,7 +396,9 @@ export default function JourneyDashboard() {
           loading={loading}
           compact={true}
           initialOriginText={routeLabels.origin || ''}
-          initialDestinationText={routeLabels.destination || ''}
+            initialDestinationText={routeLabels.destination || ''}
+            initialOrigin={journey?.origin || null}
+            initialDestination={journey?.destination || null}
         />
 
         {/* Map Container */}

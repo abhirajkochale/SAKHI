@@ -72,7 +72,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'sakhi://auth/callback',
+          redirectTo: (process.env.EXPO_PUBLIC_APP_ENV === 'development' ? 'sakhi-dev://auth/callback' : 'sakhi://auth/callback'),
           skipBrowserRedirect: true,
         },
       });
@@ -82,7 +82,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
 
       const res = await WebBrowser.openAuthSessionAsync(
         data.url,
-        'sakhi://auth/callback'
+        (process.env.EXPO_PUBLIC_APP_ENV === 'development' ? 'sakhi-dev://auth/callback' : 'sakhi://auth/callback')
       );
 
       if (res.type === 'success' && res.url) {

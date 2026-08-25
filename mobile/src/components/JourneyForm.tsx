@@ -21,6 +21,8 @@ interface Props {
   compact?: boolean;
   initialOriginText?: string;
   initialDestinationText?: string;
+  initialOrigin?: Location | null;
+  initialDestination?: Location | null;
 }
 
 export default function JourneyForm({ 
@@ -28,12 +30,14 @@ export default function JourneyForm({
   loading, 
   compact = false,
   initialOriginText = '',
-  initialDestinationText = ''
+  initialDestinationText = '',
+  initialOrigin = null,
+  initialDestination = null
 }: Props) {
   const [originText, setOriginText] = useState(initialOriginText);
   const [destinationText, setDestinationText] = useState(initialDestinationText);
-  const [origin, setOrigin] = useState<Location | null>(null);
-  const [destination, setDestination] = useState<Location | null>(null);
+  const [origin, setOrigin] = useState<Location | null>(initialOrigin);
+  const [destination, setDestination] = useState<Location | null>(initialDestination);
   const [error, setError] = useState<string | null>(null);
   const [showOriginPicker, setShowOriginPicker] = useState(false);
   const [showDestPicker, setShowDestPicker] = useState(false);

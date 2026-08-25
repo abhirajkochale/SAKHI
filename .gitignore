@@ -36,3 +36,34 @@ dist/
 
 # Backup directories
 SAKHI_friends_backup/
+
+# Secrets and Environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+
+# Mobile / Android Build Artifacts
+.gradle/
+local.properties
+android/app/build/
+android/build/
+*.apk
+*.aab
+npm-debug.*
+yarn-error.*
+
+# Python / Backend
+venv/
+.venv/
+__pycache__/
+*.pyc
+sakhi.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+build/
