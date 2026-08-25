@@ -6,6 +6,7 @@ class Incident(Base):
     __tablename__ = "incidents"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, nullable=True) # References users.id
     segment_id = Column(String, index=True) # Nearest route segment
     event_type = Column(String, index=True)
     severity = Column(Float)
