@@ -8,14 +8,19 @@ from typing import List
 
 router = APIRouter()
 
+from app.api.deps import get_current_user
+from app.models.user import User
+
 @router.post("/", response_model=IncidentResponse, status_code=201)
 def report_incident(
     incident_in: IncidentCreate, 
     background_tasks: BackgroundTasks, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     # Save the incident
     new_incident = Incident(
+        user_id=current_user.id,
         segment_id=incident_in.segment_id,
         event_type=incident_in.event_type,
         severity=incident_in.severity,

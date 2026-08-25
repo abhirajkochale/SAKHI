@@ -12,6 +12,8 @@ import ContextUpdatePanel from '../components/ContextUpdatePanel';
 import EmergencyPanel from '../components/EmergencyPanel';
 import DeadManSwitchPanel from '../components/DeadManSwitchPanel';
 import ReportIncidentModal from '../components/ReportIncidentModal';
+import ProfileModal from '../components/ProfileModal';
+import { supabase } from '../api/supabase';
 import QuickFindModal from '../components/QuickFindModal';
 import WashroomFacilityCard from '../components/WashroomFacilityCard';
 import { sakhiApi } from '../api/sakhiApi';
@@ -44,6 +46,18 @@ export default function JourneyDashboard() {
   const [showQuickFindModal, setShowQuickFindModal] = useState(false);
   const [quickFindInitialCategory, setQuickFindInitialCategory] = useState<string | null>(null);
   
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [hasUser, setHasUser] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setHasUser(!!session?.user);
+    });
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setHasUser(!!session?.user);
+    });
+  }, []);
+
   const [showRouteOptions, setShowRouteOptions] = useState(false);
 
   const [updateResult, setUpdateResult] = useState<ContextUpdateResponse | null>(null);
@@ -262,9 +276,9 @@ export default function JourneyDashboard() {
             <Text style={currentStyles.logoSubtitle}>Travel Safer. Together.</Text>
           </View>
         </View>
-        <TouchableOpacity style={currentStyles.profileBtn} onPress={() => {}}>
+        <TouchableOpacity style={currentStyles.profileBtn} onPress={() => setShowProfileModal(true)}>
           <Text style={{fontSize: 24}}>👤</Text>
-          <View style={currentStyles.profileDot} />
+          {hasUser && <View style={[currentStyles.profileDot, { backgroundColor: '#10B981' }]} />}
         </TouchableOpacity>
       </View>
 
@@ -681,6 +695,11 @@ export default function JourneyDashboard() {
           setQuickFindInitialCategory(null);
         }} 
         initialCategory={quickFindInitialCategory}
+      />
+      
+      <ProfileModal
+        visible={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
       />
 
       <WashroomFacilityCard

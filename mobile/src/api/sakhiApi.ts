@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, WashroomResponse } from '../types/api';
+import { supabase } from './supabase';
 
 // Use Expo environment variable or fallback to localhost
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -55,7 +56,9 @@ export const sakhiApi = {
   },
 
   submitIncident: async (incident: { segment_id: string; event_type: string; severity: number; latitude: number; longitude: number; description?: string }): Promise<any> => {
-    const response = await apiClient.post('/incidents/', incident);
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
+    const response = await apiClient.post('/incidents/', incident, { headers });
     return response.data;
   },
 
