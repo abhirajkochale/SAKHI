@@ -226,3 +226,7 @@ Install and configure expo-av for Feature B.
 - The backend fetches the public JWKS to verify signatures independently.
 - No client-provided user_ids are trusted; the backend extracts it directly from the token payload.
 - SAKHI users start as NORMAL. Duplicate logins fetch the same account idempotently.
+
+
+## KYC / Aadhaar Verification Recommendation
+For the hackathon prototype, we have a strict ?0 cost requirement. Based on the provider audit, the **Setu Aadhaar eKYC Sandbox** is the unequivocally recommended path. It provides a free, fully simulated API environment that requires no business KYC to access, offers dummy Aadhaar numbers and OTPs, and perfectly demonstrates a production-grade architecture. If registration fails, a **Custom Mock FastAPI Service** will be used as a zero-cost backup.

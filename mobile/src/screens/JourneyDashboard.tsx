@@ -214,23 +214,37 @@ export default function JourneyDashboard() {
       .map((position) => coordinates[Math.round((coordinates.length - 1) * position)])
       .filter((coordinate): coordinate is number[] => Array.isArray(coordinate) && coordinate.length >= 2);
 
+    const destStr = `${journey.destination.latitude},${journey.destination.longitude}`;
+    const origStr = `${journey.origin.latitude},${journey.origin.longitude}`;
+
+    // 1. Native turn-by-turn navigation URI
+    const geoUrl = `google.navigation:q=${destStr}&mode=w`;
+
+    // 2. Web fallback URI
     const params = new URLSearchParams({
       api: '1',
-      origin: `${journey.origin.latitude},${journey.origin.longitude}`,
-      destination: `${journey.destination.latitude},${journey.destination.longitude}`,
+      origin: origStr,
+      destination: destStr,
       travelmode: 'walking',
       dir_action: 'navigate',
     });
     if (waypointIndexes.length) {
       params.set('waypoints', waypointIndexes.map(([longitude, latitude]) => `${latitude},${longitude}`).join('|'));
     }
+    const webUrl = `https://www.google.com/maps/dir/?${params.toString()}`;
 
-    const url = `https://www.google.com/maps/dir/?${params.toString()}`;
-    if (!await Linking.canOpenURL(url)) {
-      Alert.alert('Google Maps unavailable', 'Unable to open navigation on this device.');
-      return;
+    try {
+      // First try opening the native navigation intent
+      // We skip canOpenURL because Android 11+ package visibility rules block it unless explicitly declared in AndroidManifest
+      await Linking.openURL(geoUrl);
+    } catch (e1) {
+      try {
+        // If the native intent fails (e.g., Google Maps not installed), fallback to browser
+        await Linking.openURL(webUrl);
+      } catch (e2) {
+        Alert.alert('Navigation unavailable', 'Unable to open Google Maps or a browser on this device.');
+      }
     }
-    await Linking.openURL(url);
   };
 
   const currentStyles = styles;

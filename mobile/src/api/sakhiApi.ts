@@ -4,7 +4,6 @@ import { supabase } from './supabase';
 
 // Use Expo environment variable or fallback to localhost
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-console.log('AXIOS BASE URL IS:', BASE_URL);
 
 
 const apiClient = axios.create({
@@ -15,13 +14,18 @@ const apiClient = axios.create({
   },
 });
 
+apiClient.interceptors.request.use(async config => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    config.headers.Authorization = `Bearer ${session.access_token}`;
+  }
+  return config;
+});
+
 export const sakhiApi = {
   getErrorMessage: (error: unknown): string => {
     if (axios.isAxiosError(error)) {
-      const detail = error.response?.data?.detail;
-      if (typeof detail === 'string') return detail;
-      if (error.code === 'ECONNABORTED') return 'The journey request timed out. Please try again.';
-      if (!error.response) return 'Cannot reach the SAKHI backend. Check that it is running and the device can access it.';
+      return `API request failed: ${error.config?.method?.toUpperCase()} ${error.config?.url} (${error.code || error.message})`;
     }
     return 'Unable to analyze this journey. Please check both locations and try again.';
   },
@@ -69,6 +73,27 @@ export const sakhiApi = {
       longitude: location.longitude,
       trigger_source: 'manual',
     });
+    return response.data;
+  },
+
+  initAadhaarVerification: async (aadhaarNumber: string): Promise<{ reference_id: string }> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
+    const response = await apiClient.post('/kyc/aadhaar/init', { aadhaar_number: aadhaarNumber }, { headers });
+    return response.data;
+  },
+
+  verifyAadhaarOtp: async (referenceId: string, otp: string): Promise<{ status: string; message: string }> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
+    const response = await apiClient.post('/kyc/aadhaar/verify', { reference_id: referenceId, otp }, { headers });
+    return response.data;
+  },
+
+  getCurrentUser: async (): Promise<any> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
+    const response = await apiClient.get('/users/me', { headers });
     return response.data;
   }
 };

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
 import { SakhiButton } from './ui/SakhiButton';
 import { supabase } from '../api/supabase';
+import { sakhiApi } from '../api/sakhiApi';
 import { User } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -17,15 +18,42 @@ interface Props {
 export default function ProfileModal({ visible, onClose }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isVerified, setIsVerified] = useState(false);
+  const [authState, setAuthState] = useState<'profile' | 'enter_aadhaar' | 'enter_otp'>('profile');
+  const [aadhaarInput, setAadhaarInput] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [referenceId, setReferenceId] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const userData = await sakhiApi.getCurrentUser();
+        if (userData && userData.identity_status === 'VERIFIED') {
+          setIsVerified(true);
+        } else {
+          setIsVerified(false);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch user profile:', err);
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile();
+      }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile();
+      } else {
+        setIsVerified(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -51,7 +79,6 @@ export default function ProfileModal({ visible, onClose }: Props) {
       );
 
       if (res.type === 'success' && res.url) {
-        // Supabase returns tokens in the URL fragment (#access_token=...&refresh_token=...)
         const url = res.url;
         const fragment = url.split('#')[1];
         if (fragment) {
@@ -67,7 +94,6 @@ export default function ProfileModal({ visible, onClose }: Props) {
           }
         }
 
-        // Also check query params (?code=...)
         const queryString = url.split('?')[1]?.split('#')[0];
         if (queryString) {
           const params = Object.fromEntries(
@@ -91,10 +117,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
       "Sign out of SAKHI?",
       "Are you sure you want to sign out?",
       [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Sign Out",
           style: "destructive",
@@ -103,7 +126,9 @@ export default function ProfileModal({ visible, onClose }: Props) {
             try {
               const { error } = await supabase.auth.signOut();
               if (error) throw error;
-              setUser(null); // Optimistically clear state
+              setUser(null);
+              setIsVerified(false);
+              resetVerificationState();
             } catch (err: any) {
               Alert.alert('Sign Out Error', err?.message || 'Failed to sign out properly.');
             } finally {
@@ -113,6 +138,121 @@ export default function ProfileModal({ visible, onClose }: Props) {
         }
       ]
     );
+  };
+
+  const resetVerificationState = () => {
+    setAuthState('profile');
+    setAadhaarInput('');
+    setOtpInput('');
+    setReferenceId('');
+  };
+
+  const handleSendOtp = async () => {
+    if (aadhaarInput.length !== 12) {
+      Alert.alert('Invalid Aadhaar', 'Please enter a valid 12-digit Aadhaar number.');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await sakhiApi.initAadhaarVerification(aadhaarInput);
+      setReferenceId(res.reference_id);
+      setAuthState('enter_otp');
+    } catch (err: any) {
+      Alert.alert('Verification Error', sakhiApi.getErrorMessage(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otpInput.length !== 6) {
+      Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP.');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await sakhiApi.verifyAadhaarOtp(referenceId, otpInput);
+      setIsVerified(true);
+      resetVerificationState();
+    } catch (err: any) {
+      Alert.alert('Verification Error', sakhiApi.getErrorMessage(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const renderVerificationFlow = () => {
+    if (authState === 'enter_aadhaar') {
+      return (
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <SakhiText variant="h2" style={styles.title}>Verify your identity</SakhiText>
+          <SakhiText variant="body" color="secondary" style={styles.subtitle}>
+            Verify your identity with Aadhaar to become a trusted safety reporter.
+          </SakhiText>
+          
+          <TextInput
+            style={styles.inputField}
+            placeholder="12-digit Aadhaar Number"
+            keyboardType="numeric"
+            maxLength={12}
+            value={aadhaarInput}
+            onChangeText={setAadhaarInput}
+            editable={!actionLoading}
+            secureTextEntry
+          />
+
+          <SakhiButton
+            title={actionLoading ? "Sending OTP..." : "Send OTP"}
+            onPress={handleSendOtp}
+            style={{ marginTop: 24, width: '100%' }}
+            disabled={actionLoading || aadhaarInput.length !== 12}
+          />
+          <SakhiButton
+            title="Cancel"
+            variant="secondary"
+            onPress={resetVerificationState}
+            style={{ marginTop: 12, width: '100%' }}
+            disabled={actionLoading}
+          />
+        </ScrollView>
+      );
+    }
+
+    if (authState === 'enter_otp') {
+      return (
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <SakhiText variant="h2" style={styles.title}>Enter OTP</SakhiText>
+          <SakhiText variant="body" color="secondary" style={styles.subtitle}>
+            Enter the 6-digit OTP sent to your Aadhaar-linked mobile number.
+          </SakhiText>
+          
+          <TextInput
+            style={styles.inputField}
+            placeholder="6-digit OTP"
+            keyboardType="numeric"
+            maxLength={6}
+            value={otpInput}
+            onChangeText={setOtpInput}
+            editable={!actionLoading}
+          />
+
+          <SakhiButton
+            title={actionLoading ? "Verifying..." : "Verify Identity"}
+            onPress={handleVerifyOtp}
+            style={{ marginTop: 24, width: '100%' }}
+            disabled={actionLoading || otpInput.length !== 6}
+          />
+          <SakhiButton
+            title="Cancel"
+            variant="secondary"
+            onPress={resetVerificationState}
+            style={{ marginTop: 12, width: '100%' }}
+            disabled={actionLoading}
+          />
+        </ScrollView>
+      );
+    }
+    return null;
   };
 
   const renderContent = () => {
@@ -143,10 +283,14 @@ export default function ProfileModal({ visible, onClose }: Props) {
       );
     }
 
+    if (authState !== 'profile') {
+      return renderVerificationFlow();
+    }
+
     return (
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.iconWrapper}>
-          <Ionicons name="person-circle" size={80} color="#4F46E5" />
+          <Ionicons name={isVerified ? "checkmark-circle" : "person-circle"} size={80} color={isVerified ? "#10B981" : "#4F46E5"} />
         </View>
         <SakhiText variant="h2" style={styles.title}>{user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}</SakhiText>
         <SakhiText variant="body" color="secondary" style={styles.subtitle}>{user.email}</SakhiText>
@@ -154,19 +298,30 @@ export default function ProfileModal({ visible, onClose }: Props) {
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <SakhiText variant="h3">Account Status</SakhiText>
-            <View style={styles.badgeNormal}>
-              <SakhiText variant="caption" style={{ color: '#4F46E5', fontWeight: 'bold' }}>NORMAL USER</SakhiText>
+            <View style={isVerified ? styles.badgeVerified : styles.badgeNormal}>
+              <SakhiText variant="caption" style={{ color: isVerified ? '#047857' : '#4F46E5', fontWeight: 'bold' }}>
+                {isVerified ? 'VERIFIED USER' : 'NORMAL USER'}
+              </SakhiText>
             </View>
           </View>
-          <SakhiText variant="subtext" color="secondary" style={{ marginTop: 8 }}>
-            Verify your identity to become a trusted safety reporter.
-          </SakhiText>
-          <SakhiButton
-            title="Verify Identity"
-            variant="secondary"
-            onPress={() => Alert.alert('Coming Soon', 'Aadhaar verification will be added in Phase 2.')}
-            style={{ marginTop: 16 }}
-          />
+          
+          {!isVerified ? (
+            <>
+              <SakhiText variant="subtext" color="secondary" style={{ marginTop: 8 }}>
+                Verify your identity to become a trusted safety reporter.
+              </SakhiText>
+              <SakhiButton
+                title="Verify Identity"
+                variant="secondary"
+                onPress={() => setAuthState('enter_aadhaar')}
+                style={{ marginTop: 16 }}
+              />
+            </>
+          ) : (
+            <SakhiText variant="subtext" color="secondary" style={{ marginTop: 8 }}>
+              Identity verified via Aadhaar sandbox.
+            </SakhiText>
+          )}
         </View>
 
         <SakhiButton
@@ -264,5 +419,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  badgeVerified: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  inputField: {
+    width: '100%',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1F2937',
+    marginTop: 24,
+    textAlign: 'center',
+    letterSpacing: 2,
   },
 });
