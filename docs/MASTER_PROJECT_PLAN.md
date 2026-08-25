@@ -177,3 +177,52 @@ To combat "not much innovation", SAKHI's architecture will pivot to:
 
 **TASK 1.3: Build "Right to Pee" Amenities UI**
 *Why:* The backend already calculates distance to amenities, but the mobile app completely ignores it. This is a massive, highly visible feature for women's safety that requires zero new ML or Data hunting. It can be implemented immediately in parallel while the team searches for 2025-26 crime data.
+
+
+## 11. FEATURE PRIORITY DECISION — USER REPORTING vs CALL A FRIEND
+
+**Current state:**
+- **Feature A (Identity + Reporting):** Incident reporting UI and Backend API exist and dynamically affect risk. However, it lacks User Identity, making it vulnerable to spam and breaking the ML loop validity.
+- **Feature B (Call a Friend):** UI exists and simulates a call timer, but lacks any audio generation (Sarvam AI) or local playback capabilities (expo-av).
+
+**Remaining work:**
+- **Feature A:** User schema, anonymous tracking (Expo UUID), Trust scoring, Validation API, Retraining script.
+- **Feature B:** expo-av setup, Sarvam API proxy, local audio asset bundling.
+
+**Zero-cost feasibility:**
+Both are feasible for zero cost. Feature A can use secure device UUIDs. Feature B can use the Sarvam free tier and bundled local fallback audio.
+
+**Faculty feedback & Innovation relevance:**
+- Feature A directly addresses the faculty's main critique (Dataset validity and lack of innovation) by proving SAKHI is a self-healing intelligence network.
+- Feature B is an impressive demo utility but does not improve the core ML engine.
+
+**Recommended order:**
+**Build both in parallel, but Feature A is the primary priority.**
+
+**Exact next task:**
+Implement Zero-Cost User Identity Foundation (Device UUID tracking for Trust Scoring).
+
+**Parallel work that can begin:**
+Install and configure expo-av for Feature B.
+
+
+## 12. SAKHI IDENTITY & VERIFIED SAFETY REPORTING
+
+**Status: PARTIAL (Foundation Implemented)**
+
+**Implemented:**
+- Google Sign-In via Supabase OAuth (Expo WebBrowser).
+- Backend JWT Verification via Supabase JWKS (Asymmetric RS256).
+- SAKHI User Model (id, email, identity_status).
+- Incident Authentication (POST /incidents now requires a valid JWT and assigns the reporter's user_id).
+
+**Planned (Next Phase):**
+- Sandbox Aadhaar OTP proxy (FastAPI).
+- Sandbox e-KYC integration.
+- Verified Status UI.
+
+**Security & Privacy:**
+- The frontend only knows the Supabase session token.
+- The backend fetches the public JWKS to verify signatures independently.
+- No client-provided user_ids are trusted; the backend extracts it directly from the token payload.
+- SAKHI users start as NORMAL. Duplicate logins fetch the same account idempotently.
