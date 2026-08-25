@@ -13,3 +13,10 @@ class AadhaarVerifyRequest(BaseModel):
 class AadhaarVerifyResponse(BaseModel):
     status: str = Field(..., description="Verification status")
     message: str = Field(..., description="Human readable message")
+
+class AadhaarDemoRequest(BaseModel):
+    aadhaar_number: str = Field(..., min_length=12, max_length=12, description="12-digit Demo Aadhaar Number")
+
+class AadhaarDemoResponse(BaseModel):
+    status: str
+    display_name: str

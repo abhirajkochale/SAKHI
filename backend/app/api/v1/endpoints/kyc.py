@@ -5,7 +5,11 @@ from datetime import datetime
 from app.api.deps import get_current_user
 from app.models.database import get_db
 from app.models.user import User
-from app.schemas.kyc import AadhaarOtpRequest, AadhaarOtpResponse, AadhaarVerifyRequest, AadhaarVerifyResponse
+from app.schemas.kyc import (
+    AadhaarOtpRequest, AadhaarOtpResponse, 
+    AadhaarVerifyRequest, AadhaarVerifyResponse,
+    AadhaarDemoRequest, AadhaarDemoResponse
+)
 from app.services.kyc.sandbox_kyc_service import SandboxKycService
 
 router = APIRouter()
@@ -57,3 +61,32 @@ async def verify_aadhaar_otp(
         status="success",
         message="User identity verified successfully"
     )
+
+@router.post("/aadhaar/demo", response_model=AadhaarDemoResponse, summary="Hackathon Demo Aadhaar Verification")
+async def verify_aadhaar_demo(
+    request: AadhaarDemoRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Simulates Aadhaar verification for hackathon demo purposes.
+    Only accepts designated test numbers (e.g., 999999990019).
+    """
+    digits_only = request.aadhaar_number.strip()
+    if digits_only != "999999990019":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Invalid demo Aadhaar number. Use the designated test value (999999990019).")
+        
+    if current_user.identity_status == "VERIFIED":
+        # Do not overwrite a real VERIFIED status with DEMO
+        return AadhaarDemoResponse(status="demo_verified", display_name="Demo User")
+        
+    current_user.identity_status = "VERIFIED_DEMO"
+    current_user.identity_provider = "aadhaar_demo"
+    current_user.identity_verified_at = datetime.utcnow()
+    
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    
+    return AadhaarDemoResponse(status="demo_verified", display_name="Demo User")

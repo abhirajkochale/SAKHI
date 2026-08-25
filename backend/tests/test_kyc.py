@@ -206,3 +206,59 @@ def test_kyc_isolation(auth_client, test_user, test_other_user, db_session):
         
         assert test_user.identity_status == "VERIFIED"
         assert test_other_user.identity_status == "NORMAL"
+
+def test_aadhaar_demo_success(auth_client, test_user, db_session):
+    response = auth_client.post(
+        "/api/v1/kyc/aadhaar/demo",
+        json={"aadhaar_number": "999999990019"}
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "demo_verified"
+    
+    db_session.refresh(test_user)
+    assert test_user.identity_status == "VERIFIED_DEMO"
+    assert test_user.identity_provider == "aadhaar_demo"
+    assert test_user.identity_verified_at is not None
+
+def test_aadhaar_demo_invalid_value_fails_400(auth_client, test_user, db_session):
+    response = auth_client.post(
+        "/api/v1/kyc/aadhaar/demo",
+        json={"aadhaar_number": "123412341234"}
+    )
+    assert response.status_code == 400
+    
+    db_session.refresh(test_user)
+    assert test_user.identity_status == "NORMAL"
+
+def test_aadhaar_demo_malformed_fails_422(auth_client):
+    response = auth_client.post(
+        "/api/v1/kyc/aadhaar/demo",
+        json={"aadhaar_number": "123"}
+    )
+    assert response.status_code == 422
+
+def test_aadhaar_demo_preserves_verified_status(auth_client, test_user, db_session):
+    test_user.identity_status = "VERIFIED"
+    test_user.identity_provider = "real_aadhaar"
+    db_session.add(test_user)
+    db_session.commit()
+    
+    response = auth_client.post(
+        "/api/v1/kyc/aadhaar/demo",
+        json={"aadhaar_number": "999999990019"}
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "demo_verified"
+    
+    db_session.refresh(test_user)
+    assert test_user.identity_status == "VERIFIED"
+    assert test_user.identity_provider == "real_aadhaar"
+
+def test_aadhaar_demo_unauthenticated_fails():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/kyc/aadhaar/demo",
+        json={"aadhaar_number": "999999990019"}
+    )
+    assert response.status_code == 401
+
