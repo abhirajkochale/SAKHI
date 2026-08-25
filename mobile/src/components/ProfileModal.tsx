@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
 import { SakhiButton } from './ui/SakhiButton';
@@ -86,10 +86,33 @@ export default function ProfileModal({ visible, onClose }: Props) {
     }
   };
 
-  const handleSignOut = async () => {
-    setLoading(true);
-    await supabase.auth.signOut();
-    setLoading(false);
+  const handleSignOut = () => {
+    Alert.alert(
+      "Sign out of SAKHI?",
+      "Are you sure you want to sign out?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const { error } = await supabase.auth.signOut();
+              if (error) throw error;
+              setUser(null); // Optimistically clear state
+            } catch (err: any) {
+              Alert.alert('Sign Out Error', err?.message || 'Failed to sign out properly.');
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderContent = () => {
@@ -103,7 +126,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
 
     if (!user) {
       return (
-        <View style={styles.contentContainer}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.iconWrapper}>
             <Ionicons name="person-circle-outline" size={80} color="#9CA3AF" />
           </View>
@@ -116,12 +139,12 @@ export default function ProfileModal({ visible, onClose }: Props) {
             onPress={handleGoogleSignIn}
             style={{ marginTop: 24 }}
           />
-        </View>
+        </ScrollView>
       );
     }
 
     return (
-      <View style={styles.contentContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.iconWrapper}>
           <Ionicons name="person-circle" size={80} color="#4F46E5" />
         </View>
@@ -150,9 +173,9 @@ export default function ProfileModal({ visible, onClose }: Props) {
           title="Sign Out"
           variant="secondary"
           onPress={handleSignOut}
-          style={{ marginTop: 24 }}
+          style={{ marginTop: 24, marginBottom: 16 }}
         />
-      </View>
+      </ScrollView>
     );
   };
 
@@ -206,9 +229,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  contentContainer: {
-    flex: 1,
+  scrollContent: {
     alignItems: 'center',
+    paddingBottom: 24,
   },
   iconWrapper: {
     marginBottom: 16,
