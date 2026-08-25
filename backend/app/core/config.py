@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "SAKHI"
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str = "sqlite:///./sakhi.db"
-    SUPABASE_DB_URL: Optional[str] = None
     SUPABASE_URL: Optional[str] = None
 
     # Routing Provider Configuration
