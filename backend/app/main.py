@@ -7,6 +7,7 @@ from app.models.database import engine, Base, SessionLocal
 from app.models.incident import Incident
 from app.models.route_segment import PersistentRouteSegment
 from app.models.washroom import Washroom, WashroomFeedback
+from app.models.user import User
 
 Base.metadata.create_all(bind=engine)
 
