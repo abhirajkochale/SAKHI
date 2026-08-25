@@ -62,7 +62,12 @@ export const SakhiButton = ({ title, variant = 'primary', loading, disabled, sty
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.primaryText} />
+        <>
+          <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.primaryText} style={{ marginRight: 8 }} />
+          <SakhiText variant="button" color={getTextColor()} style={styles.textCenter}>
+            {title}
+          </SakhiText>
+        </>
       ) : (
         <SakhiText variant="button" color={getTextColor()} style={styles.textCenter}>
           {title}

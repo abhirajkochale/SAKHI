@@ -19,6 +19,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
+  const [isDemoVerified, setIsDemoVerified] = useState(false);
   const [authState, setAuthState] = useState<'profile' | 'enter_aadhaar' | 'enter_otp'>('profile');
   const [aadhaarInput, setAadhaarInput] = useState('');
   const [otpInput, setOtpInput] = useState('');
@@ -31,8 +32,13 @@ export default function ProfileModal({ visible, onClose }: Props) {
         const userData = await sakhiApi.getCurrentUser();
         if (userData && userData.identity_status === 'VERIFIED') {
           setIsVerified(true);
+          setIsDemoVerified(false);
+        } else if (userData && userData.identity_status === 'VERIFIED_DEMO') {
+          setIsVerified(true);
+          setIsDemoVerified(true);
         } else {
           setIsVerified(false);
+          setIsDemoVerified(false);
         }
       } catch (err) {
         console.warn('Failed to fetch user profile:', err);
@@ -53,6 +59,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
         fetchUserProfile();
       } else {
         setIsVerified(false);
+        setIsDemoVerified(false);
       }
     });
 
@@ -128,6 +135,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
               if (error) throw error;
               setUser(null);
               setIsVerified(false);
+              setIsDemoVerified(false);
               resetVerificationState();
             } catch (err: any) {
               Alert.alert('Sign Out Error', err?.message || 'Failed to sign out properly.');
@@ -147,14 +155,35 @@ export default function ProfileModal({ visible, onClose }: Props) {
     setReferenceId('');
   };
 
+  const handleDemoVerify = async () => {
+    const digitsOnly = aadhaarInput.replace(/\D/g, "");
+    if (digitsOnly.length !== 12) {
+      Alert.alert('Invalid Aadhaar', 'Please enter a valid 12-digit demo Aadhaar number.');
+      return;
+    }
+    setActionLoading(true);
+    const startTime = Date.now();
+    try {
+      await sakhiApi.verifyAadhaarDemo(digitsOnly);
+      setIsVerified(true);
+      setIsDemoVerified(true);
+      resetVerificationState();
+    } catch (err: any) {
+      Alert.alert('Demo Verification Error', sakhiApi.getErrorMessage(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleSendOtp = async () => {
-    if (aadhaarInput.length !== 12) {
+    const digitsOnly = aadhaarInput.replace(/\D/g, "");
+    if (digitsOnly.length !== 12) {
       Alert.alert('Invalid Aadhaar', 'Please enter a valid 12-digit Aadhaar number.');
       return;
     }
     setActionLoading(true);
     try {
-      const res = await sakhiApi.initAadhaarVerification(aadhaarInput);
+      const res = await sakhiApi.initAadhaarVerification(digitsOnly);
       setReferenceId(res.reference_id);
       setAuthState('enter_otp');
     } catch (err: any) {
@@ -183,11 +212,14 @@ export default function ProfileModal({ visible, onClose }: Props) {
 
   const renderVerificationFlow = () => {
     if (authState === 'enter_aadhaar') {
+      const digitsOnly = aadhaarInput.replace(/\D/g, "");
+      const isButtonDisabled = actionLoading || digitsOnly.length !== 12;
+      
       return (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <SakhiText variant="h2" style={styles.title}>Verify your identity</SakhiText>
+        <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <SakhiText variant="h2" style={styles.title}>Demo verification for hackathon</SakhiText>
           <SakhiText variant="body" color="secondary" style={styles.subtitle}>
-            Verify your identity with Aadhaar to become a trusted safety reporter.
+            Enter the designated test Aadhaar number to simulate verification. Real OTP-based Aadhaar verification is planned for production.
           </SakhiText>
           
           <TextInput
@@ -198,14 +230,15 @@ export default function ProfileModal({ visible, onClose }: Props) {
             value={aadhaarInput}
             onChangeText={setAadhaarInput}
             editable={!actionLoading}
-            secureTextEntry
+            secureTextEntry={false}
           />
 
           <SakhiButton
-            title={actionLoading ? "Sending OTP..." : "Send OTP"}
-            onPress={handleSendOtp}
+            title={actionLoading ? "Verifying..." : "Verify Identity"}
+            onPress={handleDemoVerify}
             style={{ marginTop: 24, width: '100%' }}
-            disabled={actionLoading || aadhaarInput.length !== 12}
+            disabled={isButtonDisabled}
+            loading={actionLoading}
           />
           <SakhiButton
             title="Cancel"
@@ -220,7 +253,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
 
     if (authState === 'enter_otp') {
       return (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <SakhiText variant="h2" style={styles.title}>Enter OTP</SakhiText>
           <SakhiText variant="body" color="secondary" style={styles.subtitle}>
             Enter the 6-digit OTP sent to your Aadhaar-linked mobile number.
@@ -266,7 +299,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
 
     if (!user) {
       return (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.iconWrapper}>
             <Ionicons name="person-circle-outline" size={80} color="#9CA3AF" />
           </View>
@@ -288,7 +321,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
     }
 
     return (
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.iconWrapper}>
           <Ionicons name={isVerified ? "checkmark-circle" : "person-circle"} size={80} color={isVerified ? "#10B981" : "#4F46E5"} />
         </View>
@@ -319,7 +352,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
             </>
           ) : (
             <SakhiText variant="subtext" color="secondary" style={{ marginTop: 8 }}>
-              Identity verified via Aadhaar sandbox.
+              {isDemoVerified ? 'Demo identity verification. Production scope: real Aadhaar OTP verification.' : 'Identity verified via Aadhaar sandbox.'}
             </SakhiText>
           )}
         </View>
@@ -358,6 +391,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalView: {
+    flexShrink: 1,
     backgroundColor: '#FFFFFF',
     padding: 24,
     borderTopLeftRadius: 24,
@@ -370,6 +404,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 24,
+  },
+  flexShrink: {
+    flexShrink: 1,
+    width: '100%',
   },
   headerTitle: {
     color: '#1F2937',

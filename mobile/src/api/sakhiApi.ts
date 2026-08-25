@@ -84,9 +84,12 @@ export const sakhiApi = {
   },
 
   verifyAadhaarOtp: async (referenceId: string, otp: string): Promise<{ status: string; message: string }> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
-    const response = await apiClient.post('/kyc/aadhaar/verify', { reference_id: referenceId, otp }, { headers });
+    const response = await apiClient.post('/kyc/aadhaar/verify', { reference_id: referenceId, otp });
+    return response.data;
+  },
+
+  verifyAadhaarDemo: async (aadhaarNumber: string): Promise<{ status: string; display_name: string }> => {
+    const response = await apiClient.post('/kyc/aadhaar/demo', { aadhaar_number: aadhaarNumber });
     return response.data;
   },
 
