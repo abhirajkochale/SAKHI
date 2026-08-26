@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
 import { SakhiButton } from './ui/SakhiButton';
@@ -20,6 +20,23 @@ export default function ProfileModal({ visible, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [isVerified, setIsVerified] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  const [showVerifyFlow, setShowVerifyFlow] = useState(false);
+  const [demoIdInput, setDemoIdInput] = useState('');
+
+  const checkVerificationState = async (sessionUser: User) => {
+    // 1. MUST reset verification state to prevent bleed between accounts
+    setIsVerified(false);
+
+    try {
+      // 2. STRICT Source of Truth: Supabase Auth metadata only
+      if (sessionUser.user_metadata?.demo_identity_verified === true) {
+        setIsVerified(true);
+      }
+    } catch (e) {
+      console.log('Error reading verification state:', e);
+    }
+  };
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -28,14 +45,9 @@ export default function ProfileModal({ visible, onClose }: Props) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          try {
-            const profile = await sakhiApi.getCurrentUser();
-            if (profile.identity_provider) {
-              setIsVerified(true);
-            }
-          } catch (profileError) {
-            console.log('User profile not fully initialized yet.');
-          }
+          await checkVerificationState(session.user);
+          // Sync user to backend silently
+          sakhiApi.getCurrentUser().catch(e => console.log('Backend sync failed', e));
         }
       } catch (error) {
         console.error('Profile fetch error:', error);
@@ -48,6 +60,23 @@ export default function ProfileModal({ visible, onClose }: Props) {
       fetchUserProfile();
     }
   }, [visible]);
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await checkVerificationState(session.user);
+          // Sync user to backend silently
+          sakhiApi.getCurrentUser().catch(e => console.log('Backend sync failed', e));
+      } else {
+        setIsVerified(false);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   const handleSignIn = async () => {
     try {
@@ -69,25 +98,39 @@ export default function ProfileModal({ visible, onClose }: Props) {
       );
 
       if (res.type === 'success' && res.url) {
-        const urlParams = new URLSearchParams(res.url.split('#')[1]);
-        const accessToken = urlParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token');
+        let queryString = '';
+        if (res.url.includes('?')) {
+          queryString = res.url.split('?')[1].split('#')[0];
+        } else if (res.url.includes('#')) {
+          queryString = res.url.split('#')[1];
+        }
 
-        if (accessToken && refreshToken) {
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          const { data: { session } } = await supabase.auth.getSession();
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            try {
-              const profile = await sakhiApi.getCurrentUser();
-              if (profile.identity_provider) setIsVerified(true);
-            } catch (e) {}
+        const urlParams = new URLSearchParams(queryString);
+        const code = urlParams.get('code');
+        const errorDesc = urlParams.get('error_description');
+
+        if (errorDesc) {
+          throw new Error(errorDesc);
+        }
+
+        if (code) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+          if (sessionError) throw sessionError;
+        } else {
+          const accessToken = urlParams.get('access_token');
+          const refreshToken = urlParams.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+          } else {
+             throw new Error('No authorization code found in the callback URL.');
           }
         }
+      } else if (res.type !== 'cancel') {
+          throw new Error('Authentication was not successful.');
       }
     } catch (error: any) {
       Alert.alert('Sign In Error', error.message || 'An error occurred during sign in');
@@ -100,13 +143,76 @@ export default function ProfileModal({ visible, onClose }: Props) {
     try {
       setActionLoading(true);
       await supabase.auth.signOut();
-      setUser(null);
-      setIsVerified(false);
+      setShowVerifyFlow(false);
+      setDemoIdInput('');
     } catch (error) {
       console.error('Signout error:', error);
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleDemoVerify = async () => {
+    if (demoIdInput.trim() === 'SAKHI-DEMO-001') {
+       if (user?.id) {
+           setActionLoading(true);
+           
+           const { error } = await supabase.auth.updateUser({
+             data: {
+               demo_identity_verified: true,
+               verification_type: 'demo'
+             }
+           });
+           
+           setActionLoading(false);
+           
+           if (error) {
+             console.error('Failed to update Supabase metadata:', error);
+             Alert.alert('Verification Error', 'Failed to update verification status.');
+           } else {
+             setIsVerified(true);
+             setShowVerifyFlow(false);
+             const { data: { session } } = await supabase.auth.getSession();
+             setUser(session?.user ?? null);
+           }
+       }
+    } else {
+       Alert.alert('Invalid Demo ID', 'Please enter a valid demo ID.');
+    }
+  };
+
+  const renderVerifyFlow = () => {
+    return (
+      <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <SakhiText variant="h2" style={styles.title}>Demo Identity Verification</SakhiText>
+        <SakhiText variant="body" color="secondary" style={styles.subtitle}>
+          This is a prototype verification flow for demonstration purposes.
+        </SakhiText>
+        
+        <TextInput
+          style={styles.inputField}
+          placeholder="Enter Demo ID"
+          value={demoIdInput}
+          onChangeText={setDemoIdInput}
+          autoCapitalize="characters"
+        />
+
+        <SakhiButton
+          title={actionLoading ? "Verifying..." : "Verify Identity"}
+          onPress={handleDemoVerify}
+          style={{ marginTop: 24, width: '100%' }}
+          disabled={actionLoading}
+          loading={actionLoading}
+        />
+        <SakhiButton
+          title="Cancel"
+          variant="secondary"
+          onPress={() => setShowVerifyFlow(false)}
+          style={{ marginTop: 12, width: '100%' }}
+          disabled={actionLoading}
+        />
+      </ScrollView>
+    );
   };
 
   const renderContent = () => {
@@ -139,6 +245,10 @@ export default function ProfileModal({ visible, onClose }: Props) {
       );
     }
 
+    if (showVerifyFlow) {
+      return renderVerifyFlow();
+    }
+
     return (
       <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.iconWrapper}>
@@ -165,7 +275,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
               <SakhiButton
                 title="Verify Identity"
                 variant="secondary"
-                onPress={() => Alert.alert('Verification', 'Optional future identity-verification enhancement — not implemented.')}
+                onPress={() => setShowVerifyFlow(true)}
                 style={{ marginTop: 16 }}
               />
             </>
@@ -283,5 +393,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  inputField: {
+    width: '100%',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1F2937',
+    marginTop: 24,
+    textAlign: 'center',
+    letterSpacing: 1,
   },
 });
