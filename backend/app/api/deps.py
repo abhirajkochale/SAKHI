@@ -51,9 +51,21 @@ def get_current_user(
 ) -> User:
     supabase_user_id = payload.get("sub")
     email = payload.get("email")
-    user_metadata = payload.get("user_metadata", {})
-    demo_verified = user_metadata.get("demo_identity_verified", False)
     
+    # Safe robust parsing of user_metadata
+    user_metadata = payload.get("user_metadata", {})
+    if not isinstance(user_metadata, dict):
+        user_metadata = {}
+        
+    raw_demo = user_metadata.get("demo_identity_verified", False)
+    
+    # Force strict boolean evaluation
+    demo_verified = False
+    if isinstance(raw_demo, bool):
+        demo_verified = raw_demo
+    elif isinstance(raw_demo, str):
+        demo_verified = raw_demo.lower() == "true"
+        
     if not supabase_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found in token")
         
@@ -71,7 +83,6 @@ def get_current_user(
         db.commit()
         db.refresh(user)
     else:
-        # Sync the verification state from token to DB if changed
         needs_update = False
         if demo_verified and user.identity_status != "VERIFIED":
             user.identity_status = "VERIFIED"
