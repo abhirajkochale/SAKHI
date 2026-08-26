@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, WashroomResponse } from '../types/api';
 import { supabase } from './supabase';
 
@@ -8,6 +8,7 @@ export interface CallFriendSettings {
   id?: string;
   user_id?: string;
   caller_name: string;
+  source_language_code?: string;
   language_code: string;
   voice_gender: 'Male' | 'Female';
   speaker?: string;
@@ -102,12 +103,16 @@ export const sakhiApi = {
   generateCallFriendTts: async (
     text: string = "Hey, where are you? I just wanted to check if you've reached safely.",
     languageCode: string = "en-IN",
-    speaker: string = "shubh"
-  ): Promise<{ audio_base64: string; format: string; model: string }> => {
+    speaker?: string,
+    sourceLanguageCode?: string,
+    voiceGender: string = "Female"
+  ): Promise<{ audio_base64: string; format: string; model: string; translated_text?: string }> => {
     const response = await apiClient.post('/call-friend/tts', {
       text,
+      source_language_code: sourceLanguageCode || languageCode,
       language_code: languageCode,
-      speaker,
+      voice_gender: voiceGender,
+      speaker: speaker || undefined,
     });
     return response.data;
   },

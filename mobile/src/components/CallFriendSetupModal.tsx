@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Modal, View, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
@@ -13,8 +13,8 @@ interface Props {
 
 const DEFAULT_SCRIPTS: Record<string, string> = {
   'en-IN': "Hey, where are you? I was just checking if you've reached safely. Stay on the line with me until you reach your destination.",
-  'hi-IN': "??????, ?? ???? ???? ??? ?? ?? ????? ?? ??? ???? ?? ??? ?? ?? ???? ?? ???????? ????? ?? ???? ?? ?? ?? ?? ???? ????? ????, ???? ??? ???? ?? ?? ?????",
-  'mr-IN': "???????, ?????? ???? ????? ?????? ???????? ???????? ?? ?? ???????????? ?? ??? ???? ????. ?????? ??? ???????????? ???????? ???? ????.",
+  'hi-IN': "नमस्ते, आप कहाँ हैं? मैं बस यह देखने के लिए फ़ोन कर रही थी कि क्या आप सुरक्षित पहुँच गए हैं। मेरे साथ फ़ोन पर ही रहिए।",
+  'mr-IN': "नमस्कार, तुम्ही कुठे आहात? तुम्ही सुरक्षित पोहोचलात का हे पाहण्यासाठीच मी फोन केला होता. पहुंचे पर्यंत फोनवरच राहा।",
 };
 
 export default function CallFriendSetupModal({ visible, onClose, onSaved }: Props) {
@@ -23,8 +23,9 @@ export default function CallFriendSetupModal({ visible, onClose, onSaved }: Prop
 
   const [callerName, setCallerName] = useState('Bro');
   const [customName, setCustomName] = useState('');
+  const [sourceLanguageCode, setSourceLanguageCode] = useState('en-IN');
   const [languageCode, setLanguageCode] = useState('en-IN');
-  const [voiceGender, setVoiceGender] = useState<'Male' | 'Female'>('Male');
+  const [voiceGender, setVoiceGender] = useState<'Male' | 'Female'>('Female');
   const [script, setScript] = useState(DEFAULT_SCRIPTS['en-IN']);
   const [durationMinutes, setDurationMinutes] = useState<number>(2);
 
@@ -46,8 +47,9 @@ export default function CallFriendSetupModal({ visible, onClose, onSaved }: Prop
           setCallerName('Custom');
           setCustomName(existing.caller_name);
         }
+        setSourceLanguageCode(existing.source_language_code || existing.language_code || 'en-IN');
         setLanguageCode(existing.language_code || 'en-IN');
-        setVoiceGender(existing.voice_gender === 'Female' ? 'Female' : 'Male');
+        setVoiceGender(existing.voice_gender === 'Male' ? 'Male' : 'Female');
         setScript(existing.script || DEFAULT_SCRIPTS[existing.language_code || 'en-IN']);
         setDurationMinutes(existing.duration_minutes || 2);
       }
@@ -60,7 +62,6 @@ export default function CallFriendSetupModal({ visible, onClose, onSaved }: Prop
 
   const handleLanguageChange = (code: string) => {
     setLanguageCode(code);
-    // If current script matches a default script or is empty, auto update to selected language default script
     if (!script || Object.values(DEFAULT_SCRIPTS).includes(script)) {
       setScript(DEFAULT_SCRIPTS[code] || DEFAULT_SCRIPTS['en-IN']);
     }
@@ -87,13 +88,13 @@ export default function CallFriendSetupModal({ visible, onClose, onSaved }: Prop
     try {
       await sakhiApi.saveCallFriendSettings({
         caller_name: finalCallerName,
+        source_language_code: sourceLanguageCode,
         language_code: languageCode,
         voice_gender: voiceGender,
         script: script.trim(),
         duration_minutes: durationMinutes,
       });
 
-      Alert.alert('Success', 'Call a Friend setup saved to your account!');
       if (onSaved) onSaved();
       onClose();
     } catch (err: any) {
@@ -152,8 +153,26 @@ export default function CallFriendSetupModal({ visible, onClose, onSaved }: Prop
                 />
               )}
 
-              {/* 2. Language */}
-              <SakhiText variant="h3" style={styles.label}>2. Language</SakhiText>
+              {/* 2. Script Input Language */}
+              <SakhiText variant="h3" style={styles.label}>2. Script Language (What you type)</SakhiText>
+              <View style={styles.rowGrid}>
+                {[
+                  { code: 'en-IN', label: 'English' },
+                  { code: 'hi-IN', label: 'Hindi' },
+                  { code: 'mr-IN', label: 'Marathi' },
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item.code}
+                    style={[styles.toggleBtn, sourceLanguageCode === item.code && styles.toggleBtnActive]}
+                    onPress={() => setSourceLanguageCode(item.code)}
+                  >
+                    <SakhiText variant="body" style={[styles.toggleBtnText, sourceLanguageCode === item.code && styles.toggleBtnTextActive]}>{item.label}</SakhiText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* 3. Spoken Call Language */}
+              <SakhiText variant="h3" style={styles.label}>3. Spoken Call Language (Sarvam Voice)</SakhiText>
               <View style={styles.rowGrid}>
                 {[
                   { code: 'en-IN', label: 'English' },
@@ -169,9 +188,14 @@ export default function CallFriendSetupModal({ visible, onClose, onSaved }: Prop
                   </TouchableOpacity>
                 ))}
               </View>
+              {sourceLanguageCode !== languageCode && (
+                <SakhiText variant="subtext" style={{ color: '#2563EB', marginTop: -6 }}>
+                  ✨ Auto-translation will translate your {sourceLanguageCode === 'en-IN' ? 'English' : sourceLanguageCode === 'hi-IN' ? 'Hindi' : 'Marathi'} script to spoken {languageCode === 'en-IN' ? 'English' : languageCode === 'hi-IN' ? 'Hindi' : 'Marathi'}.
+                </SakhiText>
+              )}
 
-              {/* 3. Voice Gender */}
-              <SakhiText variant="h3" style={styles.label}>3. Voice</SakhiText>
+              {/* 4. Voice Gender */}
+              <SakhiText variant="h3" style={styles.label}>4. Voice Gender</SakhiText>
               <View style={styles.rowGrid}>
                 {['Male', 'Female'].map((gender) => (
                   <TouchableOpacity
@@ -184,9 +208,9 @@ export default function CallFriendSetupModal({ visible, onClose, onSaved }: Prop
                 ))}
               </View>
 
-              {/* 4. Script */}
+              {/* 5. Script */}
               <View style={styles.labelRow}>
-                <SakhiText variant="h3" style={styles.label}>4. Script</SakhiText>
+                <SakhiText variant="h3" style={styles.label}>5. Call Script</SakhiText>
                 <SakhiText variant="subtext" color="secondary">{script.length}/2500 chars</SakhiText>
               </View>
               <TextInput
@@ -199,8 +223,8 @@ export default function CallFriendSetupModal({ visible, onClose, onSaved }: Prop
                 maxLength={2500}
               />
 
-              {/* 5. Duration */}
-              <SakhiText variant="h3" style={styles.label}>5. Duration</SakhiText>
+              {/* 6. Duration */}
+              <SakhiText variant="h3" style={styles.label}>6. Call Duration</SakhiText>
               <View style={styles.rowGrid}>
                 {[2, 5, 10].map((mins) => (
                   <TouchableOpacity

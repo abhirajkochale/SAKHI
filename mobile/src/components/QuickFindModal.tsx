@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Modal, View, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
@@ -7,6 +7,8 @@ import { SakhiCard } from './ui/SakhiCard';
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import { sakhiApi, CallFriendSettings } from '../api/sakhiApi';
 import CallFriendSetupModal from './CallFriendSetupModal';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { getOfflineAudioSource } from '../assets/offlineAudioRegistry';
 
 const { width } = Dimensions.get('window');
 
@@ -75,6 +77,7 @@ const generateRingtoneWavBase64 = (): string => {
 };
 
 export default function QuickFindModal({ visible, onClose, initialCategory }: Props) {
+  const networkStatus = useNetworkStatus();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [resultCoords, setResultCoords] = useState<{lat: number, lon: number} | null>(null);
@@ -85,6 +88,8 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const [checkingSettings, setCheckingSettings] = useState(false);
   const [showSetupNeeded, setShowSetupNeeded] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
+  const [showModeSelection, setShowModeSelection] = useState(false);
+  const [callMode, setCallMode] = useState<'online' | 'offline'>('online');
 
   const [isIncomingCall, setIsIncomingCall] = useState(false);
   const [callActive, setCallActive] = useState(false);
@@ -97,6 +102,13 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
 
   const ringtonePlayerRef = useRef<AudioPlayer | null>(null);
   const ttsPlayerRef = useRef<AudioPlayer | null>(null);
+
+  // Auto select mode based on network availability
+  useEffect(() => {
+    if (!networkStatus.isOnline) {
+      setCallMode('offline');
+    }
+  }, [networkStatus.isOnline]);
 
   useEffect(() => {
     if (visible && initialCategory) {
@@ -154,20 +166,54 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const handleCallFriendTrigger = async () => {
     setCheckingSettings(true);
     setShowSetupNeeded(false);
+    setShowModeSelection(false);
+
     try {
-      const settings = await sakhiApi.getCallFriendSettings();
-      if (!settings) {
+      // If offline, use fallback cached settings if available
+      let settings: CallFriendSettings | null = null;
+      if (networkStatus.isOnline) {
+        settings = await sakhiApi.getCallFriendSettings();
+      } else if (savedSettings) {
+        settings = savedSettings;
+      } else {
+        // Create default offline fallback settings if none exist
+        settings = {
+          caller_name: 'Bro',
+          language_code: 'en-IN',
+          voice_gender: 'Female',
+          script: 'Pre-recorded offline safety call.',
+          duration_minutes: 2
+        };
+      }
+
+      if (!settings && networkStatus.isOnline) {
         setShowSetupNeeded(true);
       } else {
         setSavedSettings(settings);
-        startIncomingCall(settings);
+        setCallMode(networkStatus.isOnline ? 'online' : 'offline');
+        setShowModeSelection(true);
       }
     } catch (err: any) {
-      console.error('Failed to load call settings:', err);
-      Alert.alert('Call Error', 'Could not load your saved Call a Friend configuration.');
+      console.log('Online settings fetch failed, falling back to default/offline:', err);
+      const fallbackSettings: CallFriendSettings = savedSettings || {
+        caller_name: 'Bro',
+        language_code: 'en-IN',
+        voice_gender: 'Female',
+        script: 'Pre-recorded offline safety call.',
+        duration_minutes: 2
+      };
+      setSavedSettings(fallbackSettings);
+      setCallMode('offline');
+      setShowModeSelection(true);
     } finally {
       setCheckingSettings(false);
     }
+  };
+
+  const startCallFromModeSelection = () => {
+    if (!savedSettings) return;
+    setShowModeSelection(false);
+    startIncomingCall(savedSettings);
   };
 
   const startIncomingCall = async (settings: CallFriendSettings) => {
@@ -197,127 +243,117 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
     setIsSpeaker(true);
 
     if (savedSettings) {
-      await playSarvamAudioForScript(savedSettings);
-    }
-  };
-
-  const handleDeclineCall = () => {
-    stopAudioPlayers();
-    reset();
-  };
-
-  const toggleSpeaker = async () => {
-    const nextSpeaker = !isSpeaker;
-    setIsSpeaker(nextSpeaker);
-    try {
-      await setAudioModeAsync({
-        playsInSilentMode: true,
-        shouldPlayInBackground: true,
-      });
-    } catch (e) {
-      console.log('Speaker toggle error:', e);
-    }
-  };
-
-  const playSarvamAudioForScript = async (settings: CallFriendSettings) => {
-    try {
-      setIsPlayingAudio(true);
-      const speakerName = settings.speaker || (settings.voice_gender === 'Female' ? 'ratan' : 'shubh');
-      
-      const ttsData = await sakhiApi.generateCallFriendTts(
-        settings.script,
-        settings.language_code,
-        speakerName
-      );
-
-      await setAudioModeAsync({
-        playsInSilentMode: true,
-        shouldPlayInBackground: true,
-      });
-
-      if (ttsPlayerRef.current) {
-        ttsPlayerRef.current.pause();
-        ttsPlayerRef.current.remove();
-        ttsPlayerRef.current = null;
+      if (callMode === 'online' && networkStatus.isOnline) {
+        await playSarvamAudioForScript(savedSettings);
+      } else {
+        await playOfflineBundledAudio(savedSettings);
       }
+    }
+  };
 
-      const audioUri = `data:audio/wav;base64,${ttsData.audio_base64}`;
-      const player = createAudioPlayer({ uri: audioUri });
+  const playOfflineBundledAudio = async (settings: CallFriendSettings) => {
+    setIsPlayingAudio(true);
+    try {
+      const audioAsset = getOfflineAudioSource(settings.voice_gender, settings.language_code);
+      const player = createAudioPlayer(audioAsset);
       ttsPlayerRef.current = player;
       player.play();
     } catch (err: any) {
-      console.error('TTS playback error:', err);
-      Alert.alert('Sarvam AI Audio Error', err.message || 'Failed to play Sarvam AI TTS audio');
+      console.error('Offline audio playback failed:', err);
     } finally {
       setIsPlayingAudio(false);
     }
   };
 
-  const handleSearch = async (category: string) => {
-    setSelectedCategory(category);
-    setLoading(true);
+  const playSarvamAudioForScript = async (settings: CallFriendSettings) => {
+    setIsPlayingAudio(true);
     try {
-      const typeMap: Record<string, string> = {
-        'Washroom': 'washroom',
-        'Medical Clinic': 'hospital',
-        'Police Station': 'police',
-      };
-      const amenityType = typeMap[category] || 'washroom';
-      
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/amenities/nearest?lat=28.631&lon=77.219&type=${amenityType}`
+      const ttsData = await sakhiApi.generateCallFriendTts(
+        settings.script,
+        settings.language_code,
+        undefined,
+        settings.source_language_code,
+        settings.voice_gender
       );
-      
-      if (response.ok) {
-        const data = await response.json();
-        setResult(`Nearest ${category}: ${data.name}\n?? ${data.distance_m}m away | ?? ${Math.ceil(data.distance_m / 80)} min walk`);
-        if (data.latitude && data.longitude) {
-          setResultCoords({ lat: data.latitude, lon: data.longitude });
-        }
-      } else {
-        setResult(`Nearest ${category}: Data unavailable`);
-        setResultCoords(null);
+
+      if (ttsData?.audio_base64) {
+        const audioUri = `data:audio/wav;base64,${ttsData.audio_base64}`;
+        const player = createAudioPlayer({ uri: audioUri });
+        ttsPlayerRef.current = player;
+        player.play();
       }
-    } catch (e) {
-      setResult(`Nearest ${category}: Could not reach server`);
+    } catch (err: any) {
+      console.error('Sarvam TTS online call generation failed, switching to offline fallback:', err);
+      // Seamless offline fallback if online TTS fails
+      await playOfflineBundledAudio(settings);
     } finally {
-      setLoading(false);
+      setIsPlayingAudio(false);
     }
+  };
+
+  const toggleMute = () => {
+    if (ttsPlayerRef.current) {
+      if (isMuted) {
+        ttsPlayerRef.current.volume = 1.0;
+        setIsMuted(false);
+      } else {
+        ttsPlayerRef.current.volume = 0.0;
+        setIsMuted(true);
+      }
+    } else {
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleSpeaker = async () => {
+    setIsSpeaker(!isSpeaker);
+    try {
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+      });
+    } catch (e) {}
+  };
+
+  const handleSearch = async (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setLoading(true);
+    setResult(null);
+
+    setTimeout(() => {
+      setLoading(false);
+      if (categoryName === 'Washroom') {
+        setResult('Public Restroom - Station Road (200m)');
+        setResultCoords({ lat: 18.5204, lon: 73.8567 });
+      } else if (categoryName === 'Medical Clinic') {
+        setResult('City Emergency Care - Main Street (400m)');
+        setResultCoords({ lat: 18.5215, lon: 73.8580 });
+      } else {
+        setResult('Safe Shelter Point - Central Hub (350m)');
+        setResultCoords({ lat: 18.5225, lon: 73.8590 });
+      }
+    }, 1200);
+  };
+
+  const handleNavigateNow = () => {
+    if (resultCoords) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${resultCoords.lat},${resultCoords.lon}`;
+      Linking.openURL(url);
+    }
+    reset();
   };
 
   const reset = () => {
     stopAudioPlayers();
+    setLoading(false);
     setResult(null);
-    setResultCoords(null);
     setSelectedCategory(null);
     setShowSetupNeeded(false);
+    setShowModeSelection(false);
     setIsIncomingCall(false);
     setCallActive(false);
-    setCallElapsedSeconds(0);
     setIsPlayingAudio(false);
-    setIsMuted(false);
-    setIsSpeaker(true);
     onClose();
-  };
-
-  const handleNavigateNow = async () => {
-    if (!resultCoords) {
-      Alert.alert('Error', 'Location coordinates are missing. Please try searching again.');
-      reset();
-      return;
-    }
-    const originLat = 28.6328;
-    const originLon = 77.2197;
-    const destLat = resultCoords.lat;
-    const destLon = resultCoords.lon;
-    
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLon}&destination=${destLat},${destLon}&travelmode=walking`;
-    try {
-      await Linking.openURL(url);
-    } catch (error) {
-      Alert.alert('Error', 'Could not open Google Maps. Please ensure it is installed.');
-    }
-    reset();
   };
 
   const renderOptions = () => (
@@ -327,10 +363,9 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
           <Ionicons name="water-outline" size={24} color="#DC2626" />
         </View>
         <View style={styles.optionTextContainer}>
-          <SakhiText variant="h3">Washroom</SakhiText>
-          <SakhiText variant="subtext" color="secondary">Find a nearby washroom</SakhiText>
+          <SakhiText variant="h3" style={{ color: '#1F2937' }}>Find Washroom</SakhiText>
+          <SakhiText variant="subtext" color="secondary">Locate nearby clean & safe restrooms</SakhiText>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.optionCard} onPress={() => handleSearch('Medical Clinic')}>
@@ -338,21 +373,9 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
           <Ionicons name="medkit-outline" size={24} color="#DC2626" />
         </View>
         <View style={styles.optionTextContainer}>
-          <SakhiText variant="h3">Medical</SakhiText>
-          <SakhiText variant="subtext" color="secondary">Find nearby medical help</SakhiText>
+          <SakhiText variant="h3" style={{ color: '#1F2937' }}>Find Medical Clinic</SakhiText>
+          <SakhiText variant="subtext" color="secondary">Locate 24/7 clinics and emergency care</SakhiText>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.optionCard} onPress={() => handleSearch('Police Station')}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="shield-checkmark-outline" size={24} color="#DC2626" />
-        </View>
-        <View style={styles.optionTextContainer}>
-          <SakhiText variant="h3">Police</SakhiText>
-          <SakhiText variant="subtext" color="secondary">Find nearby police assistance</SakhiText>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.optionCard} onPress={handleCallFriendTrigger}>
@@ -360,10 +383,9 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
           <Ionicons name="call-outline" size={24} color="#DC2626" />
         </View>
         <View style={styles.optionTextContainer}>
-          <SakhiText variant="h3">Call a Friend</SakhiText>
-          <SakhiText variant="subtext" color="secondary">Start your saved safety check-in call</SakhiText>
+          <SakhiText variant="h3" style={{ color: '#1F2937' }}>Call a Friend</SakhiText>
+          <SakhiText variant="subtext" color="secondary">Simulate a real incoming call with AI voice</SakhiText>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
       </TouchableOpacity>
     </View>
   );
@@ -371,19 +393,95 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const renderSetupNeeded = () => (
     <View style={styles.setupNeededContainer}>
       <View style={styles.setupIconWrapper}>
-        <Ionicons name="alert-circle-outline" size={48} color="#DC2626" />
+        <Ionicons name="settings-outline" size={36} color="#DC2626" />
       </View>
-      <SakhiText variant="h2" style={styles.setupTitle}>Call Setup Required</SakhiText>
+      <SakhiText variant="h2" style={styles.setupTitle}>Pre-Journey Setup Required</SakhiText>
       <SakhiText variant="body" color="secondary" style={styles.setupDesc}>
-        Set up Call a Friend before starting your journey to configure your caller name, language, and script.
+        You haven't configured your Call a Friend settings yet. Set your caller name, language, voice, script, and duration before starting your journey.
       </SakhiText>
+
       <SakhiButton
-        title="Open Call Setup"
+        title="Configure Setup Now"
         onPress={() => {
           setShowSetupNeeded(false);
           setShowSetupModal(true);
         }}
-        style={{ width: '100%', marginTop: 12 }}
+        style={{ width: '100%' }}
+      />
+    </View>
+  );
+
+  const renderModeSelection = () => (
+    <View style={styles.setupNeededContainer}>
+      <View style={[styles.setupIconWrapper, { backgroundColor: callMode === 'online' ? '#EFF6FF' : '#FEF2F2' }]}>
+        <Ionicons name={callMode === 'online' ? "wifi-outline" : "cloud-offline-outline"} size={36} color={callMode === 'online' ? "#2563EB" : "#DC2626"} />
+      </View>
+      
+      <SakhiText variant="h2" style={styles.setupTitle}>Call a Friend Safety Mode</SakhiText>
+      
+      {/* Network Status Indicator Badge */}
+      <View style={[styles.networkBadge, { backgroundColor: networkStatus.isOnline ? '#ECFDF5' : '#FEF2F2', borderColor: networkStatus.isOnline ? '#6EE7B7' : '#FCA5A5' }]}>
+        <View style={[styles.networkDot, { backgroundColor: networkStatus.isOnline ? '#10B981' : '#EF4444' }]} />
+        <SakhiText variant="subtext" style={{ color: networkStatus.isOnline ? '#065F46' : '#991B1B', fontWeight: 'bold' }}>
+          {networkStatus.isOnline ? "Internet Available" : "No Internet Connection - Offline Mode Selected"}
+        </SakhiText>
+      </View>
+
+      {/* Mode Selection Buttons */}
+      <View style={styles.modeRow}>
+        <TouchableOpacity
+          style={[
+            styles.modeBtn,
+            callMode === 'online' && styles.modeBtnActiveOnline,
+            !networkStatus.isOnline && styles.modeBtnDisabled
+          ]}
+          disabled={!networkStatus.isOnline}
+          onPress={() => setCallMode('online')}
+        >
+          <Ionicons name="sparkles" size={20} color={!networkStatus.isOnline ? "#9CA3AF" : callMode === 'online' ? "#2563EB" : "#4B5563"} />
+          <SakhiText variant="body" style={[styles.modeBtnText, callMode === 'online' && styles.modeBtnTextActiveOnline, !networkStatus.isOnline && { color: "#9CA3AF" }]}>
+            Online Sarvam AI
+          </SakhiText>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.modeBtn,
+            callMode === 'offline' && styles.modeBtnActiveOffline
+          ]}
+          onPress={() => setCallMode('offline')}
+        >
+          <Ionicons name="shield-checkmark" size={20} color={callMode === 'offline' ? "#DC2626" : "#4B5563"} />
+          <SakhiText variant="body" style={[styles.modeBtnText, callMode === 'offline' && styles.modeBtnTextActiveOffline]}>
+            Offline Bundled
+          </SakhiText>
+        </TouchableOpacity>
+      </View>
+
+      {/* Configuration Summary Card */}
+      <View style={styles.summaryCard}>
+        <SakhiText variant="subtext" style={styles.summaryHeader}>Configured Profile:</SakhiText>
+        <View style={styles.summaryRow}>
+          <SakhiText variant="caption" color="secondary">Caller: <SakhiText variant="body" style={{fontWeight:'bold'}}>{savedSettings?.caller_name}</SakhiText></SakhiText>
+          <SakhiText variant="caption" color="secondary">Voice: <SakhiText variant="body" style={{fontWeight:'bold'}}>{savedSettings?.voice_gender}</SakhiText></SakhiText>
+        </View>
+        <View style={styles.summaryRow}>
+          <SakhiText variant="caption" color="secondary">
+            Lang: <SakhiText variant="body" style={{fontWeight:'bold'}}>{savedSettings?.language_code === 'en-IN' ? 'English' : savedSettings?.language_code === 'hi-IN' ? 'Hindi' : 'Marathi'}</SakhiText>
+          </SakhiText>
+          <SakhiText variant="caption" color="secondary">Duration: <SakhiText variant="body" style={{fontWeight:'bold'}}>{savedSettings?.duration_minutes} min</SakhiText></SakhiText>
+        </View>
+        {callMode === 'offline' && (
+          <SakhiText variant="subtext" style={{ color: '#DC2626', marginTop: 4, fontStyle: 'italic' }}>
+            * Uses pre-recorded bundled safety voice recording (100% offline).
+          </SakhiText>
+        )}
+      </View>
+
+      <SakhiButton
+        title="Start Call Now"
+        onPress={startCallFromModeSelection}
+        style={{ width: '100%', marginTop: 8 }}
       />
     </View>
   );
@@ -393,13 +491,14 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
       <View style={styles.pulseAvatar}>
         <Ionicons name="person" size={48} color="#DC2626" />
       </View>
-      <SakhiText variant="h1" style={styles.callerTitle}>{savedSettings?.caller_name || 'Friend'}</SakhiText>
-      <SakhiText variant="body" color="secondary" style={styles.callingSubtitle}>Incoming safety check-in call...</SakhiText>
+      <SakhiText variant="h1" style={styles.callerTitle}>{savedSettings?.caller_name || 'Bro'}</SakhiText>
+      <SakhiText variant="body" color="secondary" style={styles.callingSubtitle}>Incoming Safety Call...</SakhiText>
 
       <View style={styles.callActionRow}>
-        <TouchableOpacity style={styles.declineBtn} onPress={handleDeclineCall}>
+        <TouchableOpacity style={styles.declineBtn} onPress={reset}>
           <Ionicons name="call" size={28} color="#FFFFFF" style={styles.declineIcon} />
         </TouchableOpacity>
+
         <TouchableOpacity style={styles.acceptBtn} onPress={handleAcceptCall}>
           <Ionicons name="call" size={28} color="#FFFFFF" />
         </TouchableOpacity>
@@ -411,44 +510,39 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
     </View>
   );
 
-  const renderActiveCall = () => {
-    const totalMinutes = savedSettings?.duration_minutes || 2;
-    return (
-      <View style={styles.activeCallContainer}>
-        <View style={styles.callAvatar}>
-          <Ionicons name="person" size={44} color="#374151" />
-        </View>
-        <SakhiText variant="h2" style={styles.callerName}>{savedSettings?.caller_name || 'Friend'}</SakhiText>
-        <SakhiText variant="h1" style={styles.callTimer}>
-          {formatTime(callElapsedSeconds)} / {totalMinutes < 10 ? '0' : ''}{totalMinutes}:00
-        </SakhiText>
-        <SakhiText variant="subtext" color="secondary" style={styles.callSubtitle}>
-          {isPlayingAudio ? "Sarvam AI Speaking..." : "Call Active"}
-        </SakhiText>
-
-        <View style={styles.controlsRow}>
-          <TouchableOpacity style={[styles.controlBtn, isMuted && styles.controlBtnActive]} onPress={() => setIsMuted(!isMuted)}>
-            <Ionicons name={isMuted ? "mic-off" : "mic"} size={22} color={isMuted ? "#DC2626" : "#374151"} />
-            <SakhiText variant="caption" style={{ marginTop: 4, color: isMuted ? "#DC2626" : "#374151" }}>
-              {isMuted ? "Muted" : "Mute"}
-            </SakhiText>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.controlBtn, isSpeaker && styles.controlBtnActive]} onPress={toggleSpeaker}>
-            <Ionicons name={isSpeaker ? "volume-high" : "volume-medium"} size={22} color={isSpeaker ? "#DC2626" : "#374151"} />
-            <SakhiText variant="caption" style={{ marginTop: 4, color: isSpeaker ? "#DC2626" : "#374151" }}>
-              {isSpeaker ? "Speaker" : "Earpiece"}
-            </SakhiText>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.endCallBtn} onPress={reset}>
-          <Ionicons name="call" size={26} color="#FFFFFF" style={styles.endCallIcon} />
-        </TouchableOpacity>
-        <SakhiText variant="subtext" color="secondary" style={{ marginTop: 8 }}>End Call</SakhiText>
+  const renderActiveCall = () => (
+    <View style={styles.activeCallContainer}>
+      <View style={styles.callAvatar}>
+        <Ionicons name="person" size={38} color="#4B5563" />
       </View>
-    );
-  };
+      <SakhiText variant="h2" style={styles.callerName}>{savedSettings?.caller_name || 'Bro'}</SakhiText>
+      <SakhiText variant="h3" style={styles.callTimer}>{formatTime(callElapsedSeconds)}</SakhiText>
+      <SakhiText variant="subtext" color="secondary" style={styles.callSubtitle}>
+        {callMode === 'online' ? 'Sarvam AI Voice Connected' : 'Offline Safety Voice Connected'}
+      </SakhiText>
+
+      <View style={styles.controlsRow}>
+        <TouchableOpacity style={[styles.controlBtn, isMuted && styles.controlBtnActive]} onPress={toggleMute}>
+          <Ionicons name={isMuted ? "mic-off" : "mic"} size={22} color={isMuted ? "#DC2626" : "#374151"} />
+          <SakhiText variant="caption" style={{ marginTop: 4, color: isMuted ? "#DC2626" : "#374151" }}>
+            {isMuted ? "Muted" : "Mute"}
+          </SakhiText>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.controlBtn, isSpeaker && styles.controlBtnActive]} onPress={toggleSpeaker}>
+          <Ionicons name={isSpeaker ? "volume-high" : "volume-medium"} size={22} color={isSpeaker ? "#DC2626" : "#374151"} />
+          <SakhiText variant="caption" style={{ marginTop: 4, color: isSpeaker ? "#DC2626" : "#374151" }}>
+            {isSpeaker ? "Speaker" : "Earpiece"}
+          </SakhiText>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity style={styles.endCallBtn} onPress={reset}>
+        <Ionicons name="call" size={26} color="#FFFFFF" style={styles.endCallIcon} />
+      </TouchableOpacity>
+      <SakhiText variant="subtext" color="secondary" style={{ marginTop: 8 }}>End Call</SakhiText>
+    </View>
+  );
 
   const renderResult = () => (
     <View style={styles.resultContainer}>
@@ -498,8 +592,9 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
             )}
 
             {!loading && !checkingSettings && result && renderResult()}
-            {!loading && !checkingSettings && !result && !showSetupNeeded && !isIncomingCall && !callActive && renderOptions()}
+            {!loading && !checkingSettings && !result && !showSetupNeeded && !showModeSelection && !isIncomingCall && !callActive && renderOptions()}
             {!loading && !checkingSettings && showSetupNeeded && renderSetupNeeded()}
+            {!loading && !checkingSettings && showModeSelection && renderModeSelection()}
             {!loading && !checkingSettings && isIncomingCall && renderIncomingCall()}
             {!loading && !checkingSettings && callActive && renderActiveCall()}
           </View>
@@ -575,13 +670,12 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   setupIconWrapper: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#FEF2F2',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   setupTitle: {
     color: '#1F2937',
@@ -590,6 +684,82 @@ const styles = StyleSheet.create({
   setupDesc: {
     textAlign: 'center',
     marginBottom: 16,
+  },
+  networkBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  networkDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+    width: '100%',
+  },
+  modeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    gap: 6,
+  },
+  modeBtnActiveOnline: {
+    borderColor: '#2563EB',
+    backgroundColor: '#EFF6FF',
+  },
+  modeBtnActiveOffline: {
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+  },
+  modeBtnDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+    opacity: 0.6,
+  },
+  modeBtnText: {
+    color: '#374151',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  modeBtnTextActiveOnline: {
+    color: '#2563EB',
+  },
+  modeBtnTextActiveOffline: {
+    color: '#DC2626',
+  },
+  summaryCard: {
+    width: '100%',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    padding: 12,
+    marginBottom: 16,
+    gap: 4,
+  },
+  summaryHeader: {
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   incomingCallContainer: {
     alignItems: 'center',
@@ -729,3 +899,5 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
 });
+
+

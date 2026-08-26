@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+﻿from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.services.sarvam_tts import generate_sarvam_tts
+from app.services.sarvam_translation import translate_text
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.call_friend_setting import CallFriendSetting
@@ -13,7 +14,7 @@ router = APIRouter()
 
 def get_speaker_for_gender_and_language(language_code: str, voice_gender: str) -> str:
     if voice_gender.lower() == "female":
-        return "ratan"
+        return "priya"
     return "shubh"
 
 class TTSRequest(BaseModel):
@@ -21,12 +22,20 @@ class TTSRequest(BaseModel):
         default="Hey, where are you? I just wanted to check if you've reached safely.",
         description="Text content to synthesize into speech"
     )
+    source_language_code: Optional[str] = Field(
+        default=None,
+        description="Source text language code (e.g. en-IN, hi-IN, mr-IN)"
+    )
     language_code: str = Field(
         default="en-IN",
-        description="BCP-47 language code (e.g. en-IN, hi-IN, mr-IN)"
+        description="Target spoken language code (e.g. en-IN, hi-IN, mr-IN)"
     )
-    speaker: str = Field(
-        default="shubh",
+    voice_gender: str = Field(
+        default="Female",
+        description="Voice gender: Male or Female"
+    )
+    speaker: Optional[str] = Field(
+        default=None,
         description="Sarvam Bulbul V3 speaker name"
     )
 
@@ -36,17 +45,34 @@ class TTSResponse(BaseModel):
     model: str = "bulbul:v3"
     language_code: str
     speaker: str
+    translated_text: Optional[str] = None
 
 @router.post("/tts", response_model=TTSResponse, summary="Generate Sarvam AI Bulbul V3 TTS Audio for Call a Friend")
 async def create_tts_audio(request: TTSRequest):
     """
-    Proof-of-concept endpoint to convert text to speech using Sarvam AI Bulbul V3.
+    Convert text to speech using Sarvam AI Bulbul V3, with automatic translation if source and target languages differ.
     """
+    speaker = request.speaker or get_speaker_for_gender_and_language(request.language_code, request.voice_gender)
+    source_lang = request.source_language_code or request.language_code
+    
+    text_to_speak = request.text
+    translated_text = None
+
+    if source_lang != request.language_code:
+        translated_text = await translate_text(
+            text=request.text,
+            source_language_code=source_lang,
+            target_language_code=request.language_code,
+            speaker_gender=request.voice_gender
+        )
+        text_to_speak = translated_text
+
     result = await generate_sarvam_tts(
-        text=request.text,
+        text=text_to_speak,
         language_code=request.language_code,
-        speaker=request.speaker
+        speaker=speaker
     )
+    result["translated_text"] = translated_text
     return result
 
 @router.get("/settings", response_model=CallFriendSettingResponse, summary="Get current user's Call a Friend settings")

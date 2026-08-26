@@ -1,4 +1,4 @@
-import pytest
+﻿import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from unittest.mock import patch, MagicMock, AsyncMock
@@ -46,6 +46,41 @@ def test_call_friend_tts_endpoint_mock():
         assert data["format"] == "wav"
         assert data["model"] == "bulbul:v3"
 
+def test_call_friend_tts_with_translation_mock():
+    mock_response = {
+        "audio_base64": "UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=",
+        "format": "wav",
+        "model": "bulbul:v3",
+        "language_code": "hi-IN",
+        "speaker": "priya"
+    }
+
+    with patch("app.api.v1.endpoints.call_friend.translate_text", new_callable=AsyncMock) as mock_trans, \
+         patch("app.api.v1.endpoints.call_friend.generate_sarvam_tts", new_callable=AsyncMock) as mock_tts:
+        
+        mock_trans.return_value = "आप कहाँ हैं?"
+        mock_tts.return_value = mock_response
+
+        response = client.post(
+            "/api/v1/call-friend/tts",
+            json={
+                "text": "Where are you?",
+                "source_language_code": "en-IN",
+                "language_code": "hi-IN",
+                "voice_gender": "Female"
+            }
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["translated_text"] == "आप कहाँ हैं?"
+        mock_trans.assert_called_once_with(
+            text="Where are you?",
+            source_language_code="en-IN",
+            target_language_code="hi-IN",
+            speaker_gender="Female"
+        )
+
 def test_call_friend_settings_crud_mock():
     mock_setting = CallFriendSetting(
         id="setting-uuid-1",
@@ -82,7 +117,7 @@ def test_call_friend_settings_crud_mock():
             "caller_name": "Mom",
             "language_code": "hi-IN",
             "voice_gender": "Female",
-            "script": "??????, ?? ???? ???? ??? ?? ?? ????? ?? ??? ???? ?? ??? ?? ?? ???? ?? ???????? ????? ?? ????",
+            "script": "नमस्ते, आप कहाँ हैं?",
             "duration_minutes": 2
         }
         response = client.post("/api/v1/call-friend/settings", json=payload)
@@ -91,6 +126,6 @@ def test_call_friend_settings_crud_mock():
         assert post_data["caller_name"] == "Mom"
         assert post_data["language_code"] == "hi-IN"
         assert post_data["voice_gender"] == "Female"
-        assert post_data["speaker"] == "ratan"
+        assert post_data["speaker"] == "priya"
     finally:
         app.dependency_overrides.clear()
