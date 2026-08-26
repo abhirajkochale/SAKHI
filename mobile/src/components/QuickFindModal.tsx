@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, View, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, Linking, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
 import { SakhiButton } from './ui/SakhiButton';
 import { SakhiCard } from './ui/SakhiCard';
-import { Audio } from 'expo-av';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { sakhiApi } from '../api/sakhiApi';
 
 const { width } = Dimensions.get('window');
@@ -28,7 +28,10 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const [callElapsedSeconds, setCallElapsedSeconds] = useState(0);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const soundRef = useRef<Audio.Sound | null>(null);
+  // `expo-audio` is included in the Expo Go runtime used by this project.
+  // Starting with no source lets us replace it with the base64 audio returned
+  // by the TTS endpoint when the user starts a simulated call.
+  const audioPlayer = useAudioPlayer(null);
 
   useEffect(() => {
     if (visible && initialCategory) {
@@ -75,21 +78,13 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
 
       const ttsData = await sakhiApi.generateCallFriendTts(sampleText, langCode, 'shubh');
 
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: true,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        interruptionMode: 'duckOthers',
       });
 
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync().catch(() => {});
-      }
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: `data:audio/wav;base64,${ttsData.audio_base64}` },
-        { shouldPlay: true }
-      );
-      soundRef.current = sound;
+      audioPlayer.replace({ uri: `data:audio/wav;base64,${ttsData.audio_base64}` });
+      audioPlayer.play();
     } catch (err: any) {
       console.error('TTS playback error:', err);
       Alert.alert('Sarvam AI Audio Error', err.message || 'Failed to play Sarvam AI TTS audio');
@@ -137,11 +132,8 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   };
 
   const reset = () => {
-    if (soundRef.current) {
-      soundRef.current.stopAsync().catch(() => {});
-      soundRef.current.unloadAsync().catch(() => {});
-      soundRef.current = null;
-    }
+    audioPlayer.pause();
+    audioPlayer.replace(null);
     setResult(null);
     setResultCoords(null);
     setSelectedCategory(null);

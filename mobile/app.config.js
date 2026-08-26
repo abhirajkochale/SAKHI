@@ -26,6 +26,7 @@ module.exports = {
   },
   plugins: [
     "expo-font",
+    ["expo-audio", { recordAudioAndroid: false, enableBackgroundPlayback: false }],
     "expo-secure-store",
     "expo-web-browser"
   ]
