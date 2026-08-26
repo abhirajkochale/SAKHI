@@ -28,6 +28,7 @@ module.exports = {
     "expo-font",
     ["expo-audio", { recordAudioAndroid: false, enableBackgroundPlayback: false }],
     "expo-secure-store",
-    "expo-web-browser"
+    "expo-web-browser",
+    "expo-audio"
   ]
 };

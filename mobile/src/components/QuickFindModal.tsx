@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
 import { SakhiButton } from './ui/SakhiButton';
 import { SakhiCard } from './ui/SakhiCard';
-import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import { sakhiApi } from '../api/sakhiApi';
 
 const { width } = Dimensions.get('window');
@@ -28,10 +28,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const [callElapsedSeconds, setCallElapsedSeconds] = useState(0);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  // `expo-audio` is included in the Expo Go runtime used by this project.
-  // Starting with no source lets us replace it with the base64 audio returned
-  // by the TTS endpoint when the user starts a simulated call.
-  const audioPlayer = useAudioPlayer(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
 
   useEffect(() => {
     if (visible && initialCategory) {
@@ -80,11 +77,19 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
 
       await setAudioModeAsync({
         playsInSilentMode: true,
-        interruptionMode: 'duckOthers',
+        shouldPlayInBackground: true,
       });
 
-      audioPlayer.replace({ uri: `data:audio/wav;base64,${ttsData.audio_base64}` });
-      audioPlayer.play();
+      if (playerRef.current) {
+        playerRef.current.pause();
+        playerRef.current.remove();
+        playerRef.current = null;
+      }
+
+      const audioUri = `data:audio/wav;base64,${ttsData.audio_base64}`;
+      const player = createAudioPlayer({ uri: audioUri });
+      playerRef.current = player;
+      player.play();
     } catch (err: any) {
       console.error('TTS playback error:', err);
       Alert.alert('Sarvam AI Audio Error', err.message || 'Failed to play Sarvam AI TTS audio');
@@ -132,8 +137,13 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   };
 
   const reset = () => {
-    audioPlayer.pause();
-    audioPlayer.replace(null);
+    if (playerRef.current) {
+      try {
+        playerRef.current.pause();
+        playerRef.current.remove();
+      } catch (e) {}
+      playerRef.current = null;
+    }
     setResult(null);
     setResultCoords(null);
     setSelectedCategory(null);
