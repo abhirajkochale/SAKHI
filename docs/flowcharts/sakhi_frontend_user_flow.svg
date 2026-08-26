@@ -1,0 +1,204 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1400" viewBox="0 0 1800 1400">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#374151" />
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#E65100" />
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#FFFFFF"/>
+  
+  <!-- Title Banner -->
+  <rect x="0" y="0" width="1800" height="60" fill="#800000"/>
+  <text x="900.0" y="38" font-family="Arial" font-size="22" font-weight="bold" fill="#FFFFFF" text-anchor="middle">SAKHI — User Flow (Frontend)</text>
+
+  <!-- Section 1: Main Initialization Stream (Top Center) -->
+  <g id="main_init_stream">
+<rect x="730" y="80" width="340" height="44" rx="6" fill="#800000" stroke="#5A0000" stroke-width="2" />
+<text x="900.0" y="93.0" font-family="Arial" font-size="13" font-weight="bold" fill="#FFFFFF" text-anchor="middle">START</text>
+<text x="900.0" y="112.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">User Opens Application</text>
+<line x1="900" y1="124" x2="900" y2="145" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="145" width="340" height="44" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="900.0" y="158.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">OPEN SAKHI</text>
+<text x="900.0" y="177.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">React Native + Expo Mobile Interface</text>
+<line x1="900" y1="189" x2="900" y2="210" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="210" width="340" height="44" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="900.0" y="223.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">HOME / JOURNEY DASHBOARD</text>
+<text x="900.0" y="242.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Main Map Screen & Safety Hub</text>
+<line x1="900" y1="254" x2="900" y2="275" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="420" y="275" width="960" height="95" rx="8" fill="#F4F8FB" stroke="#0066CC" stroke-width="1.5"/>
+<text x="900" y="295" font-family="Arial" font-size="13" font-weight="bold" fill="#0066CC" text-anchor="middle">LOCATION SELECTION MODES (Explicit Choice Required)</text>
+<rect x="440" y="308" width="280" height="48" rx="6" fill="#E6F2FF" stroke="#0066CC" stroke-width="2" />
+<text x="580.0" y="323.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">MANUAL LOCATION INPUT</text>
+<text x="580.0" y="342.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Search Delhi Address / Landmark</text>
+<rect x="760" y="308" width="280" height="48" rx="6" fill="#E6F2FF" stroke="#0066CC" stroke-width="2" />
+<text x="900.0" y="323.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">SELECT LOCATION ON MAP</text>
+<text x="900.0" y="342.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Tap Directly on Interactive Map</text>
+<rect x="1080" y="308" width="280" height="48" rx="6" fill="#E6F2FF" stroke="#0066CC" stroke-width="2" />
+<text x="1220.0" y="323.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">EXPLICIT CURRENT LOCATION</text>
+<text x="1220.0" y="342.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Choose 'Use My GPS'</text>
+<line x1="900" y1="370" x2="900" y2="390" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="390" width="340" height="44" rx="6" fill="#E6F2FF" stroke="#0066CC" stroke-width="2" />
+<text x="900.0" y="403.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">ENTER ORIGIN</text>
+<text x="900.0" y="422.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Set Starting Location</text>
+<line x1="900" y1="434" x2="900" y2="455" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="455" width="340" height="44" rx="6" fill="#E6F2FF" stroke="#0066CC" stroke-width="2" />
+<text x="900.0" y="468.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">ENTER DESTINATION</text>
+<text x="900.0" y="487.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Set Target Destination</text>
+<line x1="900" y1="499" x2="900" y2="520" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="520" width="340" height="44" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="900.0" y="533.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">GENERATE ROUTES</text>
+<text x="900.0" y="552.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Triggers Journey Backend Engine</text>
+<line x1="900" y1="564" x2="900" y2="585" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="585" width="340" height="44" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="900.0" y="598.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">DISPLAY AVAILABLE ROUTES</text>
+<text x="900.0" y="617.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Safest, Balanced, Fastest Options</text>
+<line x1="900" y1="629" x2="900" y2="655" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="900" y1="642" x2="530" y2="655" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="900" y1="642" x2="1270" y2="655" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="390" y="655" width="280" height="65" rx="6" fill="#ECFDF5" stroke="#10B981" stroke-width="2" />
+<text x="530.0" y="678.5" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">🟢 SAFEST ROUTE</text>
+<text x="530.0" y="697.5" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Lowest Risk Score
+Minimal Exposure to Unsafe Segments</text>
+<rect x="760" y="655" width="280" height="65" rx="6" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2" />
+<text x="900.0" y="678.5" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">🟡 BALANCED ROUTE</text>
+<text x="900.0" y="697.5" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Optimal Trade-off
+Balances Safety Score & Travel Time</text>
+<rect x="1130" y="655" width="280" height="65" rx="6" fill="#FEF2F2" stroke="#EF4444" stroke-width="2" />
+<text x="1270.0" y="678.5" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">🔴 FASTEST ROUTE</text>
+<text x="1270.0" y="697.5" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Minimum Travel Time
+Direct Standard Routing Path</text>
+<line x1="530" y1="720" x2="900" y2="745" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="900" y1="720" x2="900" y2="745" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="1270" y1="720" x2="900" y2="745" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="745" width="340" height="44" rx="6" fill="#E6FFE6" stroke="#009933" stroke-width="2" />
+<text x="900.0" y="758.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">VIEW SELECTED / PREFERRED ROUTE</text>
+<text x="900.0" y="777.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">User Confirms Chosen Option</text>
+<line x1="900" y1="789" x2="900" y2="810" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="440" y="810" width="920" height="75" rx="6" fill="#F8F5FF" stroke="#6600CC" stroke-width="1.5"/>
+<text x="900" y="830" font-family="Arial" font-size="13" font-weight="bold" fill="#6600CC" text-anchor="middle">SAFETY ANALYSIS REPORT & EXPLANABILITY METRICS</text>
+<rect x="460" y="840" width="200" height="32" rx="6" fill="#F2E6FF" stroke="#6600CC" stroke-width="2" />
+<text x="560.0" y="860.0" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">RISK SCORE (0 - 100)</text>
+<rect x="680" y="840" width="200" height="32" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="780.0" y="860.0" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">DISTANCE & TIME</text>
+<rect x="900" y="840" width="200" height="32" rx="6" fill="#F2E6FF" stroke="#6600CC" stroke-width="2" />
+<text x="1000.0" y="860.0" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">CONFIDENCE RATING</text>
+<rect x="1120" y="840" width="220" height="32" rx="6" fill="#F2E6FF" stroke="#6600CC" stroke-width="2" />
+<text x="1230.0" y="860.0" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">SHAP: WHY THIS ROUTE?</text>
+<line x1="900" y1="885" x2="900" y2="905" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="905" width="340" height="44" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="900.0" y="918.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">START JOURNEY</text>
+<text x="900.0" y="937.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Initiates Active Tracking Mode</text>
+<line x1="900" y1="949" x2="900" y2="970" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="700" y="970" width="400" height="48" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="900.0" y="985.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">ACTIVE JOURNEY / MAP MONITORING</text>
+<text x="900.0" y="1004.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Live Route Guidance & Continuous Risk Assessment</text>
+<rect x="40" y="1035" width="1720" height="230" rx="8" fill="#FAFAFA" stroke="#D1D5DB" stroke-width="1.5"/>
+<text x="900" y="1055" font-family="Arial" font-size="14" font-weight="bold" fill="#1F2937" text-anchor="middle">DURING JOURNEY — INTERACTIVE SAFETY FEATURES</text>
+<line x1="900" y1="1018" x2="900" y2="1070" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="900" y1="1045" x2="230" y2="1070" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="900" y1="1045" x2="670" y2="1070" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="900" y1="1045" x2="1130" y2="1070" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="900" y1="1045" x2="1570" y2="1070" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="60" y="1070" width="340" height="44" rx="6" fill="#FFF3E0" stroke="#E65100" stroke-width="2" />
+<text x="230.0" y="1083.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">CONTEXT CHANGES DETECTED</text>
+<text x="230.0" y="1102.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Environmental / Traffic / Incident Update</text>
+<line x1="230" y1="1114" x2="230" y2="1135" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="60" y="1135" width="340" height="44" rx="6" fill="#F2E6FF" stroke="#6600CC" stroke-width="2" />
+<text x="230.0" y="1148.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">RISK SCORE RECALCULATION</text>
+<text x="230.0" y="1167.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Re-evaluates Active Segment Risks</text>
+<line x1="230" y1="1179" x2="230" y2="1200" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="60" y="1200" width="340" height="44" rx="6" fill="#FFF3E0" stroke="#E65100" stroke-width="2" />
+<text x="230.0" y="1213.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">DYNAMIC RE-RANKING / REROUTING</text>
+<text x="230.0" y="1232.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Adapts Active Journey Route</text>
+<rect x="460" y="1070" width="420" height="38" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="670.0" y="1080.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">FIND AMENITIES / RIGHT TO PEE</text>
+<text x="670.0" y="1099.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">User Requests Safe Washrooms / Facilities</text>
+<line x1="670" y1="1108" x2="670" y2="1120" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="460" y="1120" width="420" height="35" rx="6" fill="#E6F2FF" stroke="#0066CC" stroke-width="2" />
+<text x="670.0" y="1128.5" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">CHOOSE ORIGIN LOCATION</text>
+<text x="670.0" y="1147.5" font-family="Arial" font-size="9" fill="#4B5563" text-anchor="middle">Manual / Map Tap / Explicit GPS Choice</text>
+<line x1="670" y1="1155" x2="670" y2="1165" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="460" y="1165" width="420" height="35" rx="6" fill="#E6F2FF" stroke="#0066CC" stroke-width="2" />
+<text x="670.0" y="1173.5" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">REAL DELHI AMENITIES DATA</text>
+<text x="670.0" y="1192.5" font-family="Arial" font-size="9" fill="#4B5563" text-anchor="middle">Queries Verified Restroom Database</text>
+<line x1="670" y1="1200" x2="670" y2="1210" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="460" y="1210" width="420" height="42" rx="6" fill="#E6FFE6" stroke="#009933" stroke-width="2" />
+<text x="670.0" y="1222.0" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">SELECT WASHROOM → VIEW DETAILS → NAVIGATE</text>
+<text x="670.0" y="1241.0" font-family="Arial" font-size="9" fill="#4B5563" text-anchor="middle">Google Maps Launch (Origin → Selected Coordinates)</text>
+<rect x="940" y="1070" width="380" height="38" rx="6" fill="#E6F2FF" stroke="#0066CC" stroke-width="2" />
+<text x="1130.0" y="1080.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">REPORT SAFETY ISSUE</text>
+<text x="1130.0" y="1099.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Categories: Lighting, Harassment, Infrastructure</text>
+<line x1="1130" y1="1108" x2="1130" y2="1120" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="940" y="1120" width="380" height="35" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="1130.0" y="1128.5" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">CATEGORY + LOCATION + TIME + DESC</text>
+<text x="1130.0" y="1147.5" font-family="Arial" font-size="9" fill="#4B5563" text-anchor="middle">Gathers Incident Details</text>
+<line x1="1130" y1="1155" x2="1130" y2="1165" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="940" y="1165" width="380" height="35" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="1130.0" y="1173.5" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">VALIDATION / TRUST CHECK</text>
+<text x="1130.0" y="1192.5" font-family="Arial" font-size="9" fill="#4B5563" text-anchor="middle">Spam & Corroboration Engine</text>
+<line x1="1130" y1="1200" x2="1130" y2="1210" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="940" y="1210" width="380" height="42" rx="6" fill="#FFF3E0" stroke="#E65100" stroke-width="2" />
+<text x="1130.0" y="1222.0" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">REPORT SUBMITTED → CONTEXT UPDATED</text>
+<text x="1130.0" y="1241.0" font-family="Arial" font-size="9" fill="#4B5563" text-anchor="middle">Triggers Immediate Risk & Route Re-evaluation</text>
+<rect x="1360" y="1070" width="400" height="38" rx="6" fill="#800000" stroke="#5A0000" stroke-width="2" />
+<text x="1560.0" y="1080.0" font-family="Arial" font-size="13" font-weight="bold" fill="#FFFFFF" text-anchor="middle">CALL A FRIEND TRIGGER</text>
+<text x="1560.0" y="1099.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Simulated Call UI for Personal Reassurance</text>
+<line x1="1560" y1="1108" x2="1560" y2="1118" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="1360" y="1118" width="400" height="32" rx="6" fill="#FFF0F0" stroke="#800000" stroke-width="2" />
+<text x="1560.0" y="1138.0" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">INTERNET CONNECTIVITY CHECK</text>
+<line x1="1560" y1="1150" x2="1450" y2="1165" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="1560" y1="1150" x2="1670" y2="1165" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="1360" y="1165" width="180" height="42" rx="6" fill="#EFF6FF" stroke="#2563EB" stroke-width="2" />
+<text x="1450.0" y="1177.0" font-family="Arial" font-size="10" font-weight="bold" fill="#1A1A1A" text-anchor="middle">ONLINE (SARVAM AI)</text>
+<text x="1450.0" y="1196.0" font-family="Arial" font-size="8" fill="#4B5563" text-anchor="middle">Custom/Suggested Script
+Male/Female Voice Synthesis</text>
+<rect x="1560" y="1165" width="190" height="42" rx="6" fill="#FEF2F2" stroke="#DC2626" stroke-width="2" />
+<text x="1655.0" y="1177.0" font-family="Arial" font-size="10" font-weight="bold" fill="#1A1A1A" text-anchor="middle">OFFLINE (LOCAL VOICE)</text>
+<text x="1655.0" y="1196.0" font-family="Arial" font-size="8" fill="#4B5563" text-anchor="middle">Pre-installed Voice Clips
+Male/Female Audio Fallback</text>
+<line x1="1450" y1="1207" x2="1560" y2="1215" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="1670" y1="1207" x2="1560" y2="1215" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="1360" y="1215" width="400" height="38" rx="6" fill="#E6FFE6" stroke="#009933" stroke-width="2" />
+<text x="1560.0" y="1225.0" font-family="Arial" font-size="11" font-weight="bold" fill="#1A1A1A" text-anchor="middle">SIMULATED CALL SCREEN PLAYBACK</text>
+<text x="1560.0" y="1244.0" font-family="Arial" font-size="9" fill="#4B5563" text-anchor="middle">expo-audio Player Active Call Screen</text>
+<line x1="230" y1="1244" x2="900" y2="1280" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="670" y1="1252" x2="900" y2="1280" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="1130" y1="1252" x2="900" y2="1280" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<line x1="1560" y1="1253" x2="900" y2="1280" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="1280" width="340" height="44" rx="6" fill="#E6FFE6" stroke="#009933" stroke-width="2" />
+<text x="900.0" y="1293.0" font-family="Arial" font-size="13" font-weight="bold" fill="#1A1A1A" text-anchor="middle">REACH DESTINATION</text>
+<text x="900.0" y="1312.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">User Arrives Safely</text>
+<line x1="900" y1="1324" x2="900" y2="1340" stroke="#374151" stroke-width="2"  marker-end="url(#arrow)"/>
+<rect x="730" y="1340" width="340" height="44" rx="6" fill="#800000" stroke="#5A0000" stroke-width="2" />
+<text x="900.0" y="1353.0" font-family="Arial" font-size="13" font-weight="bold" fill="#FFFFFF" text-anchor="middle">JOURNEY COMPLETE</text>
+<text x="900.0" y="1372.0" font-family="Arial" font-size="11" fill="#4B5563" text-anchor="middle">Session Closed & Summary Displayed</text>
+
+  <!-- Legend -->
+  <g transform="translate(40, 1345)">
+    <rect x="0" y="0" width="1720" height="42" rx="6" fill="#FAFAFA" stroke="#E5E7EB" stroke-width="1.5"/>
+    <text x="20" y="26" font-family="Arial" font-size="12" font-weight="bold" fill="#374151">COLOR CODING LEGEND:</text>
+    
+    <rect x="180" y="13" width="16" height="16" rx="3" fill="#800000"/>
+    <text x="202" y="26" font-family="Arial" font-size="11" fill="#374151">Main Flow / Start-End</text>
+
+    <rect x="360" y="13" width="16" height="16" rx="3" fill="#FFF0F0" stroke="#800000" stroke-width="1.5"/>
+    <text x="382" y="26" font-family="Arial" font-size="11" fill="#374151">Frontend / Component</text>
+
+    <rect x="540" y="13" width="16" height="16" rx="3" fill="#E6F2FF" stroke="#0066CC" stroke-width="1.5"/>
+    <text x="562" y="26" font-family="Arial" font-size="11" fill="#374151">Data / Location / Input</text>
+
+    <rect x="720" y="13" width="16" height="16" rx="3" fill="#F2E6FF" stroke="#6600CC" stroke-width="1.5"/>
+    <text x="742" y="26" font-family="Arial" font-size="11" fill="#374151">ML / XGBoost / SHAP / Confidence</text>
+
+    <rect x="980" y="13" width="16" height="16" rx="3" fill="#E6FFE6" stroke="#009933" stroke-width="1.5"/>
+    <text x="1002" y="26" font-family="Arial" font-size="11" fill="#374151">User Output / Success</text>
+
+    <rect x="1170" y="13" width="16" height="16" rx="3" fill="#FFF3E0" stroke="#E65100" stroke-width="1.5"/>
+    <text x="1192" y="26" font-family="Arial" font-size="11" fill="#374151">Feedback / Rerouting / Recalculation</text>
+
+    <rect x="1440" y="13" width="16" height="16" rx="3" fill="#F0F0F0" stroke="#666666" stroke-width="1.5"/>
+    <text x="1462" y="26" font-family="Arial" font-size="11" fill="#374151">External Services</text>
+  </g>
+</svg>
