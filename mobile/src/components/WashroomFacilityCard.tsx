@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
 import { WashroomResponse } from '../types/api';
 import { SakhiCard } from './ui/SakhiCard';
 import { SakhiText } from './ui/SakhiText';
@@ -41,6 +41,16 @@ export default function WashroomFacilityCard({ visible, washroom, distance, onCl
   const [safety, setSafety] = useState<string | null>(null);
   const [accessible, setAccessible] = useState<boolean | null>(null);
 
+  React.useEffect(() => {
+    if (visible) {
+      setIsOpen(null);
+      setCleanliness(null);
+      setSafety(null);
+      setAccessible(null);
+      setShowFeedback(false);
+    }
+  }, [visible, washroom?.id]);
+
   const distance_value = distance;
 
   if (!washroom) return null;
@@ -55,12 +65,14 @@ export default function WashroomFacilityCard({ visible, washroom, distance, onCl
         accessible: accessible ?? true
       });
       setShowFeedback(false);
+      Alert.alert('Success', 'Feedback submitted successfully.');
       if (onFeedbackSubmitted) {
         onFeedbackSubmitted();
       }
-      onClose(); // Alternatively, could just refresh the washroom
+      onClose();
     } catch (e) {
-      console.warn('Failed to submit feedback');
+      console.warn('Failed to submit feedback', e);
+      Alert.alert('Error', 'Unable to submit feedback. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -68,7 +80,7 @@ export default function WashroomFacilityCard({ visible, washroom, distance, onCl
 
   const getFreshnessText = () => {
     if (!washroom.last_verified_timestamp) {
-      return "⚠️ Status not recently verified. Last verified: Never.";
+      return "Status not recently verified. Last verified: Never.";
     }
     const verifiedDate = new Date(washroom.last_verified_timestamp);
     const now = new Date();
@@ -103,9 +115,12 @@ export default function WashroomFacilityCard({ visible, washroom, distance, onCl
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.cardHeader}>
-            <SakhiText variant="h3" style={{ fontWeight: 'bold' }}>
-              🚻 {washroom.name}
-            </SakhiText>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Ionicons name="water-outline" size={22} color="#7E22CE" style={{marginRight: 8}} />
+              <SakhiText variant="h3" style={{ fontWeight: 'bold' }}>
+                {washroom.name}
+              </SakhiText>
+            </View>
             {distance_value !== null && distance_value > 0 && (
               <SakhiText variant="subtext" style={{ color: '#4B5563', fontWeight: 'bold' }}>
                 {Math.round(distance_value)} m away
