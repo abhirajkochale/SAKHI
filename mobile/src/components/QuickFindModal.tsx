@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
 import { SakhiButton } from './ui/SakhiButton';
 import { SakhiCard } from './ui/SakhiCard';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
 import { sakhiApi } from '../api/sakhiApi';
 
 const { width } = Dimensions.get('window');
@@ -28,7 +28,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const [callElapsedSeconds, setCallElapsedSeconds] = useState(0);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
 
   useEffect(() => {
     if (visible && initialCategory) {
@@ -75,21 +75,21 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
 
       const ttsData = await sakhiApi.generateCallFriendTts(sampleText, langCode, 'shubh');
 
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: true,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
       });
 
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync().catch(() => {});
+      if (playerRef.current) {
+        playerRef.current.pause();
+        playerRef.current.remove();
+        playerRef.current = null;
       }
 
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: `data:audio/wav;base64,${ttsData.audio_base64}` },
-        { shouldPlay: true }
-      );
-      soundRef.current = sound;
+      const audioUri = `data:audio/wav;base64,${ttsData.audio_base64}`;
+      const player = createAudioPlayer({ uri: audioUri });
+      playerRef.current = player;
+      player.play();
     } catch (err: any) {
       console.error('TTS playback error:', err);
       Alert.alert('Sarvam AI Audio Error', err.message || 'Failed to play Sarvam AI TTS audio');
@@ -137,10 +137,12 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   };
 
   const reset = () => {
-    if (soundRef.current) {
-      soundRef.current.stopAsync().catch(() => {});
-      soundRef.current.unloadAsync().catch(() => {});
-      soundRef.current = null;
+    if (playerRef.current) {
+      try {
+        playerRef.current.pause();
+        playerRef.current.remove();
+      } catch (e) {}
+      playerRef.current = null;
     }
     setResult(null);
     setResultCoords(null);

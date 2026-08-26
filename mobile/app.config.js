@@ -27,6 +27,7 @@ module.exports = {
   plugins: [
     "expo-font",
     "expo-secure-store",
-    "expo-web-browser"
+    "expo-web-browser",
+    "expo-audio"
   ]
 };
