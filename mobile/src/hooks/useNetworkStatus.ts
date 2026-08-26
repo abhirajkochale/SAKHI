@@ -1,5 +1,5 @@
-﻿import { useState, useEffect } from 'react';
-import NetInfo from '@react-native-community/netinfo';
+import { useState, useEffect } from 'react';
+import { NativeModules } from 'react-native';
 
 export interface NetworkStatus {
   isConnected: boolean;
@@ -15,26 +15,43 @@ export function useNetworkStatus(): NetworkStatus {
   });
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      const isOnline = Boolean(state.isConnected && state.isInternetReachable !== false);
-      setStatus({
-        isConnected: Boolean(state.isConnected),
-        isInternetReachable: state.isInternetReachable,
-        isOnline,
-      });
-    });
+    // Prevent top-level module evaluation crash if RNCNetInfo native module is missing from the binary
+    if (!NativeModules.RNCNetInfo) {
+      return;
+    }
 
-    // Initial check
-    NetInfo.fetch().then(state => {
-      const isOnline = Boolean(state.isConnected && state.isInternetReachable !== false);
-      setStatus({
-        isConnected: Boolean(state.isConnected),
-        isInternetReachable: state.isInternetReachable,
-        isOnline,
-      });
-    });
+    try {
+      const NetInfo = require('@react-native-community/netinfo').default;
+      if (!NetInfo || typeof NetInfo.fetch !== 'function') return;
 
-    return () => unsubscribe();
+      const unsubscribe = NetInfo.addEventListener((state: any) => {
+        if (!state) return;
+        const isOnline = Boolean(state.isConnected && state.isInternetReachable !== false);
+        setStatus({
+          isConnected: Boolean(state.isConnected),
+          isInternetReachable: state.isInternetReachable,
+          isOnline,
+        });
+      });
+
+      NetInfo.fetch().then((state: any) => {
+        if (!state) return;
+        const isOnline = Boolean(state.isConnected && state.isInternetReachable !== false);
+        setStatus({
+          isConnected: Boolean(state.isConnected),
+          isInternetReachable: state.isInternetReachable,
+          isOnline,
+        });
+      }).catch(() => {});
+
+      return () => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
+    } catch (e) {
+      console.warn('NetInfo load error:', e);
+    }
   }, []);
 
   return status;
