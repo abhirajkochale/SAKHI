@@ -4,3 +4,4 @@ from .incident import Incident
 from .route_segment import PersistentRouteSegment
 from .washroom import Washroom
 from .user import User
+from .call_friend_setting import CallFriendSetting

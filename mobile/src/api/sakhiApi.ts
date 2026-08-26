@@ -2,12 +2,22 @@ import axios from 'axios';
 import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, WashroomResponse } from '../types/api';
 import { supabase } from './supabase';
 
-// Use Expo environment variable or fallback to localhost
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+
+export interface CallFriendSettings {
+  id?: string;
+  user_id?: string;
+  caller_name: string;
+  language_code: string;
+  voice_gender: 'Male' | 'Female';
+  speaker?: string;
+  script: string;
+  duration_minutes: number;
+}
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  timeout: 60000, // Increased to 60000ms to accommodate Render free-tier cold starts
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -99,6 +109,23 @@ export const sakhiApi = {
       language_code: languageCode,
       speaker,
     });
+    return response.data;
+  },
+
+  getCallFriendSettings: async (): Promise<CallFriendSettings | null> => {
+    try {
+      const response = await apiClient.get<CallFriendSettings>('/call-friend/settings');
+      return response.data;
+    } catch (err: any) {
+      if (axios.isAxiosError(err) && (err.response?.status === 404 || err.response?.status === 444)) {
+        return null;
+      }
+      throw err;
+    }
+  },
+
+  saveCallFriendSettings: async (settings: CallFriendSettings): Promise<CallFriendSettings> => {
+    const response = await apiClient.post<CallFriendSettings>('/call-friend/settings', settings);
     return response.data;
   }
 };

@@ -6,6 +6,7 @@ import { SakhiButton } from './ui/SakhiButton';
 import { supabase } from '../api/supabase';
 import { sakhiApi } from '../api/sakhiApi';
 import { User } from '@supabase/supabase-js';
+import CallFriendSetupModal from './CallFriendSetupModal';
 import * as WebBrowser from 'expo-web-browser';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -22,16 +23,14 @@ export default function ProfileModal({ visible, onClose }: Props) {
   const [actionLoading, setActionLoading] = useState(false);
   
   const [showVerifyFlow, setShowVerifyFlow] = useState(false);
+  const [showCallFriendSetup, setShowCallFriendSetup] = useState(false);
   const [demoIdInput, setDemoIdInput] = useState('');
 
   const syncUserProfileWithDb = async (sessionUser: User | null) => {
-    // Always reset local state first
     setIsVerified(false);
-
     if (!sessionUser) return;
 
     try {
-      // SINGLE SOURCE OF TRUTH: Fetch identity_status directly from backend database
       const profile = await sakhiApi.getCurrentUser();
       if (profile && profile.identity_status === 'VERIFIED') {
         setIsVerified(true);
@@ -160,8 +159,6 @@ export default function ProfileModal({ visible, onClose }: Props) {
 
     try {
       setActionLoading(true);
-      
-      // Update database public.users table via backend API
       const updatedProfile = await sakhiApi.verifyDemo(trimmedCode);
       
       if (updatedProfile && updatedProfile.identity_status === 'VERIFIED') {
@@ -220,29 +217,8 @@ export default function ProfileModal({ visible, onClose }: Props) {
     if (loading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#4F46E5" />
+          <ActivityIndicator size="large" color="#DC2626" />
         </View>
-      );
-    }
-
-    if (!user) {
-      return (
-        <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <View style={styles.iconWrapper}>
-            <Ionicons name="person-circle-outline" size={80} color="#9CA3AF" />
-          </View>
-          <SakhiText variant="h2" style={styles.title}>Sign In to SAKHI</SakhiText>
-          <SakhiText variant="body" color="secondary" style={styles.subtitle}>
-            Sign in to report incidents and help improve safety for everyone.
-          </SakhiText>
-          <SakhiButton
-            title={actionLoading ? "Signing In..." : "Continue with Google"}
-            onPress={handleSignIn}
-            style={{ marginTop: 24, width: '100%' }}
-            disabled={actionLoading}
-            loading={actionLoading}
-          />
-        </ScrollView>
       );
     }
 
@@ -250,14 +226,36 @@ export default function ProfileModal({ visible, onClose }: Props) {
       return renderVerifyFlow();
     }
 
-    return (
-      <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <View style={styles.iconWrapper}>
-          <Ionicons name={isVerified ? "checkmark-circle" : "person-circle"} size={80} color={isVerified ? "#10B981" : "#4F46E5"} />
+    if (!user) {
+      return (
+        <View style={styles.centerContainer}>
+          <View style={styles.iconWrapper}>
+            <Ionicons name="person-circle-outline" size={80} color="#9CA3AF" />
+          </View>
+          <SakhiText variant="h2" style={styles.title}>Welcome to SAKHI</SakhiText>
+          <SakhiText variant="body" color="secondary" style={styles.subtitle}>
+            Sign in to access personalized safety routing, identity verification, and saved call preferences.
+          </SakhiText>
+
+          <SakhiButton
+            title={actionLoading ? "Signing in..." : "Sign In with Google"}
+            onPress={handleSignIn}
+            style={{ marginTop: 24, width: '100%' }}
+            disabled={actionLoading}
+          />
         </View>
-        <SakhiText variant="h2" style={styles.title}>{user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}</SakhiText>
+      );
+    }
+
+    return (
+      <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.iconWrapper}>
+          <Ionicons name="person-circle" size={80} color="#DC2626" />
+        </View>
+        <SakhiText variant="h2" style={styles.title}>{user.user_metadata?.full_name || 'SAKHI User'}</SakhiText>
         <SakhiText variant="body" color="secondary" style={styles.subtitle}>{user.email}</SakhiText>
 
+        {/* Verification Status Card */}
         <View style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <SakhiText variant="h3">Account Status</SakhiText>
@@ -282,10 +280,22 @@ export default function ProfileModal({ visible, onClose }: Props) {
             </>
           ) : (
             <SakhiText variant="subtext" color="secondary" style={{ marginTop: 8 }}>
-              Identity verified.
+              Identity verified in SAKHI database.
             </SakhiText>
           )}
         </View>
+
+        {/* Call a Friend Preferences Card */}
+        <TouchableOpacity style={styles.settingsCard} onPress={() => setShowCallFriendSetup(true)}>
+          <View style={styles.settingsIconWrapper}>
+            <Ionicons name="call" size={24} color="#DC2626" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <SakhiText variant="h3" style={{ color: '#1F2937' }}>Call a Friend Setup</SakhiText>
+            <SakhiText variant="subtext" color="secondary">Configure fake caller, language, voice & script</SakhiText>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+        </TouchableOpacity>
 
         <SakhiButton
           title={actionLoading ? "Signing Out..." : "Sign Out"}
@@ -293,6 +303,11 @@ export default function ProfileModal({ visible, onClose }: Props) {
           onPress={handleSignOut}
           style={{ marginTop: 24, marginBottom: 16, width: '100%' }}
           disabled={actionLoading}
+        />
+
+        <CallFriendSetupModal
+          visible={showCallFriendSetup}
+          onClose={() => setShowCallFriendSetup(false)}
         />
       </ScrollView>
     );
@@ -374,9 +389,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderRadius: 16,
     padding: 16,
-    marginTop: 24,
+    marginTop: 20,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  settingsCard: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  settingsIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   statusHeader: {
     flexDirection: 'row',
