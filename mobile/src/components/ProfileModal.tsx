@@ -153,7 +153,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
   };
 
   const handleDemoVerify = async () => {
-    if (demoIdInput.trim() === 'SAKHI-DEMO-001') {
+    if (/^\d{12}$/.test(demoIdInput.trim())) {
        if (user?.id) {
            setActionLoading(true);
            
@@ -191,10 +191,12 @@ export default function ProfileModal({ visible, onClose }: Props) {
         
         <TextInput
           style={styles.inputField}
-          placeholder="Enter Demo ID"
+          placeholder="Enter 12-digit Demo ID"
+          keyboardType="number-pad"
+          maxLength={12}
           value={demoIdInput}
           onChangeText={setDemoIdInput}
-          autoCapitalize="characters"
+          
         />
 
         <SakhiButton
