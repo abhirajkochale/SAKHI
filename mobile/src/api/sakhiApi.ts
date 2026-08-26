@@ -87,5 +87,18 @@ export const sakhiApi = {
     const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
     const response = await apiClient.post('/users/me/verify-demo', { demo_code: demoCode }, { headers });
     return response.data;
+  },
+
+  generateCallFriendTts: async (
+    text: string = "Hey, where are you? I just wanted to check if you've reached safely.",
+    languageCode: string = "en-IN",
+    speaker: string = "shubh"
+  ): Promise<{ audio_base64: string; format: string; model: string }> => {
+    const response = await apiClient.post('/call-friend/tts', {
+      text,
+      language_code: languageCode,
+      speaker,
+    });
+    return response.data;
   }
 };

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str = "sqlite:///./sakhi.db"
     SUPABASE_URL: Optional[str] = None
+    SARVAM_API_KEY: Optional[str] = None
 
     # Routing Provider Configuration
     OSRM_BASE_URL: str = "https://router.project-osrm.org"

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Modal, View, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, Linking, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
 import { SakhiButton } from './ui/SakhiButton';
 import { SakhiCard } from './ui/SakhiCard';
+import { Audio } from 'expo-av';
+import { sakhiApi } from '../api/sakhiApi';
 
 const { width } = Dimensions.get('window');
 
@@ -18,14 +20,17 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const [result, setResult] = useState<string | null>(null);
   const [resultCoords, setResultCoords] = useState<{lat: number, lon: number} | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
+  
   const [isSettingUpCall, setIsSettingUpCall] = useState(false);
   const [callLanguage, setCallLanguage] = useState('English');
   const [callDuration, setCallDuration] = useState(2);
   const [callActive, setCallActive] = useState(false);
   const [callElapsedSeconds, setCallElapsedSeconds] = useState(0);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  React.useEffect(() => {
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  useEffect(() => {
     if (visible && initialCategory) {
       if (initialCategory === 'Call a Friend') {
         setIsSettingUpCall(true);
@@ -35,14 +40,14 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
     }
   }, [visible, initialCategory]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (callActive) {
       interval = setInterval(() => {
         setCallElapsedSeconds(prev => {
           const next = prev + 1;
           if (next >= callDuration * 60) {
-            setCallActive(false);
+            reset();
             return 0;
           }
           return next;
@@ -60,11 +65,49 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
     return `${m}:${s}`;
   };
 
+  const playSarvamAudio = async () => {
+    try {
+      setIsPlayingAudio(true);
+      const langCode = callLanguage === 'Hindi' ? 'hi-IN' : 'en-IN';
+      const sampleText = callLanguage === 'Hindi'
+        ? "??????, ?? ???? ???? ??? ?? ?? ????? ?? ??? ???? ?? ??? ?? ?? ???? ?? ???????? ????? ?? ????"
+        : "Hey, where are you? I just wanted to check if you've reached safely.";
+
+      const ttsData = await sakhiApi.generateCallFriendTts(sampleText, langCode, 'shubh');
+
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true,
+      });
+
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync().catch(() => {});
+      }
+
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: `data:audio/wav;base64,${ttsData.audio_base64}` },
+        { shouldPlay: true }
+      );
+      soundRef.current = sound;
+    } catch (err: any) {
+      console.error('TTS playback error:', err);
+      Alert.alert('Sarvam AI Audio Error', err.message || 'Failed to play Sarvam AI TTS audio');
+    } finally {
+      setIsPlayingAudio(false);
+    }
+  };
+
+  const handleStartCall = async () => {
+    setIsSettingUpCall(false);
+    setCallActive(true);
+    await playSarvamAudio();
+  };
+
   const handleSearch = async (category: string) => {
     setSelectedCategory(category);
     setLoading(true);
     try {
-      // Map category to API amenity type
       const typeMap: Record<string, string> = {
         'Washroom': 'washroom',
         'Medical Clinic': 'hospital',
@@ -72,14 +115,13 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
       };
       const amenityType = typeMap[category] || 'washroom';
       
-      // Use a fixed CP center for the search (28.631, 77.219)
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/amenities/nearest?lat=28.631&lon=77.219&type=${amenityType}`
       );
       
       if (response.ok) {
         const data = await response.json();
-        setResult(`Nearest ${category}: ${data.name}\n📍 ${data.distance_m}m away | 🚶 ${Math.ceil(data.distance_m / 80)} min walk`);
+        setResult(`Nearest ${category}: ${data.name}\n?? ${data.distance_m}m away | ?? ${Math.ceil(data.distance_m / 80)} min walk`);
         if (data.latitude && data.longitude) {
           setResultCoords({ lat: data.latitude, lon: data.longitude });
         }
@@ -95,12 +137,18 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   };
 
   const reset = () => {
+    if (soundRef.current) {
+      soundRef.current.stopAsync().catch(() => {});
+      soundRef.current.unloadAsync().catch(() => {});
+      soundRef.current = null;
+    }
     setResult(null);
     setResultCoords(null);
     setSelectedCategory(null);
     setIsSettingUpCall(false);
     setCallActive(false);
     setCallElapsedSeconds(0);
+    setIsPlayingAudio(false);
     onClose();
   };
 
@@ -110,7 +158,6 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
       reset();
       return;
     }
-    // Hardcoded origin: Rajiv Chowk Metro Station for the demo as requested
     const originLat = 28.6328;
     const originLon = 77.2197;
     const destLat = resultCoords.lat;
@@ -176,7 +223,7 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const renderCallSetup = () => (
     <View style={styles.callSetupContainer}>
       <SakhiText variant="h2" style={styles.callSetupTitle}>Call a Friend</SakhiText>
-      <SakhiText variant="body" color="secondary" style={styles.callSetupDesc}>Plays a voice note to make it seem like you are on a call.</SakhiText>
+      <SakhiText variant="body" color="secondary" style={styles.callSetupDesc}>Plays Sarvam AI Bulbul V3 voice note to simulate a realistic check-in call.</SakhiText>
 
       <SakhiText variant="h3" style={styles.label}>Select Language:</SakhiText>
       <View style={styles.row}>
@@ -197,9 +244,11 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
       </View>
 
       <SakhiButton
-        title="Start Call"
-        onPress={() => { setIsSettingUpCall(false); setCallActive(true); }}
+        title={isPlayingAudio ? "Generating Voice..." : "Start Call"}
+        onPress={handleStartCall}
         style={styles.startCallBtn}
+        disabled={isPlayingAudio}
+        loading={isPlayingAudio}
       />
     </View>
   );
@@ -209,9 +258,11 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
       <View style={styles.callAvatar}>
         <Ionicons name="person" size={40} color="#9CA3AF" />
       </View>
-      <SakhiText variant="h2" style={styles.callerName}>Unknown Caller</SakhiText>
+      <SakhiText variant="h2" style={styles.callerName}>Sarvam AI Voice Assistant</SakhiText>
       <SakhiText variant="h1" style={styles.callStatus}>{formatTime(callElapsedSeconds)} / {callDuration < 10 ? '0' : ''}{callDuration}:00</SakhiText>
-      <SakhiText variant="body" color="secondary" style={styles.callSubtitle}>Playing {callLanguage} voice notes...</SakhiText>
+      <SakhiText variant="body" color="secondary" style={styles.callSubtitle}>
+        {isPlayingAudio ? "Generating Sarvam AI Bulbul V3 Speech..." : `Playing ${callLanguage} Sarvam AI audio...`}
+      </SakhiText>
 
       <TouchableOpacity style={styles.endCallBtn} onPress={reset}>
         <Ionicons name="call" size={24} color="#FFFFFF" style={styles.endCallIcon} />
@@ -239,8 +290,12 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
       <SakhiButton
         title="Navigate Now"
         onPress={handleNavigateNow}
-        style={styles.navigateBtn}
+        style={styles.actionBtn}
       />
+
+      <TouchableOpacity style={styles.searchAgainBtn} onPress={reset}>
+        <SakhiText variant="body" color="secondary">Search Again</SakhiText>
+      </TouchableOpacity>
     </View>
   );
 
@@ -249,28 +304,23 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
       <View style={styles.overlay}>
         <View style={styles.modalView}>
           <View style={styles.header}>
-            <View>
-              <SakhiText variant="h2" style={styles.title}>Quick Find</SakhiText>
-              {!result && !isSettingUpCall && !callActive && (
-                <SakhiText variant="body" color="secondary">Find useful help near you.</SakhiText>
-              )}
-            </View>
+            <SakhiText variant="h2" style={styles.headerTitle}>Quick Assistance</SakhiText>
             <TouchableOpacity onPress={reset} style={styles.closeBtnWrapper}>
               <Ionicons name="close" size={24} color="#6B7280" />
             </TouchableOpacity>
           </View>
 
-          {!result && !isSettingUpCall && !callActive && renderOptions()}
-          {isSettingUpCall && renderCallSetup()}
-          {callActive && renderActiveCall()}
-          {result && renderResult()}
-
           {loading && (
-            <View style={styles.loadingOverlay}>
+            <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#DC2626" />
-              <SakhiText variant="body" style={styles.loadingText}>Locating nearest {selectedCategory}...</SakhiText>
+              <SakhiText variant="body" style={{ marginTop: 12 }}>Searching nearby safety amenities...</SakhiText>
             </View>
           )}
+
+          {!loading && result && renderResult()}
+          {!loading && !result && !isSettingUpCall && !callActive && renderOptions()}
+          {!loading && isSettingUpCall && renderCallSetup()}
+          {!loading && callActive && renderActiveCall()}
         </View>
       </View>
     </Modal>
@@ -281,29 +331,23 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(17, 24, 39, 0.6)',
-    justifyContent: 'flex-end'
+    justifyContent: 'flex-end',
   },
   modalView: {
     backgroundColor: '#FFFFFF',
     padding: 24,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    minHeight: 350,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 20
+    minHeight: width * 0.8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 24
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  title: {
+  headerTitle: {
     color: '#1F2937',
-    marginBottom: 4
   },
   closeBtnWrapper: {
     padding: 4,
@@ -311,154 +355,135 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   optionsContainer: {
-    gap: 12
+    gap: 12,
   },
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     padding: 16,
+    backgroundColor: '#F9FAFB',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: '#F3F4F6',
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FEF2F2',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16
+    marginRight: 16,
   },
   optionTextContainer: {
-    flex: 1
+    flex: 1,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
   },
   resultContainer: {
     alignItems: 'center',
-    paddingVertical: 12
   },
   resultIconWrapper: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: 12,
   },
   resultCategory: {
-    color: '#374151',
-    marginBottom: 4
+    color: '#1F2937',
   },
   resultMockBadge: {
-    fontStyle: 'italic',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   resultCard: {
     width: '100%',
-    paddingVertical: 24,
-    marginBottom: 24,
-    backgroundColor: '#F9FAFB',
-    borderColor: '#E5E7EB',
+    padding: 16,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+    marginBottom: 20,
   },
-  navigateBtn: {
+  actionBtn: {
     width: '100%',
+    marginBottom: 12,
   },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#4B5563',
-    fontWeight: '500'
+  searchAgainBtn: {
+    paddingVertical: 8,
   },
   callSetupContainer: {
-    paddingVertical: 8
+    gap: 16,
   },
   callSetupTitle: {
     color: '#1F2937',
-    marginBottom: 8
   },
   callSetupDesc: {
-    marginBottom: 24
+    marginBottom: 8,
   },
   label: {
-    color: '#374151',
-    marginBottom: 12,
-    marginTop: 8
+    marginTop: 4,
   },
   row: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16
   },
   toggleBtn: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#F9FAFB',
   },
   toggleBtnActive: {
     borderColor: '#DC2626',
-    backgroundColor: '#FEF2F2'
+    backgroundColor: '#FEF2F2',
   },
   toggleBtnText: {
-    color: '#4B5563',
-    fontWeight: '600'
+    color: '#374151',
   },
   toggleBtnTextActive: {
-    color: '#DC2626'
+    color: '#DC2626',
+    fontWeight: 'bold',
   },
   startCallBtn: {
-    marginTop: 24
+    marginTop: 12,
   },
   activeCallContainer: {
     alignItems: 'center',
-    paddingVertical: 32
+    paddingVertical: 20,
   },
   callAvatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24
+    marginBottom: 16,
   },
   callerName: {
     color: '#1F2937',
-    marginBottom: 12
+    marginBottom: 4,
   },
   callStatus: {
-    color: '#374151',
-    marginBottom: 8,
-    fontVariant: ['tabular-nums']
+    color: '#DC2626',
+    marginVertical: 8,
   },
   callSubtitle: {
-    fontStyle: 'italic',
-    marginBottom: 48
+    marginBottom: 24,
   },
   endCallBtn: {
-    backgroundColor: '#DC2626',
     width: 64,
     height: 64,
     borderRadius: 32,
-    alignItems: 'center',
+    backgroundColor: '#DC2626',
     justifyContent: 'center',
+    alignItems: 'center',
     elevation: 4,
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
@@ -466,6 +491,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   endCallIcon: {
-    transform: [{ rotate: '135deg' }]
-  }
+    transform: [{ rotate: '135deg' }],
+  },
 });
