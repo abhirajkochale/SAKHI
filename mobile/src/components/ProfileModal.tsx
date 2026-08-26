@@ -30,7 +30,11 @@ export default function ProfileModal({ visible, onClose }: Props) {
 
     try {
       // 2. STRICT Source of Truth: Supabase Auth metadata only
-      if (sessionUser.user_metadata?.demo_identity_verified === true) {
+      console.log('--- CHECKING VERIFICATION STATE ---');
+      console.log('USER METADATA:', sessionUser.user_metadata);
+      const isDemoVerified = sessionUser.user_metadata?.demo_identity_verified;
+      console.log('EVALUATED DEMO VERIFIED FLAG:', isDemoVerified);
+      if (isDemoVerified === true || isDemoVerified === 'true') {
         setIsVerified(true);
       }
     } catch (e) {
