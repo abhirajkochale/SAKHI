@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Location } from '../types/api';
 import { SakhiText } from './ui/SakhiText';
 import { Ionicons } from '@expo/vector-icons';
@@ -83,7 +83,7 @@ export default function JourneyForm({
       <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
         {CP_LOCATIONS.filter(l => l.name !== exclude).map((loc) => (
           <TouchableOpacity key={loc.name} style={styles.pickerItem} onPress={() => onSelect(loc)}>
-            <Ionicons name="location-outline" size={16} color="#DC2626" style={{ marginRight: 8 }} />
+            <Ionicons name="location-outline" size={16} color="#8B1E1E" style={{ marginRight: 8 }} />
             <SakhiText variant="body" style={{ color: '#1F2937' }}>{loc.name}</SakhiText>
           </TouchableOpacity>
         ))}
@@ -120,7 +120,7 @@ export default function JourneyForm({
               </View>
               <View style={styles.compactActionCol}>
                 <TouchableOpacity style={{padding: 4}} onPress={swapLocations}>
-                  <Ionicons name="swap-vertical" size={24} color="#6B7280" />
+                  <Ionicons name="swap-vertical" size={24} color="#8B1E1E" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -145,59 +145,72 @@ export default function JourneyForm({
 
   return (
     <View style={styles.card}>
-      <SakhiText variant="caption" style={styles.pilotLabel}>CONNAUGHT PLACE PILOT — Supported locations only</SakhiText>
-      {error && <SakhiText color="danger" variant="caption" style={styles.error}>{error}</SakhiText>}
-
-      <View style={styles.inputGroup}>
-        <TouchableOpacity style={styles.row} onPress={() => { setShowOriginPicker(!showOriginPicker); setShowDestPicker(false); }}>
-          <View style={styles.iconContainer}>
-            <View style={styles.originIconOuter}>
-              <View style={styles.originIconInner} />
-            </View>
-          </View>
-          <View style={styles.fieldContainer}>
-            <SakhiText variant="caption" style={styles.label}>From</SakhiText>
-            <SakhiText style={[styles.input, !originText && { color: '#9ca3af' }]}>
-              {originText || 'Select starting point'}
-            </SakhiText>
-          </View>
-          <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
-        </TouchableOpacity>
-        {showOriginPicker && <LocationPicker onSelect={selectOrigin} exclude={destinationText} />}
-
-        <View style={styles.dottedLineContainer}>
-          <View style={styles.dottedLine} />
-        </View>
-
-        <TouchableOpacity style={styles.row} onPress={() => { setShowDestPicker(!showDestPicker); setShowOriginPicker(false); }}>
-          <View style={styles.iconContainer}>
-            <View style={styles.destinationIcon}>
-              <View style={styles.destinationIconHole} />
-            </View>
-          </View>
-          <View style={styles.fieldContainer}>
-            <SakhiText variant="caption" style={styles.label}>To</SakhiText>
-            <SakhiText style={[styles.input, !destinationText && { color: '#9ca3af' }]}>
-              {destinationText || 'Select destination'}
-            </SakhiText>
-          </View>
-          <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
-        </TouchableOpacity>
-        {showDestPicker && <LocationPicker onSelect={selectDestination} exclude={originText} />}
+      <View style={styles.headerContainer}>
+        <SakhiText variant="h2" style={styles.titleText}>Plan your journey</SakhiText>
+        <SakhiText variant="body" style={styles.subtitleText}>Enter your locations to find the safest route.</SakhiText>
       </View>
 
+      {error && <SakhiText color="danger" variant="caption" style={styles.error}>{error}</SakhiText>}
+
+      <View style={styles.inputsWrapper}>
+        {/* Left indicators & connector line */}
+        <View style={styles.indicatorCol}>
+          <View style={styles.originDot} />
+          <View style={styles.connectorLine} />
+          <Ionicons name="location" size={20} color="#991B1B" />
+        </View>
+
+        {/* Input Boxes Column */}
+        <View style={styles.fieldsCol}>
+          {/* FROM Box */}
+          <TouchableOpacity 
+            style={[styles.inputBox, showOriginPicker && styles.inputBoxActive]} 
+            onPress={() => { setShowOriginPicker(!showOriginPicker); setShowDestPicker(false); }}
+          >
+            <View style={styles.inputInnerContent}>
+              <SakhiText variant="caption" style={styles.fieldLabel}>From</SakhiText>
+              <SakhiText style={[styles.fieldValue, !originText && styles.placeholderValue]}>
+                {originText || 'Enter starting location'}
+              </SakhiText>
+            </View>
+            <Ionicons name="navigate-outline" size={20} color="#64748B" />
+          </TouchableOpacity>
+          {showOriginPicker && <LocationPicker onSelect={selectOrigin} exclude={destinationText} />}
+
+          {/* Spacer */}
+          <View style={{ height: 12 }} />
+
+          {/* TO Box */}
+          <TouchableOpacity 
+            style={[styles.inputBox, showDestPicker && styles.inputBoxActive]} 
+            onPress={() => { setShowDestPicker(!showDestPicker); setShowOriginPicker(false); }}
+          >
+            <View style={styles.inputInnerContent}>
+              <SakhiText variant="caption" style={styles.fieldLabel}>To</SakhiText>
+              <SakhiText style={[styles.fieldValue, !destinationText && styles.placeholderValue]}>
+                {destinationText || 'Enter destination'}
+              </SakhiText>
+            </View>
+          </TouchableOpacity>
+          {showDestPicker && <LocationPicker onSelect={selectDestination} exclude={originText} />}
+        </View>
+
+        {/* Swap Button (Floating on the right) */}
+        <TouchableOpacity style={styles.swapBtn} onPress={swapLocations}>
+          <Ionicons name="swap-vertical" size={20} color="#8B1E1E" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Primary CTA */}
       <TouchableOpacity 
         style={[styles.primaryCTA, (!origin || !destination) && styles.disabledCTA]} 
         onPress={handleAnalyze}
         disabled={!origin || !destination || loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color="#ffffff" />
         ) : (
-          <View style={styles.ctaContent}>
-            <SakhiText style={styles.ctaText}>FIND SAFEST ROUTE</SakhiText>
-            <SakhiText style={styles.ctaIconRight}>→</SakhiText>
-          </View>
+          <SakhiText style={styles.ctaText}>FIND SAFEST ROUTE</SakhiText>
         )}
       </TouchableOpacity>
     </View>
@@ -206,133 +219,134 @@ export default function JourneyForm({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 24, // Increased to match reference
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 20,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08, // Softer shadow
-    shadowRadius: 16,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 4,
     width: '100%',
     marginBottom: 24,
-    zIndex: 10,
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },
-  error: {
+  headerContainer: {
     marginBottom: 16,
+  },
+  titleText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  subtitleText: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  error: {
+    marginBottom: 12,
     textAlign: 'center',
   },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  row: {
+  inputsWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    marginBottom: 20,
+    position: 'relative',
   },
-  iconContainer: {
-    width: 32,
+  indicatorCol: {
+    width: 28,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    marginRight: 8,
   },
-  originIconOuter: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#DC2626', // Changed to Red
-    alignItems: 'center',
-    justifyContent: 'center',
+  originDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#991B1B',
   },
-  originIconInner: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#DC2626', // Changed to Red
-  },
-  destinationIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#DC2626', // Red map pin
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomRightRadius: 0,
-    transform: [{ rotate: '45deg' }],
-  },
-  destinationIconHole: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#fff',
-  },
-  dottedLineContainer: {
-    width: 32,
-    alignItems: 'center',
-    height: 24,
-  },
-  dottedLine: {
-    height: '100%',
-    borderLeftWidth: 2,
-    borderColor: '#E5E7EB',
+  connectorLine: {
+    width: 0,
+    height: 36,
+    borderLeftWidth: 1.5,
     borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    marginVertical: 4,
   },
-  fieldContainer: {
+  fieldsCol: {
     flex: 1,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    paddingBottom: 8,
+    marginRight: 16,
   },
-  label: {
-    color: '#DC2626', // Red label
-    fontSize: 12,
-    marginBottom: 2,
+  inputBox: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 56,
+  },
+  inputBoxActive: {
+    borderColor: '#8B1E1E',
+  },
+  inputInnerContent: {
+    flex: 1,
+  },
+  fieldLabel: {
+    color: '#64748B',
+    fontSize: 11,
     fontWeight: '600',
+    marginBottom: 2,
   },
-  input: {
-    fontSize: 16,
+  fieldValue: {
+    fontSize: 15,
     color: '#1F2937',
     fontWeight: '500',
-    padding: 0,
-    margin: 0,
+  },
+  placeholderValue: {
+    color: '#94A3B8',
+  },
+  swapBtn: {
+    position: 'absolute',
+    right: 0,
+    top: '50%',
+    marginTop: -20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#8B1E1E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 10,
   },
   primaryCTA: {
-    backgroundColor: '#DC2626', // Solid Red
-    borderRadius: 8,
+    backgroundColor: '#8B1E1E', // Dark Maroon
+    borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   disabledCTA: {
-    backgroundColor: '#FCA5A5', // Lighter red
-  },
-  ctaContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  ctaIconLeft: {
-    color: '#fff',
-    fontSize: 16,
-    position: 'absolute',
-    left: 24,
+    backgroundColor: '#C56A6A',
   },
   ctaText: {
-    color: '#fff',
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: 'bold',
     letterSpacing: 0.5,
-  },
-  ctaIconRight: {
-    color: '#ffffff',
-    fontSize: 18,
-    position: 'absolute',
-    right: 24,
   },
   compactOuterContainer: {
     marginHorizontal: 16,
@@ -344,7 +358,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   compactSearchBtn: {
-    backgroundColor: '#DC2626',
+    backgroundColor: '#8B1E1E',
     marginLeft: 8,
     width: 56,
     height: 56,
@@ -352,7 +366,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,
-    shadowColor: '#DC2626',
+    shadowColor: '#8B1E1E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -388,18 +402,12 @@ const styles = StyleSheet.create({
     borderColor: '#374151',
     backgroundColor: '#fff',
   },
-  compactDotsIcon: {
-    color: '#9CA3AF',
-    fontSize: 16,
-    lineHeight: 18,
-    marginVertical: 4,
-  },
   compactPinIconOutline: {
     width: 14,
     height: 14,
     borderRadius: 7,
     borderWidth: 1.5,
-    borderColor: '#DC2626',
+    borderColor: '#8B1E1E',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -407,7 +415,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#DC2626',
+    backgroundColor: '#8B1E1E',
   },
   compactInputCol: {
     flex: 1,
@@ -428,24 +436,6 @@ const styles = StyleSheet.create({
     width: 40,
     alignItems: 'center',
     paddingTop: 4,
-  },
-  compactRightDots: {
-    color: '#6B7280',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  compactSwapIcon: {
-    color: '#4B5563',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  pilotLabel: {
-    color: '#DC2626',
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    textAlign: 'center',
-    marginBottom: 12,
   },
   pickerDropdown: {
     backgroundColor: '#FFFFFF',

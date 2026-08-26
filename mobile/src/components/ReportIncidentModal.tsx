@@ -69,7 +69,7 @@ export default function ReportIncidentModal({ visible, onClose, segmentId, latit
   const renderError = () => (
     <View style={styles.statusContainer}>
       <View style={styles.errorIconWrapper}>
-        <Ionicons name="alert-circle" size={64} color="#DC2626" />
+        <Ionicons name="alert-circle" size={64} color="#8B1E1E" />
       </View>
       <SakhiText variant="h2" style={{ marginBottom: 8, textAlign: 'center' }}>Submission Failed</SakhiText>
       <SakhiText variant="body" color="secondary" style={{ textAlign: 'center', marginBottom: 32 }}>
@@ -102,7 +102,7 @@ export default function ReportIncidentModal({ visible, onClose, segmentId, latit
           <Ionicons 
             name="warning" 
             size={24} 
-            color={category === 'Suspicious Activity' ? '#DC2626' : '#9CA3AF'} 
+            color={category === 'Suspicious Activity' ? '#8B1E1E' : '#9CA3AF'} 
             style={{ marginBottom: 8 }}
           />
           <SakhiText variant="body" style={category === 'Suspicious Activity' ? styles.catTextActive : styles.catText}>
@@ -117,7 +117,7 @@ export default function ReportIncidentModal({ visible, onClose, segmentId, latit
           <Ionicons 
             name="bulb" 
             size={24} 
-            color={category === 'Streetlight Out' ? '#DC2626' : '#9CA3AF'} 
+            color={category === 'Streetlight Out' ? '#8B1E1E' : '#9CA3AF'} 
             style={{ marginBottom: 8 }}
           />
           <SakhiText variant="body" style={category === 'Streetlight Out' ? styles.catTextActive : styles.catText}>
@@ -236,15 +236,20 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16, 
     borderRadius: 16, 
-    borderWidth: 1.5, 
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
+    borderWidth: 1, 
+    borderColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1,
   },
   catActive: { 
-    backgroundColor: '#FEF2F2', 
-    borderColor: '#DC2626' 
+    backgroundColor: '#FDF2F2', 
+    borderColor: '#8B1E1E' 
   },
   catText: { 
     color: '#4B5563',
@@ -252,7 +257,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   catTextActive: { 
-    color: '#DC2626', 
+    color: '#8B1E1E', 
     fontWeight: '600',
     textAlign: 'center',
   },

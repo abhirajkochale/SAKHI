@@ -8,16 +8,13 @@ import JourneyForm from '../components/JourneyForm';
 import JourneyMap from '../components/JourneyMap';
 import RouteOptionsList from '../components/RouteOptionsList';
 import SegmentSafetyPanel from '../components/SegmentSafetyPanel';
-import ContextUpdatePanel from '../components/ContextUpdatePanel';
-import EmergencyPanel from '../components/EmergencyPanel';
-import DeadManSwitchPanel from '../components/DeadManSwitchPanel';
 import ReportIncidentModal from '../components/ReportIncidentModal';
 import ProfileModal from '../components/ProfileModal';
+import DelhiSkylineBackground from '../components/DelhiSkylineBackground';
 import { supabase } from '../api/supabase';
 import QuickFindModal from '../components/QuickFindModal';
 import WashroomFacilityCard from '../components/WashroomFacilityCard';
 import { sakhiApi } from '../api/sakhiApi';
-import { cacheJourney, getCachedJourney } from '../api/cache';
 import { useAccessibility } from '../contexts/AccessibilityContext';
 import { JourneyResponse, RouteOption, JourneySegment, ContextUpdateResponse, WashroomResponse, Location as ApiLocation } from '../types/api';
 import { calculateDistance } from '../utils/distance';
@@ -25,8 +22,6 @@ import { useTheme } from '../theme';
 import { SakhiText } from '../components/ui/SakhiText';
 import { SakhiButton } from '../components/ui/SakhiButton';
 import { SakhiCard } from '../components/ui/SakhiCard';
-
- // 5 seconds cooldown between SOS triggers
 
 const Tab = createBottomTabNavigator();
 const navigationRef = createNavigationContainerRef();
@@ -58,11 +53,8 @@ export default function JourneyDashboard() {
     });
   }, []);
 
-  const [showRouteOptions, setShowRouteOptions] = useState(false);
-
   const [updateResult, setUpdateResult] = useState<ContextUpdateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isOffline, setIsOffline] = useState(false);
   
   const [showWashrooms, setShowWashrooms] = useState(false);
   const [washrooms, setWashrooms] = useState<WashroomResponse[]>([]);
@@ -72,7 +64,6 @@ export default function JourneyDashboard() {
   const [washroomsRefreshKey, setWashroomsRefreshKey] = useState(0);
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [selectedWashroom, setSelectedWashroom] = useState<WashroomResponse | null>(null);
-
 
   useEffect(() => {
     let active = true;
@@ -95,15 +86,13 @@ export default function JourneyDashboard() {
           (loc) => { if (active) setUserLocation(loc); }
         );
       } catch (err) {
-        // Silently fallback to Connaught Place (Rajiv Chowk) for the pilot demo
-        // This prevents the warning banner on emulators without GPS enabled.
         if (active) {
           setUserLocation({
             coords: {
               latitude: 28.6328,
               longitude: 77.2197,
               altitude: null,
-              accuracy: null,
+              accuracy: 5,
               altitudeAccuracy: null,
               heading: null,
               speed: null,
@@ -114,92 +103,81 @@ export default function JourneyDashboard() {
       }
     };
 
-    void startLocationTracking();
+    startLocationTracking();
+
     return () => {
       active = false;
-      locationSubscription?.remove();
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
     };
   }, []);
 
+  const fetchWashrooms = async (lat: number, lon: number) => {
+    setWashroomsLoading(true);
+    setWashroomsError(null);
+    try {
+      const data = await sakhiApi.getOsmAmenities(lat, lon, 'washroom', 200);
+      setWashrooms(data.map(d => ({
+        ...d,
+        verified_count: d.rating_count || 0
+      })) as any);
+      setHasLoadedWashrooms(true);
+    } catch (err) {
+      setWashroomsError('Could not fetch nearby washrooms.');
+    } finally {
+      setWashroomsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!showWashrooms) return;
-    
-    // Determine center for washroom search
-    let lat: number;
-    let lon: number;
-    if (journey) {
-        lat = journey.origin.latitude;
-        lon = journey.origin.longitude;
-      } else if (userLocation) {
-        lat = userLocation.coords.latitude;
-        lon = userLocation.coords.longitude;
-    } else {
-      // Default to Delhi if no location available
-      lat = 28.6139;
-      lon = 77.2090;
+    const centerLat = journey?.origin.latitude ?? userLocation?.coords.latitude;
+    const centerLon = journey?.origin.longitude ?? userLocation?.coords.longitude;
+    if (centerLat && centerLon) {
+      fetchWashrooms(centerLat, centerLon);
     }
-
-    let cancelled = false;
-    setWashroomsLoading(true);
-    // Fetch washrooms using location
-    sakhiApi.getOsmAmenities(lat, lon, 'washroom', 200)
-      .then((data) => { if (!cancelled) setWashrooms(data); })
-      .catch(() => { if (!cancelled) setWashroomsError('Washroom locations are unavailable right now.'); })
-      .finally(() => {
-        if (!cancelled) {
-          setWashroomsLoading(false);
-          setHasLoadedWashrooms(true);
-        }
-      });
-    return () => { cancelled = true; };
-  }, [showWashrooms, washroomsRefreshKey]);
+  }, [showWashrooms, journey?.origin.latitude, journey?.origin.longitude, userLocation?.coords.latitude, userLocation?.coords.longitude, washroomsRefreshKey]);
 
   const handleAnalyze = async (origin: ApiLocation, destination: ApiLocation, originName: string, destName: string) => {
     setLoading(true);
     setError(null);
-    setUpdateResult(null);
-    setIsOffline(false);
-    setShowSafetyDetails(false);
-    setShowRouteOptions(false);
     setRouteLabels({ origin: originName, destination: destName });
-    try {
-      const response = await sakhiApi.createJourney(origin, destination);
-      setJourney(response);
-      const initialRoute: RouteOption = response.ranking?.safest_route ?? {
-        route_id: 'primary', mode: 'safest', rank: 1, distance_m: response.distance_m, duration_s: response.duration_s,
-        risk_score: 0, confidence: 0, max_segment_risk: 0, uncertainty_penalty: 0, route_cost: 0, segments: response.segments,
-      };
-      setSelectedRoute(initialRoute);
-      setSelectedSegment(initialRoute.segments && initialRoute.segments.length > 0 ? initialRoute.segments[0] : null);
-      void cacheJourney(response);
-      setIsActiveJourney(true);
-      if (navigationRef.isReady()) navigationRef.navigate('Journeys' as never);
-    } catch (err: any) {
-      console.error(err);
-      // Try offline fallback
-      const cached = await getCachedJourney();
-      if (cached) {
-        setIsOffline(true);
-        setJourney(cached);
-        if (cached.ranking && cached.ranking.safest_route) {
-          setSelectedRoute(cached.ranking.safest_route);
-          if (cached.ranking.safest_route.segments && cached.ranking.safest_route.segments.length > 0) {
-            setSelectedSegment(cached.ranking.safest_route.segments[0]);
-          } else {
-            setSelectedSegment(null);
-          }
-          setIsActiveJourney(true);
-        } else {
-          setSelectedRoute(null);
-          setSelectedSegment(null);
-        }
 
-        if (navigationRef.isReady()) {
-          navigationRef.navigate('Journeys' as never);
-        }
-      } else {
-        setError(sakhiApi.getErrorMessage(err));
+    try {
+      const data = await sakhiApi.createJourney(origin, destination);
+      setJourney(data);
+      setIsActiveJourney(true);
+      setShowWashrooms(false);
+      
+      let bestRoute: RouteOption | null = null;
+      if (data.ranking) {
+        bestRoute = data.ranking.safest_route || data.ranking.balanced_route || data.ranking.fastest_route;
       }
+      if (!bestRoute && data.segments && data.segments.length > 0) {
+        bestRoute = {
+          route_id: 'default',
+          mode: 'walking',
+          rank: 1,
+          distance_m: data.distance_m,
+          duration_s: data.duration_s,
+          risk_score: 25.0,
+          confidence: 85.0,
+          max_segment_risk: 30.0,
+          uncertainty_penalty: 0,
+          route_cost: 25.0,
+          segments: data.segments,
+        };
+      }
+
+      setSelectedRoute(bestRoute);
+      setSelectedSegment(bestRoute?.segments && bestRoute.segments.length > 0 ? bestRoute.segments[0] : null);
+
+      if (navigationRef.isReady()) {
+        navigationRef.navigate('Journeys' as never);
+      }
+    } catch (err: any) {
+      setError(sakhiApi.getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -245,149 +223,187 @@ export default function JourneyDashboard() {
     }
   };
 
-  const currentStyles = styles;
-
   const openQuickFind = (category?: string) => {
     setQuickFindInitialCategory(category || null);
     setShowQuickFindModal(true);
   };
 
-  const handleSOSTap = () => {
-    Alert.alert(
-      "Trigger SOS",
-      "Are you sure you want to trigger SOS?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "SEND SOS", style: "destructive", onPress: () => {
-            Alert.alert("SOS Triggered", "Emergency contacts have been notified.");
-          }
-        }
-      ]
-    );
-  };
-
   const renderHome = () => (
-    <View style={currentStyles.homeBackground}>
-      {/* Background Skyline (Absolute positioned) */}
-      <View style={currentStyles.skylineWrapper}>
-         <View style={currentStyles.skylineDome1} />
-         <View style={currentStyles.skylineDome2} />
-         <View style={currentStyles.skylineDome3} />
-         <View style={currentStyles.skylineDome4} />
-      </View>
+    <View style={styles.homeBackground}>
+      {/* Background Skyline */}
+      <DelhiSkylineBackground />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={currentStyles.homeScrollContent}>
-      {/* Custom Home Header */}
-      <View style={currentStyles.homeHeaderRow}>
-        <View style={currentStyles.logoRow}>
-          <View style={currentStyles.logoShield}>
-            <Text style={currentStyles.logoShieldIcon}>👤</Text>
-          </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.homeScrollContent}>
+        {/* Custom Header */}
+        <View style={styles.homeHeaderRow}>
           <View>
-            <Text style={currentStyles.logoTitle}>SAKHI</Text>
-            <Text style={currentStyles.logoSubtitle}>Travel Safer. Together.</Text>
+            <Text style={styles.logoTitle}>SAKHI</Text>
+            <Text style={styles.logoSubtitle}>Travel safer. Together.</Text>
           </View>
+          <TouchableOpacity style={styles.profileBtn} onPress={() => setShowProfileModal(true)}>
+            <Ionicons name="person-outline" size={20} color="#374151" />
+            {hasUser && <View style={styles.profileDot} />}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={currentStyles.profileBtn} onPress={() => setShowProfileModal(true)}>
-          <Text style={{fontSize: 24}}>👤</Text>
-          {hasUser && <View style={[currentStyles.profileDot, { backgroundColor: '#10B981' }]} />}
-        </TouchableOpacity>
-      </View>
 
-      {/* Hero Typography */}
-      <View style={currentStyles.heroContainer}>
-        <Text style={currentStyles.heroTextDark}>Your Safety,</Text>
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
-          <Text style={currentStyles.heroTextRed}>Our Priority.</Text>
-          <Text style={currentStyles.heroHeart}> ♡</Text>
-        </View>
-        <Text style={currentStyles.heroSubtitle}>Find the safest way, wherever you go.</Text>
-      </View>
-
-      {/* Journey Form Card */}
-      <View style={{zIndex: 10, marginTop: 10}}>
-        <JourneyForm onAnalyze={handleAnalyze} loading={loading} />
-      </View>
-      
-      {error && (
-        <View style={[currentStyles.errorBox, {marginTop: -10, marginBottom: 20}]}>
-          <Text style={currentStyles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {/* Quick Access Tiles */}
-      <View style={currentStyles.quickAccessContainer}>
-        <View style={currentStyles.quickAccessHeader}>
-          <Text style={currentStyles.quickAccessLabel}>Quick Access</Text>
-          <Text style={currentStyles.quickAccessSeeAll}>See all</Text>
+        {/* Journey Form Card */}
+        <View style={{ zIndex: 10, marginTop: 10 }}>
+          <JourneyForm onAnalyze={handleAnalyze} loading={loading} />
         </View>
         
-        <View style={currentStyles.quickAccessRow3}>
-          <TouchableOpacity style={currentStyles.qaTileSquare} onPress={() => openQuickFind('Washroom')}>
-            <View style={[currentStyles.qaIconContainer, {backgroundColor: '#DC2626'}]}>
-              <Text style={currentStyles.qaTileIconWhite}>🚻</Text>
-            </View>
-            <Text style={currentStyles.qaTileText}>Washroom</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={currentStyles.qaTileSquare} onPress={() => openQuickFind('Medical Clinic')}>
-            <View style={[currentStyles.qaIconContainer, {backgroundColor: '#14B8A6'}]}>
-              <Text style={currentStyles.qaTileIconWhite}>🏥</Text>
-            </View>
-            <Text style={currentStyles.qaTileText}>Medical</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={currentStyles.qaTileSquare} onPress={() => openQuickFind('Police Station')}>
-            <View style={[currentStyles.qaIconContainer, {backgroundColor: '#1E40AF'}]}>
-              <Text style={currentStyles.qaTileIconWhite}>🚓</Text>
-            </View>
-            <Text style={currentStyles.qaTileText}>Police</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={currentStyles.qaTileSquare} onPress={() => openQuickFind('Call a Friend')}>
-            <View style={[currentStyles.qaIconContainer, {backgroundColor: '#D97706'}]}>
-              <Text style={currentStyles.qaTileIconWhite}>📞</Text>
-            </View>
-            <Text style={currentStyles.qaTileText}>Call a Friend</Text>
-          </TouchableOpacity>
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {/* Quick Actions Grid (6 cards in 2 rows x 3 columns) */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Quick actions</Text>
+          
+          <View style={styles.quickGrid}>
+            {/* 1. Right to Pee */}
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: '#F3E8FF' }]} onPress={() => openQuickFind('Washroom')}>
+              <View style={styles.gridIconCircle}>
+                <Ionicons name="map-outline" size={20} color="#7E22CE" />
+              </View>
+              <Text style={styles.gridCardTitle}>Right to Pee</Text>
+              <Text style={styles.gridCardSub}>Find washrooms</Text>
+            </TouchableOpacity>
+
+            {/* 2. Call a Friend */}
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: '#E0F2FE' }]} onPress={() => openQuickFind('Call a Friend')}>
+              <View style={styles.gridIconCircle}>
+                <Ionicons name="call-outline" size={20} color="#0284C7" />
+              </View>
+              <Text style={styles.gridCardTitle}>Call a Friend</Text>
+              <Text style={styles.gridCardSub}>Simulated call</Text>
+            </TouchableOpacity>
+
+            {/* 3. Report Incident */}
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: '#FFEDD5' }]} onPress={() => setShowReportModal(true)}>
+              <View style={styles.gridIconCircle}>
+                <Ionicons name="warning-outline" size={20} color="#EA580C" />
+              </View>
+              <Text style={styles.gridCardTitle}>Report Incident</Text>
+              <Text style={styles.gridCardSub}>Share & help</Text>
+            </TouchableOpacity>
+
+            {/* 4. Police Stations */}
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: '#ECFDF5' }]} onPress={() => openQuickFind('Police Station')}>
+              <View style={styles.gridIconCircle}>
+                <Ionicons name="shield-outline" size={20} color="#059669" />
+              </View>
+              <Text style={styles.gridCardTitle}>Police Stations</Text>
+              <Text style={styles.gridCardSub}>Find nearby</Text>
+            </TouchableOpacity>
+
+            {/* 5. Medical Clinics */}
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: '#FCE7F3' }]} onPress={() => openQuickFind('Medical Clinic')}>
+              <View style={styles.gridIconCircle}>
+                <Ionicons name="medical-outline" size={20} color="#DB2777" />
+              </View>
+              <Text style={styles.gridCardTitle}>Medical Clinics</Text>
+              <Text style={styles.gridCardSub}>Find nearby</Text>
+            </TouchableOpacity>
+
+            {/* 6. Quick Find */}
+            <TouchableOpacity style={[styles.gridCard, { backgroundColor: '#E0F2FE' }]} onPress={() => openQuickFind()}>
+              <View style={styles.gridIconCircle}>
+                <Ionicons name="location-outline" size={20} color="#0891B2" />
+              </View>
+              <Text style={styles.gridCardTitle}>Quick Find</Text>
+              <Text style={styles.gridCardSub}>All in one search</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <TouchableOpacity style={currentStyles.sosCard} onPress={handleSOSTap}>
-          <View style={currentStyles.sosIconBox}>
-             <Text style={currentStyles.sosIconText}>SOS</Text>
+
+        {/* Helplines Section */}
+        <View style={[styles.sectionContainer, { marginTop: 24, marginBottom: 32 }]}>
+          <Text style={styles.sectionTitle}>Helplines</Text>
+          
+          <View style={styles.helplinesCard}>
+            {/* Row 1: Women Helpline */}
+            <View style={styles.helplineRow}>
+              <View style={styles.helplineLeft}>
+                <View style={[styles.helplineIconBox, { backgroundColor: '#FCE7F3' }]}>
+                  <Ionicons name="call-outline" size={18} color="#DB2777" />
+                </View>
+                <View>
+                  <Text style={styles.helplineName}>Women Helpline</Text>
+                  <Text style={styles.helplineNumber}>181</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL('tel:181')}>
+                <Ionicons name="call-outline" size={14} color="#8B1E1E" style={{ marginRight: 4 }} />
+                <Text style={styles.callBtnText}>Call</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.helplineDivider} />
+
+            {/* Row 2: Police Helpline */}
+            <View style={styles.helplineRow}>
+              <View style={styles.helplineLeft}>
+                <View style={[styles.helplineIconBox, { backgroundColor: '#E0F2FE' }]}>
+                  <Ionicons name="shield-outline" size={18} color="#0284C7" />
+                </View>
+                <View>
+                  <Text style={styles.helplineName}>Police Helpline</Text>
+                  <Text style={styles.helplineNumber}>112</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL('tel:112')}>
+                <Ionicons name="call-outline" size={14} color="#8B1E1E" style={{ marginRight: 4 }} />
+                <Text style={styles.callBtnText}>Call</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.helplineDivider} />
+
+            {/* Row 3: Mental Health Support */}
+            <View style={styles.helplineRow}>
+              <View style={styles.helplineLeft}>
+                <View style={[styles.helplineIconBox, { backgroundColor: '#ECFDF5' }]}>
+                  <Ionicons name="medical-outline" size={18} color="#059669" />
+                </View>
+                <View>
+                  <Text style={styles.helplineName}>Mental Health Support</Text>
+                  <Text style={styles.helplineNumber}>9152987821</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL('tel:9152987821')}>
+                <Ionicons name="call-outline" size={14} color="#8B1E1E" style={{ marginRight: 4 }} />
+                <Text style={styles.callBtnText}>Call</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={styles.viewMoreRow} onPress={() => openQuickFind()}>
+              <Text style={styles.viewMoreText}>View more helplines</Text>
+              <Ionicons name="chevron-forward" size={14} color="#8B1E1E" />
+            </TouchableOpacity>
           </View>
-          <View style={currentStyles.sosTextContainer}>
-             <Text style={currentStyles.sosTitle}>EMERGENCY SOS</Text>
-             <Text style={currentStyles.sosSubtitle}>Tap for immediate help</Text>
-          </View>
-          <Text style={currentStyles.sosArrow}>→</Text>
-        </TouchableOpacity>
-      </View>
+        </View>
       </ScrollView>
     </View>
   );
 
-
-
   const renderActiveJourney = () => {
     if (!journey || !selectedRoute) return null;
-
-    const riskColor = selectedRoute.risk_score >= 70 ? '#DC2626' : (selectedRoute.risk_score >= 40 ? '#F59E0B' : '#10B981');
-    const riskLabel = selectedRoute.risk_score >= 70 ? 'High' : (selectedRoute.risk_score >= 40 ? 'Moderate' : 'Low');
 
     return (
       <View style={{flex: 1, paddingBottom: 20}}>
         {/* Active Journey Header */}
-        <View style={currentStyles.ajHeader}>
+        <View style={styles.ajHeader}>
           <View style={{flexDirection: 'row', alignItems: 'center'}}>
-            <TouchableOpacity onPress={() => setJourney(null)} style={{marginRight: 16}}>
-              <Text style={currentStyles.ajBackArrow}>←</Text>
+            <TouchableOpacity onPress={() => setJourney(null)} style={{marginRight: 16, backgroundColor: '#FDF2F2', padding: 8, borderRadius: 20}}>
+              <Ionicons name="arrow-back" size={24} color="#8B1E1E" />
             </TouchableOpacity>
             <View>
-              <Text style={currentStyles.ajTitle}>Active Journey</Text>
-              <Text style={currentStyles.ajSubtitle}>You're on your way</Text>
+              <Text style={styles.ajTitle}>Active Journey</Text>
+              <Text style={styles.ajSubtitle}>You're on your way</Text>
             </View>
           </View>
-          <TouchableOpacity style={currentStyles.ajHeaderSosBtn} onPress={handleSOSTap}>
-            <Text style={currentStyles.ajHeaderSosIcon}>📞</Text>
-            <Text style={currentStyles.ajHeaderSosText}>SOS</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Compact Journey Form */}
@@ -396,13 +412,13 @@ export default function JourneyDashboard() {
           loading={loading}
           compact={true}
           initialOriginText={routeLabels.origin || ''}
-            initialDestinationText={routeLabels.destination || ''}
-            initialOrigin={journey?.origin || null}
-            initialDestination={journey?.destination || null}
+          initialDestinationText={routeLabels.destination || ''}
+          initialOrigin={journey?.origin || null}
+          initialDestination={journey?.destination || null}
         />
 
         {/* Map Container */}
-        <View style={[currentStyles.ajMapContainer, { minHeight: 300 }]}>
+        <View style={[styles.ajMapContainer, { minHeight: 300 }]}>
           <JourneyMap 
             origin={journey.origin}
             destination={journey.destination}
@@ -416,41 +432,37 @@ export default function JourneyDashboard() {
           />
         </View>
 
-        <View style={currentStyles.amenityToggleRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={currentStyles.amenityToggleTitle}>Show nearby washroom</Text>
-            <Text style={currentStyles.amenityToggleCaption}>
-              {washroomsLoading ? 'Loading nearby washrooms…' : washroomsError || (washrooms.length ? `${washrooms.length} nearby washrooms available on the map` : 'Show nearby washroom locations on the map')}
+        <TouchableOpacity
+          style={styles.amenityToggleRow}
+          onPress={() => {
+            if (!showWashrooms) {
+              setWashroomsError(null);
+              setWashrooms([]);
+              setHasLoadedWashrooms(false);
+            }
+            setShowWashrooms((visible) => !visible);
+          }}
+        >
+          <View style={[styles.amenityIconCircle, showWashrooms ? { backgroundColor: '#FDF2F2' } : { backgroundColor: '#F3F4F6' }]}>
+            <Ionicons name="water" size={18} color={showWashrooms ? '#8B1E1E' : '#9CA3AF'} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={[styles.amenityToggleTitle, { color: showWashrooms ? '#8B1E1E' : '#1F2937' }]}>
+              Nearby Washrooms
+            </Text>
+            <Text style={styles.amenityToggleCaption}>
+              {washroomsLoading ? 'Loading...' : washroomsError || (showWashrooms && washrooms.length ? `${washrooms.length} locations visible` : 'Tap to show on map')}
             </Text>
           </View>
-          <TouchableOpacity
-            accessibilityRole="switch"
-            accessibilityState={{ checked: showWashrooms }}
-            accessibilityLabel="Show nearby washroom locations"
-            onPress={() => {
-              if (!showWashrooms) {
-                setWashroomsError(null);
-                setWashrooms([]);
-                setHasLoadedWashrooms(false);
-              }
-              setShowWashrooms((visible) => !visible);
-            }}
-            style={[currentStyles.amenityToggle, showWashrooms && currentStyles.amenityToggleActive]}
-          >
-            <Text style={[currentStyles.amenityToggleText, showWashrooms && currentStyles.amenityToggleTextActive]}>
-              {showWashrooms ? 'LOCATIONS ON' : 'SHOW LOCATIONS'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-
-
-
+          <View style={[styles.customSwitchBg, showWashrooms ? {backgroundColor: '#8B1E1E', borderColor: '#8B1E1E'} : {}]}>
+            <View style={[styles.customSwitchHandle, showWashrooms ? {transform: [{translateX: 14}]} : {}]} />
+          </View>
+        </TouchableOpacity>
 
         {/* Route Options List injected into Active Journey */}
         {journey.ranking && (
           <View style={{ marginBottom: 16 }}>
-            <Text style={[currentStyles.ajSectionTitle, {marginTop: 8}]}>Choose a different route</Text>
+            <Text style={[styles.ajSectionTitle, {marginTop: 8}]}>Choose a different route</Text>
             <RouteOptionsList 
               ranking={journey.ranking}
               selectedRouteId={selectedRoute?.route_id || null}
@@ -464,43 +476,43 @@ export default function JourneyDashboard() {
         )}
 
         {/* Quick Actions */}
-        <Text style={currentStyles.ajSectionTitle}>Quick Actions</Text>
-        <View style={currentStyles.ajQuickActionsRow}>
-          <TouchableOpacity style={currentStyles.ajQaTile} onPress={() => openQuickFind('Washroom')}>
-            <Text style={currentStyles.ajQaIcon}>🚻</Text>
-            <Text style={currentStyles.ajQaText}>Washroom</Text>
+        <Text style={styles.ajSectionTitle}>Quick Actions</Text>
+        <View style={styles.ajQuickActionsRow}>
+          <TouchableOpacity style={styles.ajQaTile} onPress={() => openQuickFind('Washroom')}>
+            <Ionicons name="map-outline" size={20} color="#7E22CE" />
+            <Text style={styles.ajQaText}>Washroom</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={currentStyles.ajQaTile} onPress={() => openQuickFind('Medical Clinic')}>
-            <Text style={currentStyles.ajQaIcon}>🏥</Text>
-            <Text style={currentStyles.ajQaText}>Medical</Text>
+          <TouchableOpacity style={styles.ajQaTile} onPress={() => openQuickFind('Medical Clinic')}>
+            <Ionicons name="medical-outline" size={20} color="#DB2777" />
+            <Text style={styles.ajQaText}>Medical</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={currentStyles.ajQaTile} onPress={() => openQuickFind('Police Station')}>
-            <Text style={currentStyles.ajQaIcon}>🚓</Text>
-            <Text style={currentStyles.ajQaText}>Police</Text>
+          <TouchableOpacity style={styles.ajQaTile} onPress={() => openQuickFind('Police Station')}>
+            <Ionicons name="shield-outline" size={20} color="#059669" />
+            <Text style={styles.ajQaText}>Police</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={currentStyles.ajQaTile} onPress={() => openQuickFind()}>
-            <Text style={currentStyles.ajQaIcon}>🔍</Text>
-            <Text style={currentStyles.ajQaText}>Quick Find</Text>
+          <TouchableOpacity style={styles.ajQaTile} onPress={() => openQuickFind('Call a Friend')}>
+            <Ionicons name="call-outline" size={20} color="#0284C7" />
+            <Text style={styles.ajQaText}>Call Friend</Text>
           </TouchableOpacity>
         </View>
 
         {/* Action Cards */}
-        <TouchableOpacity style={currentStyles.ajActionCardRed} onPress={() => setShowReportModal(true)}>
-          <Text style={currentStyles.ajActionIconRed}>⚠️</Text>
-          <View style={currentStyles.ajActionTextCont}>
-            <Text style={currentStyles.ajActionTitleRed}>Report an incident</Text>
-            <Text style={currentStyles.ajActionDescRed}>Help us make journeys safer for everyone.</Text>
+        <TouchableOpacity style={styles.ajActionCardRed} onPress={() => setShowReportModal(true)}>
+          <Ionicons name="warning-outline" size={22} color="#8B1E1E" style={{ marginRight: 12 }} />
+          <View style={styles.ajActionTextCont}>
+            <Text style={styles.ajActionTitleRed}>Report an incident</Text>
+            <Text style={styles.ajActionDescRed}>Help us make journeys safer for everyone.</Text>
           </View>
-          <Text style={currentStyles.ajActionArrowRed}>→</Text>
+          <Ionicons name="chevron-forward" size={18} color="#8B1E1E" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={currentStyles.ajActionCardWhite} onPress={() => setShowSafetyDetails(!showSafetyDetails)}>
-          <Text style={currentStyles.ajActionIconGray}>🛡️</Text>
-          <View style={currentStyles.ajActionTextCont}>
-            <Text style={currentStyles.ajActionTitleDark}>View safety details</Text>
-            <Text style={currentStyles.ajActionDescGray}>See risk factors and recommendations</Text>
+        <TouchableOpacity style={styles.ajActionCardWhite} onPress={() => setShowSafetyDetails(!showSafetyDetails)}>
+          <Ionicons name="shield-checkmark-outline" size={22} color="#4B5563" style={{ marginRight: 12 }} />
+          <View style={styles.ajActionTextCont}>
+            <Text style={styles.ajActionTitleDark}>View safety details</Text>
+            <Text style={styles.ajActionDescGray}>See risk factors and recommendations</Text>
           </View>
-          <Text style={currentStyles.ajActionArrowGray}>{showSafetyDetails ? '↓' : '→'}</Text>
+          <Ionicons name={showSafetyDetails ? "chevron-down" : "chevron-forward"} size={18} color="#6B7280" />
         </TouchableOpacity>
 
         {showSafetyDetails && selectedSegment && (
@@ -511,21 +523,6 @@ export default function JourneyDashboard() {
             />
           </View>
         )}
-
-        <TouchableOpacity style={currentStyles.ajActionCardSos} onPress={handleSOSTap}>
-          <View style={currentStyles.ajSosSquare}>
-            <Text style={currentStyles.ajSosSquareText}>SOS</Text>
-          </View>
-          <View style={currentStyles.ajActionTextCont}>
-            <Text style={currentStyles.ajActionTitleSos}>EMERGENCY SOS</Text>
-            <Text style={currentStyles.ajActionDescSos}>Tap for immediate help</Text>
-          </View>
-          <Text style={currentStyles.ajActionArrowSos}>📞</Text>
-        </TouchableOpacity>
-
-        <View style={currentStyles.ajFooter}>
-          <Text style={currentStyles.ajFooterText}>🔒 Your location is being shared with trusted contacts</Text>
-        </View>
       </View>
     );
   };
@@ -536,21 +533,36 @@ export default function JourneyDashboard() {
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarIcon: ({ focused, color, size }) => {
-            let iconName = 'home';
+            let iconName = 'home-outline';
             if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
             else if (route.name === 'Journeys') iconName = focused ? 'map' : 'map-outline';
             else if (route.name === 'Amenities') iconName = focused ? 'business' : 'business-outline';
             else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
+
+            if (route.name === 'Home' && focused) {
+              return (
+                <View style={styles.activeTabPill}>
+                  <Ionicons name="home" size={18} color="#8B1E1E" />
+                  <Text style={styles.activeTabText}>Home</Text>
+                </View>
+              );
+            }
+
             return <Ionicons name={iconName as any} size={size} color={color} />;
           },
-          tabBarActiveTintColor: '#DC2626',
-          tabBarInactiveTintColor: '#9CA3AF',
+          tabBarLabel: ({ focused, color }) => {
+            if (focused && route.name === 'Home') return null; // Pill shows label inside
+            return <Text style={{ fontSize: 11, color, fontWeight: focused ? '600' : '400', marginTop: -2 }}>{route.name}</Text>;
+          },
+          tabBarActiveTintColor: '#8B1E1E',
+          tabBarInactiveTintColor: '#6B7280',
           tabBarStyle: {
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
             borderColor: '#F3F4F6',
-            height: 60,
-            paddingBottom: 5,
+            height: 65,
+            paddingBottom: 8,
+            paddingTop: 6,
           }
         })}
       >
@@ -559,33 +571,34 @@ export default function JourneyDashboard() {
         </Tab.Screen>
         <Tab.Screen name="Journeys">
           {() => (
-            <View style={currentStyles.container}>
+            <View style={styles.homeBackground}>
+              <DelhiSkylineBackground />
               {journey && isActiveJourney ? (
                 <ScrollView 
                   style={{flex: 1}} 
-                  contentContainerStyle={[currentStyles.content, { paddingHorizontal: spacing.screenHorizontal }]}
+                  contentContainerStyle={[styles.content, { paddingHorizontal: spacing.screenHorizontal }]}
                   keyboardShouldPersistTaps="handled"
                 >
                   {renderActiveJourney()}
                 </ScrollView>
               ) : journey ? (
-                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#FDFCFD'}}>
-                  <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
-                    <Ionicons name="navigate" size={36} color="#DC2626" />
+                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24}}>
+                  <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#FDF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+                    <Ionicons name="navigate" size={36} color="#8B1E1E" />
                   </View>
                   <SakhiText variant="h2" style={{marginBottom: 12}}>Active Journey</SakhiText>
                   <SakhiText variant="body" color="secondary" style={{textAlign: 'center', marginBottom: 32, maxWidth: 280, lineHeight: 22}}>
                     You currently have an ongoing journey in progress.
                   </SakhiText>
                   <View style={{ width: '100%', maxWidth: 320 }}>
-                    <SakhiButton title="Continue journey →" onPress={() => setIsActiveJourney(true)} />
+                    <SakhiButton title="Continue journey" onPress={() => setIsActiveJourney(true)} />
                     <SakhiButton title="End journey" variant="secondary" style={{marginTop: 16}} onPress={() => { setJourney(null); setIsActiveJourney(false); }} />
                   </View>
                 </View>
               ) : (
-                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#FDFCFD'}}>
-                  <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
-                    <Ionicons name="map-outline" size={36} color="#9CA3AF" />
+                <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24}}>
+                  <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#FDF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+                    <Ionicons name="map-outline" size={36} color="#8B1E1E" />
                   </View>
                   <SakhiText variant="h2" style={{marginBottom: 12}}>Journey History</SakhiText>
                   <SakhiText variant="body" color="secondary" style={{textAlign: 'center', maxWidth: 280, marginBottom: 8}}>
@@ -601,45 +614,52 @@ export default function JourneyDashboard() {
         </Tab.Screen>
         <Tab.Screen name="Amenities">
           {() => {
-            const amenityCardStyle = { width: '47%' as const, backgroundColor: '#FFF', padding: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#F3F4F6', alignItems: 'center' as const, marginBottom: 16 };
-            const amenityIconBoxStyle = { width: 48, height: 48, borderRadius: 12, justifyContent: 'center' as const, alignItems: 'center' as const };
+            const amenityCardStyle = { width: '48%' as const, backgroundColor: '#FFFFFF', padding: 20, borderRadius: 24, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.03, shadowRadius: 12, elevation: 2, borderWidth: 1, borderColor: '#F3F4F6', alignItems: 'flex-start' as const, marginBottom: 16 };
+            const iconBgStyle = { width: 48, height: 48, borderRadius: 24, justifyContent: 'center' as const, alignItems: 'center' as const, marginBottom: 16 };
             return (
-              <View style={{flex: 1, padding: 24, paddingTop: 60, backgroundColor: '#FDFCFD'}}>
-                <View style={{marginBottom: 32}}>
-                  <SakhiText variant="h1" style={{marginBottom: 8}}>Amenities</SakhiText>
-                  <SakhiText variant="body" color="secondary" style={{lineHeight: 22}}>
-                    Find help and essential facilities quickly along your route or nearby.
-                  </SakhiText>
-                </View>
-                
-                <View style={{flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between'}}>
-                  <TouchableOpacity style={amenityCardStyle} onPress={() => openQuickFind('Washroom')}>
-                    <View style={[amenityIconBoxStyle, {backgroundColor: '#DC2626'}]}>
-                      <Ionicons name="water" size={24} color="#FFF" />
-                    </View>
-                    <SakhiText variant="body" style={{marginTop: 12, fontWeight: '600'}}>Washrooms</SakhiText>
-                  </TouchableOpacity>
+              <View style={styles.homeBackground}>
+                <DelhiSkylineBackground />
+                <View style={{flex: 1, padding: 24, paddingTop: 60}}>
+                  <View style={{marginBottom: 32}}>
+                    <SakhiText variant="h1" style={{marginBottom: 8, color: '#8B1E1E'}}>Amenities</SakhiText>
+                    <SakhiText variant="body" color="secondary" style={{lineHeight: 22}}>
+                      Find help and essential facilities quickly along your route or nearby.
+                    </SakhiText>
+                  </View>
+                  
+                  <View style={{flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between'}}>
+                    <TouchableOpacity style={amenityCardStyle} onPress={() => openQuickFind('Washroom')}>
+                      <View style={[iconBgStyle, {backgroundColor: '#F3E8FF'}]}>
+                        <Ionicons name="water" size={24} color="#7E22CE" />
+                      </View>
+                      <SakhiText variant="body" style={{fontWeight: '700', fontSize: 16}}>Washrooms</SakhiText>
+                      <SakhiText variant="caption" color="secondary" style={{marginTop: 4}}>Find nearby toilets</SakhiText>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity style={amenityCardStyle} onPress={() => openQuickFind('Medical Clinic')}>
-                    <View style={[amenityIconBoxStyle, {backgroundColor: '#14B8A6'}]}>
-                      <Ionicons name="medkit" size={24} color="#FFF" />
-                    </View>
-                    <SakhiText variant="body" style={{marginTop: 12, fontWeight: '600'}}>Medical</SakhiText>
-                  </TouchableOpacity>
+                    <TouchableOpacity style={amenityCardStyle} onPress={() => openQuickFind('Medical Clinic')}>
+                      <View style={[iconBgStyle, {backgroundColor: '#FCE7F3'}]}>
+                        <Ionicons name="add" size={32} color="#DB2777" />
+                      </View>
+                      <SakhiText variant="body" style={{fontWeight: '700', fontSize: 16}}>Medical</SakhiText>
+                      <SakhiText variant="caption" color="secondary" style={{marginTop: 4}}>Clinics & Hospitals</SakhiText>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity style={amenityCardStyle} onPress={() => openQuickFind('Police Station')}>
-                    <View style={[amenityIconBoxStyle, {backgroundColor: '#1E40AF'}]}>
-                      <Ionicons name="shield-checkmark" size={24} color="#FFF" />
-                    </View>
-                    <SakhiText variant="body" style={{marginTop: 12, fontWeight: '600'}}>Police</SakhiText>
-                  </TouchableOpacity>
+                    <TouchableOpacity style={amenityCardStyle} onPress={() => openQuickFind('Police Station')}>
+                      <View style={[iconBgStyle, {backgroundColor: '#ECFDF5'}]}>
+                        <Ionicons name="shield-checkmark" size={24} color="#059669" />
+                      </View>
+                      <SakhiText variant="body" style={{fontWeight: '700', fontSize: 16}}>Police</SakhiText>
+                      <SakhiText variant="caption" color="secondary" style={{marginTop: 4}}>Nearest stations</SakhiText>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity style={amenityCardStyle} onPress={() => openQuickFind()}>
-                    <View style={[amenityIconBoxStyle, {backgroundColor: '#4B5563'}]}>
-                      <Ionicons name="search" size={24} color="#FFF" />
-                    </View>
-                    <SakhiText variant="body" style={{marginTop: 12, fontWeight: '600'}}>Quick Find</SakhiText>
-                  </TouchableOpacity>
+                    <TouchableOpacity style={amenityCardStyle} onPress={() => openQuickFind()}>
+                      <View style={[iconBgStyle, {backgroundColor: '#E0F2FE'}]}>
+                        <Ionicons name="search" size={24} color="#0284C7" />
+                      </View>
+                      <SakhiText variant="body" style={{fontWeight: '700', fontSize: 16}}>Quick Find</SakhiText>
+                      <SakhiText variant="caption" color="secondary" style={{marginTop: 4}}>Search all types</SakhiText>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             );
@@ -661,14 +681,14 @@ export default function JourneyDashboard() {
                   <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
                       <View style={{width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', marginRight: 12}}>
-                        <Ionicons name="eye" size={18} color="#4B5563" />
+                        <Ionicons name="eye-outline" size={18} color="#4B5563" />
                       </View>
                       <SakhiText variant="body" style={{fontWeight: '500'}}>Accessibility Mode</SakhiText>
                     </View>
                     <Switch 
                       value={isAccessibleMode} 
                       onValueChange={toggleAccessibleMode} 
-                      trackColor={{ true: '#DC2626', false: '#D1D5DB' }} 
+                      trackColor={{ true: '#8B1E1E', false: '#D1D5DB' }} 
                       thumbColor="#FFF"
                     />
                   </View>
@@ -678,11 +698,11 @@ export default function JourneyDashboard() {
                 <SakhiCard>
                   <View style={{flexDirection: 'row', alignItems: 'center'}}>
                     <View style={{width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', marginRight: 12}}>
-                      <Ionicons name="information-circle" size={18} color="#4B5563" />
+                      <Ionicons name="information-circle-outline" size={18} color="#4B5563" />
                     </View>
                     <View>
                       <SakhiText variant="body" style={{fontWeight: '500'}}>SAKHI</SakhiText>
-                      <SakhiText variant="caption" color="secondary">Version 1.0.0</SakhiText>
+                      <SakhiText variant="caption" color="secondary">Version 1.0.0 — Contextual Safety Intelligence</SakhiText>
                     </View>
                   </View>
                 </SakhiCard>
@@ -730,297 +750,54 @@ export default function JourneyDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#FDFCFD',
   },
   content: {
     padding: 16,
     paddingTop: 50,
     paddingBottom: 40,
   },
-  mapContainer: {
-    height: 300,
-  },
-  googleMapsButton: {
-    backgroundColor: '#1a73e8',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  googleMapsButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  googleMapsHint: {
-    color: '#6b7280',
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 6,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  amenityToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f3ff',
-    borderWidth: 1,
-    borderColor: '#c4b5fd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-  },
-  amenityToggleTitle: {
-    color: '#5b21b6',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  amenityToggleCaption: {
-    color: '#6b7280',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  amenityToggle: {
-    backgroundColor: '#fff',
-    borderColor: '#7c3aed',
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  amenityToggleActive: {
-    backgroundColor: '#7c3aed',
-  },
-  amenityToggleText: {
-    color: '#6d28d9',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  amenityToggleTextActive: {
-    color: '#fff',
-  },
-  errorBox: {
-    backgroundColor: '#fee2e2',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  errorText: {
-    color: '#b91c1c',
-  },
-  updateResultBox: {
-    backgroundColor: '#ecfdf5',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#10b981',
-    marginVertical: 10,
-  },
-  updateResultTitle: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#065f46',
-    marginBottom: 4,
-  },
-  updateReason: {
-    color: '#047857',
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  beforeAfterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  beforeBox: {
+  homeBackground: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 8,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: '#FDF7F6',
   },
-  afterBox: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 8,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#34d399',
-  },
-  arrow: {
-    fontSize: 20,
-    color: '#9ca3af',
-    marginHorizontal: 12,
-  },
-  baLabel: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  baValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  noSegmentBox: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginVertical: 10,
-    alignItems: 'center',
-  },
-  noSegmentText: {
-    color: '#6b7280',
-    fontStyle: 'italic',
-  },
-  offlineBanner: {
-    backgroundColor: '#374151',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
-    alignItems: 'center',
-  },
-  offlineBannerText: {
-    color: '#f9fafb',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#2563eb',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  fabIcon: {
-    fontSize: 24,
-    color: '#fff',
-  },
-  
-  /* --- NEW HOME SCREEN STYLES --- */
   homeScrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 50,
-    paddingBottom: 100, // Room for bottom nav
-  },
-  homeBackground: {
-    flex: 1,
-    backgroundColor: '#FDFCFD', // Very light off-white
-    minHeight: '100%',
-  },
-  skylineWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 400,
-    opacity: 0.1, // Very subtle
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  skylineDome1: {
-    width: 150,
-    height: 150,
-    backgroundColor: '#DC2626',
-    borderTopLeftRadius: 75,
-    borderTopRightRadius: 75,
-    position: 'absolute',
-    bottom: 50,
-    left: -20,
-  },
-  skylineDome2: {
-    width: 200,
-    height: 250,
-    backgroundColor: '#DC2626',
-    borderTopLeftRadius: 100,
-    borderTopRightRadius: 100,
-    position: 'absolute',
-    bottom: 30,
-    left: 80,
-  },
-  skylineDome3: {
-    width: 120,
-    height: 180,
-    backgroundColor: '#DC2626',
-    borderTopLeftRadius: 60,
-    borderTopRightRadius: 60,
-    position: 'absolute',
-    bottom: 40,
-    right: 40,
-  },
-  skylineDome4: {
-    width: 80,
-    height: 100,
-    backgroundColor: '#DC2626',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    position: 'absolute',
-    bottom: 20,
-    right: -10,
+    paddingBottom: 40,
   },
   homeHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
-    zIndex: 10,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoShield: {
-    width: 32,
-    height: 40,
-    backgroundColor: '#FEF2F2',
-    borderWidth: 2,
-    borderColor: '#DC2626',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  logoShieldIcon: {
-    fontSize: 16,
-    color: '#DC2626',
+    marginBottom: 16,
   },
   logoTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#DC2626', // SAKHI Red
-    letterSpacing: 1,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#8B1E1E',
+    letterSpacing: 0.5,
   },
   logoSubtitle: {
-    fontSize: 10,
-    color: '#4B5563',
-    fontWeight: '500',
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
   },
   profileBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   profileDot: {
     position: 'absolute',
@@ -1029,407 +806,238 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#DC2626',
+    backgroundColor: '#10B981',
     borderWidth: 1,
-    borderColor: '#fff',
+    borderColor: '#FFF',
   },
-  heroContainer: {
-    alignItems: 'flex-start',
-    marginBottom: 20,
-    zIndex: 10,
-  },
-  heroTextDark: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#1F2937',
-  },
-  heroTextRed: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#DC2626', 
-  },
-  heroHeart: {
-    fontSize: 28,
-    color: '#DC2626',
-    fontWeight: '300',
-    marginLeft: 6,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: '#4B5563',
-    marginTop: 8,
-    fontWeight: '500',
-  },
-  quickAccessContainer: {
-    marginTop: 10,
-    paddingBottom: 20,
-  },
-  quickAccessHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  quickAccessLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  quickAccessSeeAll: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#DC2626',
-  },
-  quickAccessRow3: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 12,
-  },
-  quickAccessRow2: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 20,
-  },
-  qaTileSquare: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    aspectRatio: 1, // Make it perfectly square
-  },
-  qaIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  qaTileIconWhite: {
-    fontSize: 18,
-    color: '#fff',
-  },
-  qaTileText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  qaTilePill: {
-    flex: 1,
-    backgroundColor: '#ffffff',
+  errorBox: {
+    backgroundColor: '#FEF2F2',
+    padding: 12,
     borderRadius: 12,
-    paddingVertical: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+  },
+  errorText: {
+    color: '#991B1B',
+    fontSize: 13,
+  },
+  sectionContainer: {
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+  },
+  gridCard: {
+    width: '31%',
+    borderRadius: 16,
+    padding: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
+    minHeight: 110,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  gridIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  gridCardTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    textAlign: 'center',
+  },
+  gridCardSub: {
+    fontSize: 10,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  helplinesCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  qaTileIconSmall: {
-    fontSize: 16,
-    marginRight: 6,
+  helplineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
   },
-  qaTileTextDark: {
-    fontSize: 13,
+  helplineLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  helplineIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  helplineName: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
   },
-  qaTileTextRed: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#DC2626',
-  },
-  sosCard: {
-    backgroundColor: '#FEF2F2', // Light red bg
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    flexDirection: 'row',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  sosIconBox: {
-    backgroundColor: '#DC2626',
-    borderRadius: 12,
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  sosIconText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  sosButton: {
-    backgroundColor: '#DC2626',
-    borderRadius: 14,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  sosTextContainer: {
-    flex: 1,
-  },
-  sosTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#DC2626',
-  },
-  sosSubtitle: {
+  helplineNumber: {
     fontSize: 12,
-    color: '#F87171',
-    marginTop: 2,
+    color: '#6B7280',
+    marginTop: 1,
   },
-  sosArrow: {
-    fontSize: 20,
-    color: '#DC2626',
-  },
-  bottomNavContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderColor: '#F3F4F6',
+  callBtn: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingBottom: 20, // For safe area
+    borderWidth: 1,
+    borderColor: '#8B1E1E',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: '#FFFFFF',
   },
-  navItem: {
+  callBtnText: {
+    color: '#8B1E1E',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  helplineDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginVertical: 4,
+  },
+  viewMoreRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 70,
+    paddingTop: 12,
+    marginTop: 4,
   },
-  navIconActive: {
-    fontSize: 24,
-    color: '#DC2626',
-    marginBottom: 4,
+  viewMoreText: {
+    color: '#8B1E1E',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginRight: 4,
   },
-  navIconInactive: {
-    fontSize: 24,
-    color: '#9CA3AF',
-    marginBottom: 4,
+  activeTabPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  navTextActive: {
-    fontSize: 10,
-    color: '#DC2626',
-    fontWeight: '600',
+  activeTabText: {
+    color: '#8B1E1E',
+    fontWeight: 'bold',
+    fontSize: 12,
+    marginLeft: 6,
   },
-  navTextInactive: {
-    fontSize: 10,
-    color: '#9CA3AF',
-    fontWeight: '500',
-  },
-  navIndicator: {
-    position: 'absolute',
-    bottom: -8,
-    width: 30,
-    height: 3,
-    backgroundColor: '#DC2626',
-    borderRadius: 2,
-  },
-  /* --- ACTIVE JOURNEY STYLES --- */
   ajHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
     marginTop: 10,
   },
   ajBackArrow: {
     fontSize: 24,
-    color: '#DC2626',
+    color: '#8B1E1E',
     fontWeight: 'bold',
   },
   ajTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#8B1E1E',
   },
   ajSubtitle: {
     fontSize: 12,
     color: '#6B7280',
   },
-  ajHeaderSosBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DC2626',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#fff',
-  },
-  ajHeaderSosIcon: {
-    fontSize: 14,
-    marginRight: 4,
-    color: '#DC2626',
-  },
-  ajHeaderSosText: {
-    color: '#DC2626',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  ajRouteSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 30,
-  },
-  ajRouteSummaryDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#DC2626',
-    marginRight: 8,
-  },
-  ajRouteSummaryText: {
-    fontSize: 12,
-    color: '#1F2937',
-    flex: 1,
-  },
-  ajRouteSummaryArrow: {
-    marginHorizontal: 8,
-    color: '#1F2937',
-  },
-  ajRouteSummaryPin: {
-    fontSize: 14,
-    marginRight: 4,
-  },
   ajMapContainer: {
     height: 300,
-    borderRadius: 16, // Use borderRadius but no overflow: hidden to avoid clipping Leaflet controls if any stick out
+    borderRadius: 16,
     backgroundColor: '#E5E7EB',
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },
-  ajSafetyCard: {
+  amenityToggleRow: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    alignItems: 'center',
-  },
-  ajSafetyLeft: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ajSafetyShield: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ajSafetyTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  ajSafetyDesc: {
-    fontSize: 10,
-    color: '#4B5563',
-    marginTop: 2,
-  },
-  ajSafetyDivider: {
-    width: 1,
-    height: '100%',
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 12,
-  },
-  ajSafetyMiddle: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ajSafetyScore: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  ajSafetyScoreMax: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: 'bold',
-  },
-  ajSafetyLabel: {
-    fontSize: 10,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  ajSafetyRight: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ajSafetyStatVal: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  ajSafetyStatUnit: {
-    fontSize: 10,
-    fontWeight: 'normal',
-    color: '#6B7280',
-  },
-  ajPrimaryBtn: {
-    backgroundColor: '#DC2626',
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  ajPrimaryBtnIcon: {
-    color: '#fff',
-    fontSize: 16,
-    marginRight: 8,
+  amenityIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  ajPrimaryBtnText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-    letterSpacing: 0.5,
+  amenityToggleTitle: {
+    fontWeight: '700',
+    fontSize: 15,
   },
-  ajPrimaryBtnArrow: {
-    color: '#fff',
-    fontSize: 18,
-    marginLeft: 8,
+  amenityToggleCaption: {
+    color: '#6B7280',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  customSwitchBg: {
+    width: 40,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  customSwitchHandle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   ajSectionTitle: {
     fontSize: 16,
@@ -1445,7 +1053,7 @@ const styles = StyleSheet.create({
   },
   ajQaTile: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFF',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
@@ -1458,49 +1066,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },
-  ajQaIcon: {
-    fontSize: 24,
-    marginBottom: 6,
-  },
   ajQaText: {
     fontSize: 10,
     color: '#1F2937',
     fontWeight: '600',
+    marginTop: 4,
   },
   ajActionCardRed: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FDF2F2',
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
-  },
-  ajActionIconRed: {
-    fontSize: 24,
-    marginRight: 16,
+    borderColor: '#FAD1D1',
   },
   ajActionTextCont: {
     flex: 1,
   },
   ajActionTitleRed: {
-    color: '#DC2626',
+    color: '#8B1E1E',
     fontWeight: 'bold',
     fontSize: 14,
   },
   ajActionDescRed: {
-    color: '#DC2626',
+    color: '#8B1E1E',
     fontSize: 10,
     marginTop: 2,
     opacity: 0.8,
   },
-  ajActionArrowRed: {
-    color: '#DC2626',
-    fontSize: 18,
-  },
   ajActionCardWhite: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFF',
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1514,10 +1111,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  ajActionIconGray: {
-    fontSize: 24,
-    marginRight: 16,
-  },
   ajActionTitleDark: {
     color: '#1F2937',
     fontWeight: 'bold',
@@ -1528,211 +1121,4 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 2,
   },
-  ajActionArrowGray: {
-    color: '#6B7280',
-    fontSize: 18,
-  },
-  ajActionCardSos: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  ajSosSquare: {
-    backgroundColor: '#DC2626',
-    borderRadius: 8,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  ajSosSquareText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  ajActionTitleSos: {
-    color: '#DC2626',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  ajActionDescSos: {
-    color: '#F87171',
-    fontSize: 10,
-    marginTop: 2,
-  },
-  ajActionArrowSos: {
-    fontSize: 20,
-    color: '#DC2626',
-  },
-  ajFooter: {
-    alignItems: 'center',
-    paddingTop: 10,
-  },
-  ajFooterText: {
-    fontSize: 10,
-    color: '#9CA3AF',
-  }
 });
-
-const accessibleStyles = StyleSheet.create({
-  ...styles,
-  fab: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#000',
-    borderWidth: 3,
-    borderColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 10,
-  },
-  fabIcon: {
-    fontSize: 30,
-    color: '#fff',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    padding: 16,
-    paddingTop: 50,
-    paddingBottom: 40,
-  },
-  errorBox: {
-    backgroundColor: '#000',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: '#ff0000',
-  },
-  errorText: {
-    color: '#ff0000',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  updateResultBox: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 3,
-    borderColor: '#000',
-    marginVertical: 10,
-  },
-  updateResultTitle: {
-    fontWeight: 'bold',
-    fontSize: 20,
-    color: '#000',
-    marginBottom: 4,
-  },
-  updateReason: {
-    color: '#000',
-    fontSize: 18,
-    marginBottom: 12,
-  },
-  baLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 2,
-  },
-  baValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  offlineBanner: {
-    backgroundColor: '#000',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 10,
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-  },
-  offlineBannerText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  amenityToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 3,
-    borderColor: '#000',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 10,
-  },
-  amenityToggleTitle: {
-    color: '#000',
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
-  amenityToggleCaption: {
-    color: '#000',
-    fontSize: 15,
-    marginTop: 2,
-  },
-  amenityToggle: {
-    backgroundColor: '#fff',
-    borderColor: '#000',
-    borderWidth: 2,
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  amenityToggleActive: {
-    backgroundColor: '#000',
-  },
-  amenityToggleText: {
-    color: '#000',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  amenityToggleTextActive: {
-    color: '#fff',
-  },
-  googleMapsButton: {
-    backgroundColor: '#000',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#000',
-    marginTop: 2,
-  },
-  googleMapsButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  googleMapsHint: {
-    color: '#000',
-    fontSize: 15,
-    lineHeight: 20,
-    marginTop: 6,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-});
-
-
-

@@ -96,7 +96,7 @@ export default function SegmentSafetyPanel({ segment, onReportIncident }: Props)
               {topPos.map((factor: any, index: number) => (
                 <View key={`pos-${index}`} style={styles.factorRow}>
                   <View style={styles.factorNameRow}>
-                    <Ionicons name="arrow-up" size={16} color="#DC2626" style={styles.factorIcon} />
+                    <Ionicons name="arrow-up" size={16} color="#8B1E1E" style={styles.factorIcon} />
                     <SakhiText variant="body" style={styles.factorName}>
                       {typeof factor.feature_name === 'string' ? factor.feature_name.replace(/_/g, ' ') : 'Unknown factor'}
                     </SakhiText>
@@ -130,10 +130,10 @@ export default function SegmentSafetyPanel({ segment, onReportIncident }: Props)
       {onReportIncident && (
         <TouchableOpacity style={styles.reportBtn} onPress={onReportIncident}>
           <View style={styles.reportBtnContent}>
-            <Ionicons name="warning-outline" size={18} color="#DC2626" style={styles.reportIcon} />
+            <Ionicons name="warning-outline" size={18} color="#8B1E1E" style={styles.reportIcon} />
             <SakhiText variant="body" style={styles.reportBtnText}>Report an incident</SakhiText>
           </View>
-          <Ionicons name="arrow-forward" size={18} color="#DC2626" />
+          <Ionicons name="arrow-forward" size={18} color="#8B1E1E" />
         </TouchableOpacity>
       )}
     </SakhiCard>
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   },
   factorPosValue: {
     fontWeight: '600',
-    color: '#DC2626',
+    color: '#8B1E1E',
     marginLeft: 12,
   },
   factorNegValue: {
@@ -242,12 +242,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FDF2F2',
     padding: 16,
     borderRadius: 16,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
+    borderColor: '#FAD1D1',
   },
   reportBtnContent: {
     flexDirection: 'row',
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   reportBtnText: {
-    color: '#DC2626',
+    color: '#8B1E1E',
     fontWeight: '600',
   },
 });

@@ -6,6 +6,7 @@ import { SakhiText } from './ui/SakhiText';
 import { SakhiButton } from './ui/SakhiButton';
 import { SakhiBadge } from './ui/SakhiBadge';
 import { useTheme } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
   ranking: RouteRankingResponse;
@@ -116,22 +117,31 @@ export default function RouteOptionsList({ ranking, selectedRouteId, onSelectRou
             {/* Amenities */}
             {opt.route.amenity_counts && (
               <View style={styles.amenitiesRow}>
-                <SakhiText variant="subtext" color="secondary" style={{ marginRight: spacing.md }}>
-                  🚻 {opt.route.amenity_counts.washrooms}
-                </SakhiText>
-                <SakhiText variant="subtext" color="secondary" style={{ marginRight: spacing.md }}>
-                  🏥 {opt.route.amenity_counts.medical}
-                </SakhiText>
-                <SakhiText variant="subtext" color="secondary">
-                  👮 {opt.route.amenity_counts.police}
-                </SakhiText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: spacing.md }}>
+                  <Ionicons name="water-outline" size={14} color={colors.text.secondary} style={{ marginRight: 4 }} />
+                  <SakhiText variant="subtext" color="secondary">
+                    {opt.route.amenity_counts.washrooms}
+                  </SakhiText>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: spacing.md }}>
+                  <Ionicons name="add" size={16} color={colors.text.secondary} style={{ marginRight: 4 }} />
+                  <SakhiText variant="subtext" color="secondary">
+                    {opt.route.amenity_counts.medical}
+                  </SakhiText>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="shield-outline" size={14} color={colors.text.secondary} style={{ marginRight: 4 }} />
+                  <SakhiText variant="subtext" color="secondary">
+                    {opt.route.amenity_counts.police}
+                  </SakhiText>
+                </View>
               </View>
             )}
 
             {/* Action */}
             <View style={{ marginTop: spacing.md }}>
               <SakhiButton 
-                title={isSelected ? "↗ Open in Google Maps" : (isSingleRoute ? "Start Journey →" : "Choose Route →")} 
+                title={isSelected ? "Open in Google Maps" : (isSingleRoute ? "Start Journey" : "Choose Route")} 
                 variant={isSelected ? "primary" : "secondary"}
                 onPress={() => {
                   if (isSelected && onOpenMaps) {
