@@ -142,7 +142,7 @@ export default function JourneyDashboard() {
     let cancelled = false;
     setWashroomsLoading(true);
     // Fetch washrooms using location
-    sakhiApi.getWashrooms(lat, lon, 10.0)
+    sakhiApi.getOsmAmenities(lat, lon, 'washroom', 200)
       .then((data) => { if (!cancelled) setWashrooms(data); })
       .catch(() => { if (!cancelled) setWashroomsError('Washroom locations are unavailable right now.'); })
       .finally(() => {
