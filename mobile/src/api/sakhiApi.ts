@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { JourneyResponse, ContextUpdateEvent, ContextUpdateResponse, Location, WashroomResponse } from '../types/api';
 import { supabase } from './supabase';
 
@@ -47,6 +47,19 @@ export const sakhiApi = {
     return response.data.washrooms;
   },
 
+  getOsmAmenities: async (lat: number, lon: number, category: 'washroom' | 'police' | 'medical', radius_m: number = 1000): Promise<{ id: string; name: string; address?: string; latitude: number; longitude: number; distance_m: number; opening_hours?: string; phone?: string; source: string; rating?: number | null; rating_count?: number; is_open?: boolean; cleanliness?: string; safety?: string; accessible?: boolean }[]> => {
+    try {
+      const response = await apiClient.get('/osm-amenities/nearby', { params: { lat, lon, category, radius_m } });
+      if (response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+      return [];
+    } catch (e) {
+      console.warn(`Failed to fetch OSM amenities for ${category}`, e);
+      return [];
+    }
+  },
+
   submitWashroomFeedback: async (
     washroomId: string,
     feedback: { is_open: boolean; cleanliness: string; safety: string; accessible: boolean }
@@ -73,16 +86,6 @@ export const sakhiApi = {
     const { data: { session } } = await supabase.auth.getSession();
     const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
     const response = await apiClient.post('/incidents/', incident, { headers });
-    return response.data;
-  },
-
-  triggerSos: async (journeyId: string | null, location: Location): Promise<any> => {
-    const response = await axios.post(`${BASE_URL}/emergency/sos`, {
-      journey_id: journeyId,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      trigger_source: 'manual',
-    });
     return response.data;
   },
 

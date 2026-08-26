@@ -40,52 +40,56 @@ async def list_public_toilets():
     return await get_segment_lookup_service().get_public_toilets()
 
 
-@router.get("/nearest", response_model=NearestAmenityResponse, summary="Find nearest facility")
-async def find_nearest(lat: float, lon: float, type: str = "police"):
-    """Find nearest police station, hospital, or washroom from real spatial datasets."""
+@router.get("/nearby", response_model=list[NearestAmenityResponse], summary="Find nearby facilities within radius")
+async def find_nearby(lat: float, lon: float, type: str = "police", radius_m: float = 2000.0):
+    """Find police stations, hospitals, or washrooms within 2km from real spatial datasets."""
     lookup = get_segment_lookup_service()
+    results = []
     
     if type == "police" and not lookup._police.empty:
         df = lookup._police
         name_col = "name" if "name" in df.columns else "district"
-        best_name, best_lat, best_lon, best_dist = "", 0.0, 0.0, float("inf")
         for _, row in df.iterrows():
             d = _haversine(lat, lon, float(row["latitude"]), float(row["longitude"]))
-            if d < best_dist:
-                best_dist = d
-                best_lat = float(row["latitude"])
-                best_lon = float(row["longitude"])
-                best_name = str(row.get(name_col, "Police Station"))
-        return NearestAmenityResponse(name=best_name, latitude=best_lat, longitude=best_lon, distance_m=round(best_dist), type="Police Station")
+            if d <= radius_m:
+                results.append(NearestAmenityResponse(
+                    name=str(row.get(name_col, "Police Station")),
+                    latitude=float(row["latitude"]),
+                    longitude=float(row["longitude"]),
+                    distance_m=round(d),
+                    type="Police Station"
+                ))
     
     elif type == "hospital" and not lookup._hospitals.empty:
         df = lookup._hospitals
         name_col = "name" if "name" in df.columns else "type"
-        best_name, best_lat, best_lon, best_dist = "", 0.0, 0.0, float("inf")
         for _, row in df.iterrows():
             d = _haversine(lat, lon, float(row["latitude"]), float(row["longitude"]))
-            if d < best_dist:
-                best_dist = d
-                best_lat = float(row["latitude"])
-                best_lon = float(row["longitude"])
-                best_name = str(row.get(name_col, "Hospital"))
-        return NearestAmenityResponse(name=best_name, latitude=best_lat, longitude=best_lon, distance_m=round(best_dist), type="Hospital")
+            if d <= radius_m:
+                results.append(NearestAmenityResponse(
+                    name=str(row.get(name_col, "Hospital")),
+                    latitude=float(row["latitude"]),
+                    longitude=float(row["longitude"]),
+                    distance_m=round(d),
+                    type="Hospital"
+                ))
     
     elif type == "washroom" and not lookup._amenities.empty:
         df = lookup._amenities
         toilets = df[df["type"].astype(str).str.contains("toilet|Toilet|washroom|Washroom", case=False, na=False)]
         if toilets.empty:
             toilets = df
-        best_name, best_lat, best_lon, best_dist = "", 0.0, 0.0, float("inf")
         for _, row in toilets.iterrows():
             d = _haversine(lat, lon, float(row["latitude"]), float(row["longitude"]))
-            if d < best_dist:
-                best_dist = d
-                best_lat = float(row["latitude"])
-                best_lon = float(row["longitude"])
-                best_name = str(row.get("name", "Public Toilet"))
-        return NearestAmenityResponse(name=best_name, latitude=best_lat, longitude=best_lon, distance_m=round(best_dist), type="Washroom")
+            if d <= radius_m:
+                results.append(NearestAmenityResponse(
+                    name=str(row.get("name", "Public Toilet")),
+                    latitude=float(row["latitude"]),
+                    longitude=float(row["longitude"]),
+                    distance_m=round(d),
+                    type="Washroom"
+                ))
     
-    # Fallback
-    return NearestAmenityResponse(name="No facility found", latitude=lat, longitude=lon, distance_m=0, type=type)
+    results.sort(key=lambda x: x.distance_m)
+    return results
 

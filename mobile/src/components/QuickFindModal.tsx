@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Modal, View, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SakhiText } from './ui/SakhiText';
@@ -9,6 +9,7 @@ import { sakhiApi, CallFriendSettings } from '../api/sakhiApi';
 import CallFriendSetupModal from './CallFriendSetupModal';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { getOfflineAudioSource } from '../assets/offlineAudioRegistry';
+import AmenitySearch from './AmenitySearch';
 
 const { width } = Dimensions.get('window');
 
@@ -317,22 +318,6 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
 
   const handleSearch = async (categoryName: string) => {
     setSelectedCategory(categoryName);
-    setLoading(true);
-    setResult(null);
-
-    setTimeout(() => {
-      setLoading(false);
-      if (categoryName === 'Washroom') {
-        setResult('Public Restroom - Station Road (200m)');
-        setResultCoords({ lat: 18.5204, lon: 73.8567 });
-      } else if (categoryName === 'Medical Clinic') {
-        setResult('City Emergency Care - Main Street (400m)');
-        setResultCoords({ lat: 18.5215, lon: 73.8580 });
-      } else {
-        setResult('Safe Shelter Point - Central Hub (350m)');
-        setResultCoords({ lat: 18.5225, lon: 73.8590 });
-      }
-    }, 1200);
   };
 
   const handleNavigateNow = () => {
@@ -346,7 +331,6 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const reset = () => {
     stopAudioPlayers();
     setLoading(false);
-    setResult(null);
     setSelectedCategory(null);
     setShowSetupNeeded(false);
     setShowModeSelection(false);
@@ -545,30 +529,15 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   );
 
   const renderResult = () => (
-    <View style={styles.resultContainer}>
-      <View style={styles.resultIconWrapper}>
-        <Ionicons
-          name={selectedCategory === 'Washroom' ? 'water-outline' : selectedCategory === 'Medical Clinic' ? 'medkit-outline' : 'shield-checkmark-outline'}
-          size={32}
-          color="#DC2626"
-        />
-      </View>
-      <SakhiText variant="h3" style={styles.resultCategory}>Found {selectedCategory}</SakhiText>
-      <SakhiText variant="body" color="secondary" style={styles.resultMockBadge}>Demo result</SakhiText>
-
-      <SakhiCard style={styles.resultCard}>
-        <SakhiText variant="h3" style={{ textAlign: 'center', marginBottom: 12 }}>{result}</SakhiText>
-      </SakhiCard>
-
-      <SakhiButton
-        title="Navigate Now"
-        onPress={handleNavigateNow}
-        style={styles.actionBtn}
+    <View style={{ flex: 1 }}>
+      <AmenitySearch 
+        category={selectedCategory!}
+        onNavigate={(destCoords, originCoords) => {
+          let url = `https://www.google.com/maps/dir/?api=1&origin=${originCoords.latitude},${originCoords.longitude}&destination=${destCoords.latitude},${destCoords.longitude}&travelmode=walking`;
+          Linking.openURL(url);
+          reset();
+        }}
       />
-
-      <TouchableOpacity style={styles.searchAgainBtn} onPress={reset}>
-        <SakhiText variant="body" color="secondary">Search Again</SakhiText>
-      </TouchableOpacity>
     </View>
   );
 
@@ -576,9 +545,11 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
     <>
       <Modal visible={visible} animationType="slide" transparent={true}>
         <View style={styles.overlay}>
-          <View style={styles.modalView}>
+          <View style={[styles.modalView, selectedCategory ? styles.modalViewFullScreen : null]}>
             <View style={styles.header}>
-              <SakhiText variant="h2" style={styles.headerTitle}>Quick Assistance</SakhiText>
+              <SakhiText variant="h2" style={styles.headerTitle}>
+                {selectedCategory ? selectedCategory : 'Quick Assistance'}
+              </SakhiText>
               <TouchableOpacity onPress={reset} style={styles.closeBtnWrapper}>
                 <Ionicons name="close" size={24} color="#6B7280" />
               </TouchableOpacity>
@@ -591,8 +562,8 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
               </View>
             )}
 
-            {!loading && !checkingSettings && result && renderResult()}
-            {!loading && !checkingSettings && !result && !showSetupNeeded && !showModeSelection && !isIncomingCall && !callActive && renderOptions()}
+            {!loading && !checkingSettings && selectedCategory && renderResult()}
+            {!loading && !checkingSettings && !selectedCategory && !showSetupNeeded && !showModeSelection && !isIncomingCall && !callActive && renderOptions()}
             {!loading && !checkingSettings && showSetupNeeded && renderSetupNeeded()}
             {!loading && !checkingSettings && showModeSelection && renderModeSelection()}
             {!loading && !checkingSettings && isIncomingCall && renderIncomingCall()}
@@ -622,6 +593,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     minHeight: width * 0.8,
+  },
+  modalViewFullScreen: {
+    flex: 1,
+    marginTop: 40,
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
