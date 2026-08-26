@@ -7,11 +7,6 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str = "sqlite:///./sakhi.db"
     SUPABASE_URL: Optional[str] = None
-    
-    # Sandbox KYC Configuration
-    SANDBOX_API_KEY: Optional[str] = None
-    SANDBOX_API_SECRET: Optional[str] = None
-    SANDBOX_BASE_URL: str = "https://test-api.sandbox.co.in"
 
     # Routing Provider Configuration
     OSRM_BASE_URL: str = "https://router.project-osrm.org"

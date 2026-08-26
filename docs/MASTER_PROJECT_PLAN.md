@@ -217,8 +217,6 @@ Install and configure expo-av for Feature B.
 - Incident Authentication (POST /incidents now requires a valid JWT and assigns the reporter's user_id).
 
 **Planned (Next Phase):**
-- Sandbox Aadhaar OTP proxy (FastAPI).
-- Sandbox e-KYC integration.
 - Verified Status UI.
 
 **Security & Privacy:**
@@ -228,5 +226,4 @@ Install and configure expo-av for Feature B.
 - SAKHI users start as NORMAL. Duplicate logins fetch the same account idempotently.
 
 
-## KYC / Aadhaar Verification Recommendation
-For the hackathon prototype, we have a strict ?0 cost requirement. Based on the provider audit, the **Setu Aadhaar eKYC Sandbox** is the unequivocally recommended path. It provides a free, fully simulated API environment that requires no business KYC to access, offers dummy Aadhaar numbers and OTPs, and perfectly demonstrates a production-grade architecture. If registration fails, a **Custom Mock FastAPI Service** will be used as a zero-cost backup.
+

@@ -9,7 +9,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=True)
     display_name = Column(String, nullable=True)
     identity_status = Column(String, default="NORMAL") # NORMAL or VERIFIED
-    identity_provider = Column(String, nullable=True) # e.g. "google", "aadhaar"
+    identity_provider = Column(String, nullable=True) # e.g. "google"
     identity_verified_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
