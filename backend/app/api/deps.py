@@ -49,48 +49,27 @@ def get_current_user(
     payload: dict = Depends(verify_supabase_token),
     db: Session = Depends(get_db)
 ) -> User:
+    """Gets or creates the SAKHI User in public.users from verified Supabase token."""
     supabase_user_id = payload.get("sub")
     email = payload.get("email")
     
-    # Safe robust parsing of user_metadata
-    user_metadata = payload.get("user_metadata", {})
-    if not isinstance(user_metadata, dict):
-        user_metadata = {}
-        
-    raw_demo = user_metadata.get("demo_identity_verified", False)
-    
-    # Force strict boolean evaluation
-    demo_verified = False
-    if isinstance(raw_demo, bool):
-        demo_verified = raw_demo
-    elif isinstance(raw_demo, str):
-        demo_verified = raw_demo.lower() == "true"
-        
     if not supabase_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found in token")
         
     user = db.query(User).filter(User.id == supabase_user_id).first()
     
     if not user:
+        # Every new authenticated user ALWAYS defaults strictly to NORMAL status
         user = User(
             id=supabase_user_id,
             email=email,
             display_name=email.split("@")[0] if email else "User",
-            identity_status="VERIFIED" if demo_verified else "NORMAL",
-            identity_verified_at=datetime.utcnow() if demo_verified else None
+            identity_provider="google",
+            identity_status="NORMAL",
+            identity_verified_at=None
         )
         db.add(user)
         db.commit()
         db.refresh(user)
-    else:
-        needs_update = False
-        if demo_verified and user.identity_status != "VERIFIED":
-            user.identity_status = "VERIFIED"
-            user.identity_verified_at = datetime.utcnow()
-            needs_update = True
-            
-        if needs_update:
-            db.commit()
-            db.refresh(user)
         
     return user

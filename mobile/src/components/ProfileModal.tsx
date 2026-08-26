@@ -24,34 +24,36 @@ export default function ProfileModal({ visible, onClose }: Props) {
   const [showVerifyFlow, setShowVerifyFlow] = useState(false);
   const [demoIdInput, setDemoIdInput] = useState('');
 
-  const checkVerificationState = async (sessionUser: User) => {
-    // 1. MUST reset verification state to prevent bleed between accounts
+  const syncUserProfileWithDb = async (sessionUser: User | null) => {
+    // Always reset local state first
     setIsVerified(false);
 
+    if (!sessionUser) return;
+
     try {
-      // 2. STRICT Source of Truth: Supabase Auth metadata only
-      console.log('--- CHECKING VERIFICATION STATE ---');
-      console.log('USER METADATA:', sessionUser.user_metadata);
-      const isDemoVerified = sessionUser.user_metadata?.demo_identity_verified;
-      console.log('EVALUATED DEMO VERIFIED FLAG:', isDemoVerified);
-      if (isDemoVerified === true || isDemoVerified === 'true') {
+      // SINGLE SOURCE OF TRUTH: Fetch identity_status directly from backend database
+      const profile = await sakhiApi.getCurrentUser();
+      if (profile && profile.identity_status === 'VERIFIED') {
         setIsVerified(true);
+      } else {
+        setIsVerified(false);
       }
     } catch (e) {
-      console.log('Error reading verification state:', e);
+      console.log('Error fetching DB user profile:', e);
+      setIsVerified(false);
     }
   };
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
+        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
+        const currentAuthUser = session?.user ?? null;
+        setUser(currentAuthUser);
         
-        if (session?.user) {
-          await checkVerificationState(session.user);
-          // Sync user to backend silently
-          sakhiApi.getCurrentUser().catch(e => console.log('Backend sync failed', e));
+        if (currentAuthUser) {
+          await syncUserProfileWithDb(currentAuthUser);
         }
       } catch (error) {
         console.error('Profile fetch error:', error);
@@ -67,11 +69,10 @@ export default function ProfileModal({ visible, onClose }: Props) {
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await checkVerificationState(session.user);
-          // Sync user to backend silently
-          sakhiApi.getCurrentUser().catch(e => console.log('Backend sync failed', e));
+      const currentAuthUser = session?.user ?? null;
+      setUser(currentAuthUser);
+      if (currentAuthUser) {
+        await syncUserProfileWithDb(currentAuthUser);
       } else {
         setIsVerified(false);
       }
@@ -85,20 +86,12 @@ export default function ProfileModal({ visible, onClose }: Props) {
   const handleSignIn = async () => {
     try {
       setActionLoading(true);
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: (process.env.EXPO_PUBLIC_APP_ENV === 'development' ? 'sakhi-dev://auth/callback' : 'sakhi://auth/callback'),
-          skipBrowserRedirect: true,
-        },
-      });
-
-      if (!data?.url) throw new Error('No OAuth URL returned');
+      const isDev = process.env.EXPO_PUBLIC_APP_ENV === 'development';
+      const redirectUri = isDev ? 'sakhi-dev://auth/callback' : 'sakhi://auth/callback';
 
       const res = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        (process.env.EXPO_PUBLIC_APP_ENV === 'development' ? 'sakhi-dev://auth/callback' : 'sakhi://auth/callback')
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUri)}`,
+        redirectUri
       );
 
       if (res.type === 'success' && res.url) {
@@ -147,6 +140,8 @@ export default function ProfileModal({ visible, onClose }: Props) {
     try {
       setActionLoading(true);
       await supabase.auth.signOut();
+      setUser(null);
+      setIsVerified(false);
       setShowVerifyFlow(false);
       setDemoIdInput('');
     } catch (error) {
@@ -157,31 +152,32 @@ export default function ProfileModal({ visible, onClose }: Props) {
   };
 
   const handleDemoVerify = async () => {
-    if (/^\d{12}$/.test(demoIdInput.trim())) {
-       if (user?.id) {
-           setActionLoading(true);
-           
-           const { error } = await supabase.auth.updateUser({
-             data: {
-               demo_identity_verified: true,
-               verification_type: 'demo'
-             }
-           });
-           
-           setActionLoading(false);
-           
-           if (error) {
-             console.error('Failed to update Supabase metadata:', error);
-             Alert.alert('Verification Error', 'Failed to update verification status.');
-           } else {
-             setIsVerified(true);
-             setShowVerifyFlow(false);
-             const { data: { session } } = await supabase.auth.getSession();
-             setUser(session?.user ?? null);
-           }
-       }
-    } else {
-       Alert.alert('Invalid Demo ID', 'Please enter a valid demo ID.');
+    const trimmedCode = demoIdInput.trim();
+    if (!/^\d{12}$/.test(trimmedCode)) {
+      Alert.alert('Invalid Demo ID', 'Please enter a valid 12-digit numeric demo ID.');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      
+      // Update database public.users table via backend API
+      const updatedProfile = await sakhiApi.verifyDemo(trimmedCode);
+      
+      if (updatedProfile && updatedProfile.identity_status === 'VERIFIED') {
+        setIsVerified(true);
+        setShowVerifyFlow(false);
+        setDemoIdInput('');
+        Alert.alert('Verification Successful', 'Your identity status is now VERIFIED in the database.');
+      } else {
+        throw new Error('Database status update returned non-verified status.');
+      }
+    } catch (error: any) {
+      console.error('Demo verification error:', error);
+      Alert.alert('Verification Failed', error.response?.data?.detail || error.message || 'Failed to update database verification status.');
+      setIsVerified(false);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -190,7 +186,7 @@ export default function ProfileModal({ visible, onClose }: Props) {
       <ScrollView style={styles.flexShrink} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <SakhiText variant="h2" style={styles.title}>Demo Identity Verification</SakhiText>
         <SakhiText variant="body" color="secondary" style={styles.subtitle}>
-          This is a prototype verification flow for demonstration purposes.
+          Enter a 12-digit demo ID to set your identity status to VERIFIED in the backend database.
         </SakhiText>
         
         <TextInput
@@ -200,7 +196,6 @@ export default function ProfileModal({ visible, onClose }: Props) {
           maxLength={12}
           value={demoIdInput}
           onChangeText={setDemoIdInput}
-          
         />
 
         <SakhiButton

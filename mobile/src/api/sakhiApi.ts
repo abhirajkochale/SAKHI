@@ -5,7 +5,6 @@ import { supabase } from './supabase';
 // Use Expo environment variable or fallback to localhost
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-
 const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: 60000, // Increased to 60000ms to accommodate Render free-tier cold starts
@@ -81,6 +80,12 @@ export const sakhiApi = {
     const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
     const response = await apiClient.get('/users/me', { headers });
     return response.data;
+  },
+
+  verifyDemo: async (demoCode: string): Promise<any> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined;
+    const response = await apiClient.post('/users/me/verify-demo', { demo_code: demoCode }, { headers });
+    return response.data;
   }
 };
-
