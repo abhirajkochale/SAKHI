@@ -34,7 +34,7 @@ export default function AmenitySearch({ category, onNavigate }: Props) {
   const [selectedWashroom, setSelectedWashroom] = useState<any | null>(null);
 
   const getTheme = () => {
-    if (category === 'Washroom') return { bg: '#F3E8FF', text: '#7E22CE', title: 'Right to Pee', sub: 'Find nearby public washrooms', icon: 'water' as const };
+    if (category === 'Washroom') return { bg: '#F3E8FF', text: '#7E22CE', title: 'Washrooms', sub: 'Find nearby public washrooms', icon: 'water' as const };
     if (category === 'Medical Clinic') return { bg: '#FCE7F3', text: '#DB2777', title: 'Medical Clinics', sub: 'Find nearby clinics and hospitals', icon: 'add' as const };
     if (category === 'Police Station') return { bg: '#ECFDF5', text: '#059669', title: 'Police Stations', sub: 'Find nearby police stations', icon: 'shield-checkmark' as const };
     return { bg: '#F3F4F6', text: '#374151', title: 'Facilities', sub: 'Find nearby facilities', icon: 'search' as const };

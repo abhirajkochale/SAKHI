@@ -262,12 +262,12 @@ export default function JourneyDashboard() {
           <Text style={styles.sectionTitle}>Quick actions</Text>
           
           <View style={styles.quickGrid}>
-            {/* 1. Right to Pee */}
+            {/* 1. Washrooms */}
             <TouchableOpacity style={[styles.gridCard, { backgroundColor: '#F3E8FF' }]} onPress={() => openQuickFind('Washroom')}>
               <View style={styles.gridIconCircle}>
                 <Ionicons name="map-outline" size={20} color="#7E22CE" />
               </View>
-              <Text style={styles.gridCardTitle}>Right to Pee</Text>
+              <Text style={styles.gridCardTitle}>Washrooms</Text>
               <Text style={styles.gridCardSub}>Find washrooms</Text>
             </TouchableOpacity>
 
@@ -331,10 +331,10 @@ export default function JourneyDashboard() {
                 </View>
                 <View>
                   <Text style={styles.helplineName}>Women Helpline</Text>
-                  <Text style={styles.helplineNumber}>181</Text>
+                  <Text style={styles.helplineNumber}>1091</Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL('tel:181')}>
+              <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL('tel:1091')}>
                 <Ionicons name="call-outline" size={14} color="#8B1E1E" style={{ marginRight: 4 }} />
                 <Text style={styles.callBtnText}>Call</Text>
               </TouchableOpacity>
@@ -369,19 +369,15 @@ export default function JourneyDashboard() {
                 </View>
                 <View>
                   <Text style={styles.helplineName}>Mental Health Support</Text>
-                  <Text style={styles.helplineNumber}>9152987821</Text>
+                  <Text style={styles.helplineNumber}>1800 233 3330</Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL('tel:9152987821')}>
+              <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL('tel:18002333330')}>
                 <Ionicons name="call-outline" size={14} color="#8B1E1E" style={{ marginRight: 4 }} />
                 <Text style={styles.callBtnText}>Call</Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.viewMoreRow} onPress={() => openQuickFind()}>
-              <Text style={styles.viewMoreText}>View more helplines</Text>
-              <Ionicons name="chevron-forward" size={14} color="#8B1E1E" />
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -539,19 +535,9 @@ export default function JourneyDashboard() {
             else if (route.name === 'Amenities') iconName = focused ? 'business' : 'business-outline';
             else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
 
-            if (route.name === 'Home' && focused) {
-              return (
-                <View style={styles.activeTabPill}>
-                  <Ionicons name="home" size={18} color="#8B1E1E" />
-                  <Text style={styles.activeTabText}>Home</Text>
-                </View>
-              );
-            }
-
             return <Ionicons name={iconName as any} size={size} color={color} />;
           },
           tabBarLabel: ({ focused, color }) => {
-            if (focused && route.name === 'Home') return null; // Pill shows label inside
             return <Text style={{ fontSize: 11, color, fontWeight: focused ? '600' : '400', marginTop: -2 }}>{route.name}</Text>;
           },
           tabBarActiveTintColor: '#8B1E1E',

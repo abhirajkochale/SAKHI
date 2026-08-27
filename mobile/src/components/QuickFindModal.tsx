@@ -214,7 +214,14 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
   const startCallFromModeSelection = () => {
     if (!savedSettings) return;
     setShowModeSelection(false);
-    startIncomingCall(savedSettings);
+    
+    let activeSettings = savedSettings;
+    if (callMode === 'offline') {
+      activeSettings = { ...savedSettings, caller_name: 'Bro', language_code: 'hi-IN' };
+      setSavedSettings(activeSettings); // Update state so incoming call UI matches
+    }
+    
+    startIncomingCall(activeSettings);
   };
 
   const startIncomingCall = async (settings: CallFriendSettings) => {
@@ -444,14 +451,19 @@ export default function QuickFindModal({ visible, onClose, initialCategory }: Pr
 
       {/* Configuration Summary Card */}
       <View style={styles.summaryCard}>
-        <SakhiText variant="subtext" style={styles.summaryHeader}>Configured Profile:</SakhiText>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <SakhiText variant="subtext" style={styles.summaryHeader}>Configured Profile:</SakhiText>
+          <TouchableOpacity onPress={() => setShowSetupModal(true)}>
+            <SakhiText variant="caption" style={{ color: '#2563EB', fontWeight: 'bold' }}>Edit Setup</SakhiText>
+          </TouchableOpacity>
+        </View>
         <View style={styles.summaryRow}>
-          <SakhiText variant="caption" color="secondary">Caller: <SakhiText variant="body" style={{fontWeight:'bold'}}>{savedSettings?.caller_name}</SakhiText></SakhiText>
-          <SakhiText variant="caption" color="secondary">Voice: <SakhiText variant="body" style={{fontWeight:'bold'}}>{savedSettings?.voice_gender}</SakhiText></SakhiText>
+          <SakhiText variant="caption" color="secondary">Caller: <SakhiText variant="body" style={{fontWeight:'bold'}}>{callMode === 'offline' ? 'Bro' : savedSettings?.caller_name}</SakhiText></SakhiText>
+          <SakhiText variant="caption" color="secondary">Voice: <SakhiText variant="body" style={{fontWeight:'bold'}}>{callMode === 'offline' ? 'Default' : savedSettings?.voice_gender}</SakhiText></SakhiText>
         </View>
         <View style={styles.summaryRow}>
           <SakhiText variant="caption" color="secondary">
-            Lang: <SakhiText variant="body" style={{fontWeight:'bold'}}>{savedSettings?.language_code === 'en-IN' ? 'English' : savedSettings?.language_code === 'hi-IN' ? 'Hindi' : 'Marathi'}</SakhiText>
+            Lang: <SakhiText variant="body" style={{fontWeight:'bold'}}>{callMode === 'offline' ? 'Hindi' : (savedSettings?.language_code === 'en-IN' ? 'English' : savedSettings?.language_code === 'hi-IN' ? 'Hindi' : 'Marathi')}</SakhiText>
           </SakhiText>
           <SakhiText variant="caption" color="secondary">Duration: <SakhiText variant="body" style={{fontWeight:'bold'}}>{savedSettings?.duration_minutes} min</SakhiText></SakhiText>
         </View>
